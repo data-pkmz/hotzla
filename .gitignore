@@ -4,3 +4,7 @@ __pycache__/
 .env.development
 .env.staging
 .env.production
+dist/
+build/
+.DS_Store
+*.local

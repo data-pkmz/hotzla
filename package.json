@@ -1,0 +1,19 @@
+{
+  "name": "hotzla-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "shared-types",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "build:shared": "npm run build -w shared-types",
+    "build:backend": "npm run build -w backend",
+    "build:frontend": "npm run build -w frontend",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "install:all": "npm install"
+  }
+}
