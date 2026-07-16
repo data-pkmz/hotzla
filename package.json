@@ -14,6 +14,8 @@
     "build:backend": "npm run build -w backend",
     "build:frontend": "npm run build -w frontend",
     "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "install:all": "npm install"
   }
 }
