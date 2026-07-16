@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 // Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
+import { testDbConnection } from './config/db';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -37,8 +38,13 @@ app.get('/api/demo-user', (req: Request, res: Response) => {
   });
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Backend server is running on port ${port}`);
+  try {
+    await testDbConnection();
+  } catch (err) {
+    console.error('Startup database connection test failed:', err);
+  }
 });
 
 export default app;
