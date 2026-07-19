@@ -1,6 +1,7 @@
 <div dir="rtl" style="text-align: right;">
 
 # מסמך תכן תוכנה (SDD)
+
 ## מערכת "הוצאה לאור דיגיטלית" (Digital Publishing System – DPS)
 
 **גרסה:** 1.0
@@ -49,7 +50,6 @@ flowchart RL
     G --> H[הושלם]
 ```
 
-
 ---
 
 ## 2. מטרות המערכת
@@ -64,28 +64,28 @@ flowchart RL
 
 ## 3. משתמשים, תפקידים והרשאות
 
-| תפקיד | סוג משתמש במערכת | תיאור |
-|---|---|---|
-| **מזמין** (חייל/קצין) | משתמש רשום (Windows Integrated Auth) | יוצר הזמנות, עוקב אחר ההזמנות שלו בלבד |
-| **קצין תקציב** | **לא משתמש רשום** – אינטראקציה חיצונית בלבד | מקבל מייל, מאשר ע"י מענה "מאושר" או קליק על קישור מאובטח חד-פעמי |
-| **מנהל בית הדפוס** (הוצל"א) | משתמש רשום, Role: `MANAGER` | הרשאות מלאות: ניהול קטלוג (כולל בניית מוצרים דינמיים), אישור סופי-תקציבי, אישור לביצוע, כל פעולות העובד, שינוי ידני של כל סטטוס |
-| **עובד בית הדפוס** | משתמש רשום, Role: `WORKER` | רואה תור עבודה (הזמנות שאושרו לביצוע בלבד), מדפיס, מעדכן סטטוס הדפסה/מוכן לאיסוף |
+| תפקיד                       | סוג משתמש במערכת                            | תיאור                                                                                                                           |
+| --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **מזמין** (חייל/קצין)       | משתמש רשום (Windows Integrated Auth)        | יוצר הזמנות, עוקב אחר ההזמנות שלו בלבד                                                                                          |
+| **קצין תקציב**              | **לא משתמש רשום** – אינטראקציה חיצונית בלבד | מקבל מייל, מאשר ע"י מענה "מאושר" או קליק על קישור מאובטח חד-פעמי                                                                |
+| **מנהל בית הדפוס** (הוצל"א) | משתמש רשום, Role: `MANAGER`                 | הרשאות מלאות: ניהול קטלוג (כולל בניית מוצרים דינמיים), אישור סופי-תקציבי, אישור לביצוע, כל פעולות העובד, שינוי ידני של כל סטטוס |
+| **עובד בית הדפוס**          | משתמש רשום, Role: `WORKER`                  | רואה תור עבודה (הזמנות שאושרו לביצוע בלבד), מדפיס, מעדכן סטטוס הדפסה/מוכן לאיסוף                                                |
 
 ### מטריצת הרשאות
 
-| פעולה | מזמין | מנהל | עובד |
-|---|:---:|:---:|:---:|
-| צפייה בקטלוג | ✔ | ✔ | ✔ |
-| יצירת הזמנה חדשה | ✔ | – | – |
-| צפייה בהיסטוריית הזמנות אישית | ✔ | – | – |
-| צפייה בכל ההזמנות במערכת | – | ✔ | ✔ (רק תור עבודה מאושר) |
-| ניהול קטלוג (מוצרי מדף + מוצרים דינמיים) | – | ✔ | – |
-| אישור ידני "אושר ע"י קצין תקציב" (double-check/Fallback) | – | ✔ | – |
-| אישור "מאושר לביצוע" | – | ✔ | – |
-| עדכון סטטוס "בהדפסה" | – | ✔ | ✔ |
-| עדכון סטטוס "מוכן לאיסוף" | – | ✔ | ✔ |
-| עדכון סטטוס "הושלם" | – | ✔ | ✔ |
-| שינוי ידני/עוקף (Override) לכל סטטוס | – | ✔ | – |
+| פעולה                                                    | מזמין | מנהל |          עובד          |
+| -------------------------------------------------------- | :---: | :--: | :--------------------: |
+| צפייה בקטלוג                                             |   ✔   |  ✔   |           ✔            |
+| יצירת הזמנה חדשה                                         |   ✔   |  –   |           –            |
+| צפייה בהיסטוריית הזמנות אישית                            |   ✔   |  –   |           –            |
+| צפייה בכל ההזמנות במערכת                                 |   –   |  ✔   | ✔ (רק תור עבודה מאושר) |
+| ניהול קטלוג (מוצרי מדף + מוצרים דינמיים)                 |   –   |  ✔   |           –            |
+| אישור ידני "אושר ע"י קצין תקציב" (double-check/Fallback) |   –   |  ✔   |           –            |
+| אישור "מאושר לביצוע"                                     |   –   |  ✔   |           –            |
+| עדכון סטטוס "בהדפסה"                                     |   –   |  ✔   |           ✔            |
+| עדכון סטטוס "מוכן לאיסוף"                                |   –   |  ✔   |           ✔            |
+| עדכון סטטוס "הושלם"                                      |   –   |  ✔   |           ✔            |
+| שינוי ידני/עוקף (Override) לכל סטטוס                     |   –   |  ✔   |           –            |
 
 > **הערת מימוש:** יש להטמיע זאת כהיררכיה: `WORKER` היא תת-קבוצה של הרשאות `MANAGER`. ב-middleware ההרשאות, בדיקה תהיה `role in [MANAGER]` או `role in [MANAGER, WORKER]` בהתאם לפעולה – ולא שתי רשימות נפרדות ומנותקות.
 
@@ -144,24 +144,24 @@ graph TD
 
 ## 5. Technology Stack
 
-| שכבה | טכנולוגיה | הערות |
-|---|---|---|
-| Frontend | React 18 + TypeScript | RTL מלא |
-| UI Kit | MUI (Material UI) + `stylis-plugin-rtl` | תמיכת RTL מובנית, כרטיסיות מעוגלות/צלליות עדינות לפי האפיון |
-| State Management | React Query (server state) + Zustand (UI state) | הפרדה בין קאש שרת למצב ממשק |
-| Routing | React Router v6 | |
-| Backend | Node.js 20 LTS + Express | |
-| שפה | TypeScript (Backend + Frontend) | טיפוסים משותפים ע"י חבילת `shared-types` |
-| DB | PostgreSQL 15+ | |
-| ORM | Prisma | Schema-first, Migrations מובנות |
-| Auth | Windows Integrated Authentication (Kerberos/NTLM) מול Reverse Proxy | ללא Login/Logout, לפי האפיון |
-| Email (Outbound) | SMTP מול Exchange On-Prem (Nodemailer) | |
-| Email (Inbound) | IMAP Polling מול Exchange On-Prem (node-imap / imapflow) | Worker מתוזמן (node-cron), פולינג כל 1-2 דקות |
-| File Upload | Multer + Validation Middleware | הגבלת 20MB, PDF/JPEG בלבד |
-| File Storage | תיקיית שיתוף רשת ארגונית (UNC/NFS Mount) | נתיב נשמר ב-DB |
-| Scheduler | node-cron | Polling מייל, ניקוי עגלות נטושות |
-| Logging | Winston / Pino + טבלת Audit ב-DB | |
-| Deployment | On-Prem, ללא תלות באינטרנט חיצוני | |
+| שכבה             | טכנולוגיה                                                           | הערות                                                       |
+| ---------------- | ------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Frontend         | React 18 + TypeScript                                               | RTL מלא                                                     |
+| UI Kit           | MUI (Material UI) + `stylis-plugin-rtl`                             | תמיכת RTL מובנית, כרטיסיות מעוגלות/צלליות עדינות לפי האפיון |
+| State Management | React Query (server state) + Zustand (UI state)                     | הפרדה בין קאש שרת למצב ממשק                                 |
+| Routing          | React Router v6                                                     |                                                             |
+| Backend          | Node.js 20 LTS + Express                                            |                                                             |
+| שפה              | TypeScript (Backend + Frontend)                                     | טיפוסים משותפים ע"י חבילת `shared-types`                    |
+| DB               | PostgreSQL 15+                                                      |                                                             |
+| ORM              | Prisma                                                              | Schema-first, Migrations מובנות                             |
+| Auth             | Windows Integrated Authentication (Kerberos/NTLM) מול Reverse Proxy | ללא Login/Logout, לפי האפיון                                |
+| Email (Outbound) | SMTP מול Exchange On-Prem (Nodemailer)                              |                                                             |
+| Email (Inbound)  | IMAP Polling מול Exchange On-Prem (node-imap / imapflow)            | Worker מתוזמן (node-cron), פולינג כל 1-2 דקות               |
+| File Upload      | Multer + Validation Middleware                                      | הגבלת 20MB, PDF/JPEG בלבד                                   |
+| File Storage     | תיקיית שיתוף רשת ארגונית (UNC/NFS Mount)                            | נתיב נשמר ב-DB                                              |
+| Scheduler        | node-cron                                                           | Polling מייל, ניקוי עגלות נטושות                            |
+| Logging          | Winston / Pino + טבלת Audit ב-DB                                    |                                                             |
+| Deployment       | On-Prem, ללא תלות באינטרנט חיצוני                                   |                                                             |
 
 ---
 
@@ -321,23 +321,23 @@ erDiagram
 
 מנהל בית הדפוס בונה מוצר חדש דרך מסך "בונה מוצר" (Admin), ומגדיר עבורו רשימת **מאפיינים (Attributes)** מתוך סוגים סגורים מראש:
 
-| Attribute Type | תיאור | דוגמה |
-|---|---|---|
-| `SELECT` | רשימה נפתחת עם אופציות קבועות, לכל אופציה תוספת/מחיר משלה | סוג נייר: כרומו (+0.20 ₪/עמוד) / רגיל (+0 ₪) |
-| `NUMBER` | שדה מספרי עם טווח (min/max), יכול לשמש כ"כמות" עם מחיר ליחידה | כמות עותקים: 100 (מחיר ליחידה 1.5 ₪) |
-| `BOOLEAN` | תיבת סימון עם תוספת מחיר קבועה אם מסומן | כריכת ספירלה: +5 ₪ |
-| `TEXT` | טקסט חופשי ללא השפעה על מחיר (הערות/פרטים) | הערות מיוחדות |
-| `FILE_UPLOAD` | העלאת קובץ (PDF/JPEG עד 20MB) | קובץ העיצוב |
+| Attribute Type | תיאור                                                         | דוגמה                                        |
+| -------------- | ------------------------------------------------------------- | -------------------------------------------- |
+| `SELECT`       | רשימה נפתחת עם אופציות קבועות, לכל אופציה תוספת/מחיר משלה     | סוג נייר: כרומו (+0.20 ₪/עמוד) / רגיל (+0 ₪) |
+| `NUMBER`       | שדה מספרי עם טווח (min/max), יכול לשמש כ"כמות" עם מחיר ליחידה | כמות עותקים: 100 (מחיר ליחידה 1.5 ₪)         |
+| `BOOLEAN`      | תיבת סימון עם תוספת מחיר קבועה אם מסומן                       | כריכת ספירלה: +5 ₪                           |
+| `TEXT`         | טקסט חופשי ללא השפעה על מחיר (הערות/פרטים)                    | הערות מיוחדות                                |
+| `FILE_UPLOAD`  | העלאת קובץ (PDF/JPEG עד 20MB)                                 | קובץ העיצוב                                  |
 
 ### דוגמה מספרית לחישוב מחיר
 
 מוצר: "הדפסת חוברת הדרכה", `base_price = 0`
 
-| Attribute | ערך שנבחר | חוק תמחור | תרומה למחיר |
-|---|---|---|---|
-| כמות עותקים (NUMBER) | 100 | `PER_UNIT_MULTIPLIER`, unit_price=1.2 | 100 × 1.2 = 120 ₪ |
-| סוג נייר (SELECT) | כרומו | `FIXED_ADD` על כל היחידה | +0.2 ₪ ליחידה × 100 = 20 ₪ |
-| כריכה (SELECT) | ספירלה | `FLAT_ADD_PER_OPTION` (חד-פעמי, לא לפי כמות) | +8 ₪ |
+| Attribute            | ערך שנבחר | חוק תמחור                                    | תרומה למחיר                |
+| -------------------- | --------- | -------------------------------------------- | -------------------------- |
+| כמות עותקים (NUMBER) | 100       | `PER_UNIT_MULTIPLIER`, unit_price=1.2        | 100 × 1.2 = 120 ₪          |
+| סוג נייר (SELECT)    | כרומו     | `FIXED_ADD` על כל היחידה                     | +0.2 ₪ ליחידה × 100 = 20 ₪ |
+| כריכה (SELECT)       | ספירלה    | `FLAT_ADD_PER_OPTION` (חד-פעמי, לא לפי כמות) | +8 ₪                       |
 
 **סה"כ:** 120 + 20 + 8 = **148 ₪**
 
@@ -387,7 +387,7 @@ interface PriceResult {
 function calculatePrice(
   product: ProductWithAttributes,
   selectedValues: Record<string /*attributeDefinitionId*/, string | number | boolean>
-): PriceResult
+): PriceResult;
 ```
 
 הפונקציה משמשת גם בצד השרת (מקור אמת יחיד למחיר, לפני שמירת הזמנה) וגם בצד הלקוח (תצוגה מקדימה בזמן אמת) – **אך המחיר הסופי הנשמר תמיד מחושב מחדש בשרת**, כדי למנוע מניפולציה של מחיר מצד הלקוח.
@@ -487,19 +487,19 @@ sequenceDiagram
 
 מבנה שכבתי קלאסי: `Routes -> Controllers -> Services -> Repositories (Prisma) -> DB`
 
-| Service | אחריות |
-|---|---|
-| **CatalogService** | CRUD למוצרים, הגדרות Attributes ואופציות; ולידציה על מבנה מוצר דינמי |
-| **PricingEngineService** | חישוב מחיר טהור (Stateless) לפי סעיף 8 |
-| **CartService** | ניהול עגלה פעילה למשתמש, שמירה אוטומטית, המרה ל-Order |
-| **OrderService** | יצירת הזמנה, הפקת מספר סידורי ייחודי, שליפה לפי הרשאות |
-| **ApprovalService** | מכונת המצבים כולה; אכיפת מעברים חוקיים; אידמפוטנטיות |
-| **EmailService** | שליחה (SMTP) + Polling נכנס (IMAP) + Templates + פירוק/זיהוי הזמנה |
-| **FileStorageService** | ולידציית גודל/סוג קובץ, שמירה בנתיב רשת, הפקת קישור הורדה |
-| **NotificationService** | ריכוז כל שליחת ההתראות (מייל + In-App) כך שממשק אחיד לכל שאר ה-Services |
-| **AuditLogService** | רישום כל שינוי סטטוס/אישור ל-`ORDER_STATUS_HISTORY`, כולל מקור השינוי |
-| **AuthService** | מיפוי זהות AD (מה-Reverse Proxy) למשתמש פנימי, Auto-provision בכניסה ראשונה |
-| **CartCleanupJob** | Cron: זיהוי עגלות פעילות ישנות (>X ימים) לסימון `ABANDONED` |
+| Service                  | אחריות                                                                      |
+| ------------------------ | --------------------------------------------------------------------------- |
+| **CatalogService**       | CRUD למוצרים, הגדרות Attributes ואופציות; ולידציה על מבנה מוצר דינמי        |
+| **PricingEngineService** | חישוב מחיר טהור (Stateless) לפי סעיף 8                                      |
+| **CartService**          | ניהול עגלה פעילה למשתמש, שמירה אוטומטית, המרה ל-Order                       |
+| **OrderService**         | יצירת הזמנה, הפקת מספר סידורי ייחודי, שליפה לפי הרשאות                      |
+| **ApprovalService**      | מכונת המצבים כולה; אכיפת מעברים חוקיים; אידמפוטנטיות                        |
+| **EmailService**         | שליחה (SMTP) + Polling נכנס (IMAP) + Templates + פירוק/זיהוי הזמנה          |
+| **FileStorageService**   | ולידציית גודל/סוג קובץ, שמירה בנתיב רשת, הפקת קישור הורדה                   |
+| **NotificationService**  | ריכוז כל שליחת ההתראות (מייל + In-App) כך שממשק אחיד לכל שאר ה-Services     |
+| **AuditLogService**      | רישום כל שינוי סטטוס/אישור ל-`ORDER_STATUS_HISTORY`, כולל מקור השינוי       |
+| **AuthService**          | מיפוי זהות AD (מה-Reverse Proxy) למשתמש פנימי, Auto-provision בכניסה ראשונה |
+| **CartCleanupJob**       | Cron: זיהוי עגלות פעילות ישנות (>X ימים) לסימון `ABANDONED`                 |
 
 ### עקרון מפתח: הפרדת אחריות באישורים
 
@@ -540,46 +540,51 @@ src/
 ## 13. API Endpoints
 
 ### Catalog Service
-| Method | Path | הרשאה |
-|---|---|---|
-| GET | `/api/products` | כולם |
-| GET | `/api/products/:id` | כולם |
-| POST | `/api/products` | MANAGER |
-| PUT | `/api/products/:id` | MANAGER |
-| DELETE | `/api/products/:id` | MANAGER |
-| POST | `/api/products/:id/attributes` | MANAGER |
-| PUT/DELETE | `/api/attributes/:id` | MANAGER |
+
+| Method     | Path                           | הרשאה   |
+| ---------- | ------------------------------ | ------- |
+| GET        | `/api/products`                | כולם    |
+| GET        | `/api/products/:id`            | כולם    |
+| POST       | `/api/products`                | MANAGER |
+| PUT        | `/api/products/:id`            | MANAGER |
+| DELETE     | `/api/products/:id`            | MANAGER |
+| POST       | `/api/products/:id/attributes` | MANAGER |
+| PUT/DELETE | `/api/attributes/:id`          | MANAGER |
 
 ### Cart Service
-| Method | Path | הרשאה |
-|---|---|---|
-| GET | `/api/cart` | REQUESTER |
-| POST | `/api/cart/items` | REQUESTER |
-| DELETE | `/api/cart/items/:id` | REQUESTER |
-| POST | `/api/cart/price-preview` | REQUESTER (לפני הוספה לעגלה) |
-| POST | `/api/cart/checkout` | REQUESTER |
+
+| Method | Path                      | הרשאה                        |
+| ------ | ------------------------- | ---------------------------- |
+| GET    | `/api/cart`               | REQUESTER                    |
+| POST   | `/api/cart/items`         | REQUESTER                    |
+| DELETE | `/api/cart/items/:id`     | REQUESTER                    |
+| POST   | `/api/cart/price-preview` | REQUESTER (לפני הוספה לעגלה) |
+| POST   | `/api/cart/checkout`      | REQUESTER                    |
 
 ### Order Service
-| Method | Path | הרשאה |
-|---|---|---|
-| GET | `/api/orders` | MANAGER/WORKER (הכל), REQUESTER (שלו בלבד) |
-| GET | `/api/orders/:id` | לפי בעלות/תפקיד |
-| POST | `/api/orders/:id/manager-approve` | MANAGER |
-| POST | `/api/orders/:id/start-printing` | MANAGER/WORKER |
-| POST | `/api/orders/:id/ready-for-pickup` | MANAGER/WORKER |
-| POST | `/api/orders/:id/complete` | MANAGER/WORKER |
-| PATCH | `/api/orders/:id/status` | MANAGER (Override בלבד) |
+
+| Method | Path                               | הרשאה                                      |
+| ------ | ---------------------------------- | ------------------------------------------ |
+| GET    | `/api/orders`                      | MANAGER/WORKER (הכל), REQUESTER (שלו בלבד) |
+| GET    | `/api/orders/:id`                  | לפי בעלות/תפקיד                            |
+| POST   | `/api/orders/:id/manager-approve`  | MANAGER                                    |
+| POST   | `/api/orders/:id/start-printing`   | MANAGER/WORKER                             |
+| POST   | `/api/orders/:id/ready-for-pickup` | MANAGER/WORKER                             |
+| POST   | `/api/orders/:id/complete`         | MANAGER/WORKER                             |
+| PATCH  | `/api/orders/:id/status`           | MANAGER (Override בלבד)                    |
 
 ### Approval (ציבורי, מבוסס Token)
-| Method | Path | הרשאה |
-|---|---|---|
-| GET | `/api/approvals/:token` | ציבורי |
-| POST | `/api/approvals/:token/approve` | ציבורי, חד-פעמי |
+
+| Method | Path                            | הרשאה           |
+| ------ | ------------------------------- | --------------- |
+| GET    | `/api/approvals/:token`         | ציבורי          |
+| POST   | `/api/approvals/:token/approve` | ציבורי, חד-פעמי |
 
 ### Files
-| Method | Path | הרשאה |
-|---|---|---|
-| POST | `/api/files/upload` | REQUESTER |
+
+| Method | Path                | הרשאה     |
+| ------ | ------------------- | --------- |
+| POST   | `/api/files/upload` | REQUESTER |
 
 ---
 
@@ -608,15 +613,18 @@ src/
 ## 16. מקרי קצה – מימוש טכני
 
 ### קובץ גדול מדי / פורמט שגוי
+
 - ולידציה כפולה: Client-side (מיידית, לפני שליחה לשרת) + Server-side (חובה, לא ניתן לעקוף).
 - מגבלה: 20MB, סוגי קובץ מותרים: `application/pdf`, `image/jpeg`.
 - הודעת שגיאה ידידותית מיידית; כפתור "הוסף לעגלה" נשאר חסום (`disabled`) עד להעלאת קובץ תקין.
 
 ### אישור תקציבי כפול
+
 - מטופל במלואו ע"י `ApprovalService` (סעיף 11) עם Transaction + בדיקת סטטוס נוכחי לפני עדכון.
 - בממשק: לאחר אישור, הכפתור נעלם והופך לטקסט קבוע `אושר ע"י [שם] בתאריך [X]` — מבוסס על שדה `ORDER_STATUS_HISTORY` האחרון הרלוונטי, לא ניתן ללחוץ שוב מכל משתמש/מכשיר.
 
 ### עגלה נטושה
+
 - עגלה (`CARTS`) משויכת ל-`user_id` (לא ל-LocalStorage/Session דפדפן) — הודות ל-Windows Integrated Auth, המשתמש מזוהה אוטומטית גם בביקור הבא.
 - בכל כניסה, המערכת בודקת אם קיימת עגלה `ACTIVE` עם פריטים ומציגה `CartRecoveryBanner`.
 - `CartCleanupJob` (Cron יומי) מסמן עגלות פעילות שלא עודכנו מעל N ימים כ-`ABANDONED` (לצורך ניקוי/דוחות בלבד, לא מוחק נתונים).
@@ -625,39 +633,42 @@ src/
 
 ## 17. שלבי פיתוח וחלוקת משימות
 
-| שלב | תוכן | הערכת זמן |
-|---|---|---|
-| **Phase 0 – תשתית** | סביבות Dev/Staging/Prod, Postgres, CI/CD, Auth (IWA), Logging, מבנה קוד | 1–2 שבועות |
+| שלב                             | תוכן                                                                                                      | הערכת זמן  |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------- |
+| **Phase 0 – תשתית**             | סביבות Dev/Staging/Prod, Postgres, CI/CD, Auth (IWA), Logging, מבנה קוד                                   | 1–2 שבועות |
 | **Phase 1 – קטלוג ומנוע דינמי** | CatalogService, Attribute/Options models, PricingEngineService + טסטים, בונה מוצר (Admin UI), עמודי קטלוג | 2–3 שבועות |
-| **Phase 2 – עגלה והזמנה** | CartService (autosave), FileStorageService, OrderService (מספור), UI: טופס מוצר דינמי, עגלה, Checkout | 2 שבועות |
-| **Phase 3 – אישורים ומייל** | EmailService (SMTP+IMAP), ApprovalService, Approval Token flow, ManagerApproval UI | 2–3 שבועות |
-| **Phase 4 – פאנל ניהול** | טבלת הזמנות, מסך פרטי הזמנה, תור עבודה לעובד, ניהול קטלוג מלא | 2 שבועות |
-| **Phase 5 – QA ו-Hardening** | מקרי קצה, בדיקות עומס, אבטחה, UAT עם משתמשי קצה | 1–2 שבועות |
+| **Phase 2 – עגלה והזמנה**       | CartService (autosave), FileStorageService, OrderService (מספור), UI: טופס מוצר דינמי, עגלה, Checkout     | 2 שבועות   |
+| **Phase 3 – אישורים ומייל**     | EmailService (SMTP+IMAP), ApprovalService, Approval Token flow, ManagerApproval UI                        | 2–3 שבועות |
+| **Phase 4 – פאנל ניהול**        | טבלת הזמנות, מסך פרטי הזמנה, תור עבודה לעובד, ניהול קטלוג מלא                                             | 2 שבועות   |
+| **Phase 5 – QA ו-Hardening**    | מקרי קצה, בדיקות עומס, אבטחה, UAT עם משתמשי קצה                                                           | 1–2 שבועות |
 
 **סה"כ הערכה:** כ-10–13 שבועות עבודה (תלוי בגודל צוות).
 
 ### חלוקת משימות מוצעת לצוות
 
-| תפקיד | אחריות |
-|---|---|
-| Backend Dev A | CatalogService + PricingEngineService (Phase 1) |
-| Backend Dev B | OrderService + ApprovalService + EmailService (Phase 2–3) |
-| Frontend Dev A | קטלוג, טופס מוצר דינמי, עגלה, Checkout |
-| Frontend Dev B | פאנל ניהול (טבלת הזמנות, בונה מוצר, מסכי Admin) |
-| DevOps/Infra | סביבות, Auth (IWA/Reverse Proxy), חיבור ל-Exchange On-Prem, פריסה |
+| תפקיד          | אחריות                                                            |
+| -------------- | ----------------------------------------------------------------- |
+| Backend Dev A  | CatalogService + PricingEngineService (Phase 1)                   |
+| Backend Dev B  | OrderService + ApprovalService + EmailService (Phase 2–3)         |
+| Frontend Dev A | קטלוג, טופס מוצר דינמי, עגלה, Checkout                            |
+| Frontend Dev B | פאנל ניהול (טבלת הזמנות, בונה מוצר, מסכי Admin)                   |
+| DevOps/Infra   | סביבות, Auth (IWA/Reverse Proxy), חיבור ל-Exchange On-Prem, פריסה |
 
 ---
 
 ## 18. נספחים
 
 ### פורמט מספר הזמנה
+
 `{YYYY}-{NNNN}` — שנה נוכחית + מספר סידורי בן 4 ספרות (Sequence לפי שנה ב-DB). דוגמה: `2026-1004`.
 
 ### רשימת סטטוסים סופית
+
 `PENDING_BUDGET` → `BUDGET_APPROVED` → `APPROVED_FOR_PRODUCTION` → `IN_PRINTING` → `READY_FOR_PICKUP` → `COMPLETED`
 (מסלול חלופי: `REJECTED` מ-`PENDING_BUDGET` או `BUDGET_APPROVED`)
 
 ### נקודות פתוחות להבהרה מול הצוות הארגוני (מומלץ לסגור לפני Phase 3)
+
 - פרטי גישה מדויקים לשרת ה-Exchange On-Prem (Host, פורטים, האם IMAP פתוח או שיידרש EWS).
 - מיקום פיזי/נתיב לתיקיית שיתוף הקבצים הארגונית ומדיניות סריקת אנטי-וירוס לקבצים שהועלו.
 - מדיניות שמירת נתונים/ארכוב הזמנות ישנות (כמה זמן לשמור קבצי PDF).

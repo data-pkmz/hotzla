@@ -10,6 +10,9 @@ on:
       - develop
       - main
 
+env:
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/hotzla_dev"
+
 jobs:
   build-lint-test:
     name: Build, Lint and Test
@@ -22,12 +25,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-size: 20
-          node-version: 20.x
+          node-version: 22.x
           cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
 
       - name: Build Shared Types
         run: npm run build:shared
@@ -35,8 +40,14 @@ jobs:
       - name: Build Projects
         run: npm run build
 
-      - name: Run Linting
+      - name: Type Check
+        run: npm run type-check
+
+      - name: Run Linting (Zero Warnings Allowed)
         run: npm run lint
+
+      - name: Check Formatting
+        run: npm run format:check
 
       - name: Run Tests
         run: npm run test
