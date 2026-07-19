@@ -5,10 +5,7 @@ interface CartRecoveryBannerProps {
   onDismiss: () => void;
 }
 
-export const CartRecoveryBanner: React.FC<CartRecoveryBannerProps> = ({
-  onRestore,
-  onDismiss,
-}) => {
+export const CartRecoveryBanner: React.FC<CartRecoveryBannerProps> = ({ onRestore, onDismiss }) => {
   return (
     <div
       className="cart-recovery-banner"

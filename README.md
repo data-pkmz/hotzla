@@ -18,6 +18,7 @@ hotzla_v0/
 ```
 
 ### פירוט השכבות:
+
 1.  **[shared-types](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/shared-types/)**: מכילה את כל ממשקי הנתונים והטיפוסים המשותפים (כגון `User`, `Order`, `Product`, `OrderStatus` ועוד). הן ה-Backend והן ה-Frontend מייבאים את הטיפוסים מחבילה זו כדי לשמור על מקור אמת יחיד (Single Source of Truth).
 2.  **[backend](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/backend/)**: שרת API המבוסס על Express. התיקייה מאורגנת בצורה שכבתי: `config`, `controllers`, `routes`, `services`, `middlewares` ו-`repositories`.
 3.  **[frontend](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/frontend/)**: אפליקציית React מוגדרת עם תמיכה מלאה ב-RTL וב-Material UI, וכוללת את שלד התיקיות הנדרש עבור ה-pages, components, stores (Zustand) ו-services (React Query).
@@ -27,34 +28,41 @@ hotzla_v0/
 ## הוראות הרצה ופיתוח מקומי
 
 ### 1. דרישות קדם (Prerequisites)
-*   **Node.js**: גרסה 18 או 20 LTS.
-*   **npm**: גרסה 9 ומעלה (התומכת ב-workspaces).
+
+- **Node.js**: גרסה 18 או 20 LTS.
+- **npm**: גרסה 9 ומעלה (התומכת ב-workspaces).
 
 ### 2. התקנת תלויות וקישור חבילות
+
 משורש הפרויקט (Root), הרץ את הפקודה הבאה כדי להתקין את כל התלויות עבור כל ה-workspaces וליצור את הקישורים ביניהם:
+
 ```bash
 npm install
 ```
 
 ### 3. בנייה (Build)
+
 לפני הרצת השרתים בפעם הראשונה או לאחר שינוי בטיפוסים המשותפים (`shared-types`), יש לבצע בנייה של החבילה המשותפת ושאר הפרויקטים על ידי הרצת הפקודה הבאה משורש הפרויקט:
+
 ```bash
 npm run build
 ```
 
 או לבניית חבילה ספציפית:
-*   בניית טיפוסים משותפים בלבד: `npm run build:shared`
-*   בניית צד השרת בלבד: `npm run build:backend`
-*   בניית צד הלקוח בלבד: `npm run build:frontend`
+
+- בניית טיפוסים משותפים בלבד: `npm run build:shared`
+- בניית צד השרת בלבד: `npm run build:backend`
+- בניית צד הלקוח בלבד: `npm run build:frontend`
 
 ### 4. הרצה במצב פיתוח (Local Development)
+
 ניתן להריץ את שרתי הפיתוח משורש הפרויקט:
 
-*   **הרצת ה-Backend** (מאזין בפורט `3001` כברירת מחדל):
-    ```bash
-    npm run dev:backend
-    ```
-*   **הרצת ה-Frontend** (Vite Dev Server, מאזין בפורט `5173` כברירת מחדל):
-    ```bash
-    npm run dev:frontend
-    ```
+- **הרצת ה-Backend** (מאזין בפורט `3001` כברירת מחדל):
+  ```bash
+  npm run dev:backend
+  ```
+- **הרצת ה-Frontend** (Vite Dev Server, מאזין בפורט `5173` כברירת מחדל):
+  ```bash
+  npm run dev:frontend
+  ```
