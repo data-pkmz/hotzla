@@ -1,6 +1,11 @@
-version: '3.8'
-
 services:
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+
   postgres:
     image: postgres:15-alpine
     container_name: hotzla-postgres
