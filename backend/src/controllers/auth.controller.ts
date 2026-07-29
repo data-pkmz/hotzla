@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-
+import logger from "../utils/logger.js";
 const authService = new AuthService();
 
 export async function getCurrentUser(
@@ -21,7 +21,7 @@ export async function getCurrentUser(
         return res.json(user);
 
     } catch (error) {
-        console.error(error);
+        logger.error('Error occurred while fetching user:', { error });
 
         return res.status(500).json({
             error: "Internal Server Error"
@@ -56,7 +56,7 @@ export async function devSwitchUser(
         return res.json(user);
 
     } catch (error) {
-        console.error(error);
+        logger.error('Error occurred while switching user role:', { error });
 
         return res.status(500).json({
             error: "Internal Server Error"
