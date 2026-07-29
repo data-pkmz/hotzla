@@ -14,6 +14,8 @@ import fileRouter from './routes/file.routes';
 const app = express();
 const port = process.env.PORT || 3001;
 
+app.use("/api/auth", authRoutes);
+
 app.use(express.json());
 
 // Authentication routes
