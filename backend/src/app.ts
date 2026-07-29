@@ -2,9 +2,12 @@ import express, { Request, Response } from 'express';
 // Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
+import authRoutes from "./routes/auth.routes";
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+app.use("/api/auth", authRoutes);
 
 app.use(express.json());
 
