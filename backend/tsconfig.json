@@ -6,5 +6,5 @@
     "types": ["node", "jest"],
     "isolatedModules": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../auth-test/backend/controllers/auth.controller.ts", "../auth-test/backend/middlewares/auth.middleware.ts", "../auth-test/backend/routes/auth.routes.ts"]
 }
