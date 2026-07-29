@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 // Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
+import logger from './utils/logger';
 import authRoutes from "./routes/auth.routes";
 
 const app = express();
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
+  logger.info('Health check endpoint requested');
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -42,11 +44,11 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
 });
 
 app.listen(port, async () => {
-  console.info(`Backend server is running on port ${port}`);
+  logger.info(`Backend server is running on port ${port}`);
   try {
     await testDbConnection();
   } catch (err) {
-    console.error('Startup database connection test failed:', err);
+    logger.error('Startup database connection test failed', { error: err });
   }
 });
 

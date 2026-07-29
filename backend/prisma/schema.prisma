@@ -12,6 +12,23 @@ enum Role {
   WORKER
 }
 
+enum OrderStatus {
+  PENDING_BUDGET
+  BUDGET_APPROVED
+  APPROVED_FOR_PRODUCTION
+  IN_PRINTING
+  READY_FOR_PICKUP
+  COMPLETED
+  REJECTED
+}
+
+enum ChangeSource {
+  SYSTEM
+  EMAIL_BUDGET_OFFICER
+  MANAGER_UI
+  WORKER_UI
+}
+
 model User {
   id            String   @id @default(uuid()) @db.Uuid
   fullName      String?   @map("full_name")
@@ -23,4 +40,19 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("users")
+}
+
+model OrderStatusHistory {
+  id              String       @id @default(uuid()) @db.Uuid
+  orderId         String       @map("order_id") @db.Uuid
+  fromStatus      OrderStatus? @map("from_status")
+  toStatus        OrderStatus  @map("to_status")
+  changedByUserId String?      @map("changed_by_user_id") @db.Uuid
+  changedBySource ChangeSource @map("changed_by_source")
+  changedAt       DateTime     @default(now()) @map("changed_at")
+  note            String?      @db.Text
+
+  changedByUser User? @relation(fields: [changedByUserId], references: [id])
+
+  @@map("order_status_history")
 }
