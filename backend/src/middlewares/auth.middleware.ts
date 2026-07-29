@@ -16,7 +16,6 @@ export function authMiddleware(
 
         case "iwa":
             adUsername = req.headers["x-remote-user"] as string;
-            console.log(adUsername);
             break;
 
         default:
