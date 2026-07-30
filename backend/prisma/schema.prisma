@@ -38,6 +38,7 @@ model User {
   phone         String?
   role          Role     @default(REQUESTER)
   createdAt     DateTime @default(now()) @map("created_at")
+  statusHistoryEntries OrderStatusHistory[]
 
   @@map("users")
 }
