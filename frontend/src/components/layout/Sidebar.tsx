@@ -53,11 +53,7 @@ export const Sidebar: React.FC = () => {
   return (
     <Drawer
       variant="permanent"
-<<<<<<< HEAD
       anchor="left" // עיגון מימין עבור RTL
-=======
-      anchor="right" // עיגון מימין עבור RTL
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
       sx={{
         width: DRAWER_WIDTH,
         flexShrink: 0,

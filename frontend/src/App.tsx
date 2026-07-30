@@ -5,21 +5,9 @@ import { ThemeProvider } from '@mui/material/styles';
 import { CacheProvider } from '@emotion/react';
 
 import { theme } from './theme/theme';
-<<<<<<< HEAD
 import { rtlCache } from './theme/rtlCache';
 import { MainLayout } from './components/layout/MainLayout';
 import { AppRoutes } from './routes/AppRoutes';
-=======
-import { MainLayout } from './components/layout/MainLayout';
-import { AppRoutes } from './routes/AppRoutes';
-
-// הגדרת קאש עבור כיווניות RTL
-const cacheRtl = createCache({
-  key: 'muirtl',
-  stylisPlugins: [prefixer, rtlPlugin],
-});
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
-
 const queryClient = new QueryClient();
 
 export const App: React.FC = () => {
