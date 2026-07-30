@@ -2,7 +2,7 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - ./infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
 

@@ -3,12 +3,12 @@ import express, { Request, Response } from 'express';
 import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
 import logger from './utils/logger';
-import authRoutes from "./routes/auth.routes";
+import authRoutes from './routes/auth.routes';
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use("/api/auth", authRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use(express.json());
 

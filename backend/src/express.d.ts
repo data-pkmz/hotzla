@@ -1,16 +1,16 @@
-import "express";
+import 'express';
 
 declare global {
-    namespace Express {
-        interface User {
-            adUsername: string;
-            authMethod: "mock" | "iwa";
-        }
-
-        interface Request {
-            user?: User;
-        }
+  namespace Express {
+    interface User {
+      adUsername: string;
+      authMethod: 'mock' | 'iwa';
     }
+
+    interface Request {
+      user?: User;
+    }
+  }
 }
 
 export {};

@@ -1,47 +1,37 @@
-import { Role } from "@prisma/client";
-import type { User } from "shared-types";
-import { prisma } from "../config/db.js";
+import { Role } from '@prisma/client';
+import type { User } from 'shared-types';
+import { prisma } from '../config/db.js';
 
 export class AuthService {
+  async getOrCreateUser(adUsername: string): Promise<User> {
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        adUsername,
+      },
+    });
 
-    async getOrCreateUser(
-        adUsername: string
-    ): Promise<User> {
-
-        const existingUser = await prisma.user.findUnique({
-            where: {
-                adUsername
-            }
-        });
-
-        if (existingUser) {
-            return existingUser;
-        }
-
-        return prisma.user.create({
-            data: {
-                adUsername,
-                role: "REQUESTER"
-            }
-        });
+    if (existingUser) {
+      return existingUser;
     }
 
-    async switchUserRole(
-        adUsername: string,
-        role: Role
-    ): Promise<User> {
+    return prisma.user.create({
+      data: {
+        adUsername,
+        role: 'REQUESTER',
+      },
+    });
+  }
 
-        const user = await this.getOrCreateUser(
-            adUsername
-        );
+  async switchUserRole(adUsername: string, role: Role): Promise<User> {
+    const user = await this.getOrCreateUser(adUsername);
 
-        return prisma.user.update({
-            where: {
-                id: user.id
-            },
-            data: {
-                role
-            }
-        });
-    }
+    return prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        role,
+      },
+    });
+  }
 }
