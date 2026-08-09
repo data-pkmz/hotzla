@@ -5,6 +5,8 @@ services:
       - '8080:8080'
     volumes:
       - ./infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   postgres:
     image: postgres:15-alpine
