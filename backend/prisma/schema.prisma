@@ -73,11 +73,11 @@ enum ProcessedStatus {
 
 model User {
   id            String   @id @default(uuid()) @db.Uuid
-  fullName      String?  @map("full_name")
-  militaryEmail String?  @map("military_email")
+  fullName      String  @map("full_name")
+  militaryEmail String  @map("military_email")
   adUsername    String   @unique @map("ad_username")
-  unit          String?
-  phone         String?
+  unit          String
+  phone         String
   role          Role     @default(REQUESTER)
   createdAt     DateTime @default(now()) @map("created_at")
   isDeleted     Boolean  @default(false) @map("is_deleted")
