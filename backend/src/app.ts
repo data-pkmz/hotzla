@@ -3,6 +3,10 @@ import express, { Request, Response } from 'express';
 import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
 
+// 1. יבוא נתיבי הקטלוג (Catalog Routes)
+import catalogRouter from './routes/catalog.routes';
+import adminCatalogRouter from './routes/admin-catalog.routes';
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -37,6 +41,10 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
     defaultStatus: initialStatus,
   });
 });
+
+// 2. רישום נתיבי ה-Catalog באפליקציה
+app.use('/api/products', catalogRouter);
+app.use('/api/admin/products', adminCatalogRouter);
 
 app.listen(port, async () => {
   console.info(`Backend server is running on port ${port}`);
