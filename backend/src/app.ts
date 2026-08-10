@@ -5,7 +5,7 @@ import { testDbConnection } from './config/db';
 import logger from './utils/logger';
 import authRoutes from './routes/auth.routes';
 
-// 1. Import Catalog Routes
+// Catalog routes
 import catalogRouter from './routes/catalog.routes';
 import adminCatalogRouter from './routes/admin-catalog.routes';
 
