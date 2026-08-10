@@ -119,6 +119,7 @@ model Product {
   createdBy     String?      @map("created_by") @db.Uuid
   createdByUser User? @relation(fields: [createdBy], references: [id])
   createdAt     DateTime     @default(now()) @map("created_at")
+  isDeleted     Boolean  @default(false) @map("is_deleted")
   attributeDefinitionEntries ProductAttributeDefinition[]
   cartItemEntries CartItem[]
   orderItemEntries OrderItem[]
