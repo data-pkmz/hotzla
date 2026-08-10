@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 
-// טיפוס דמו למוצר (בהמשך יוחלף על ידי Prisma / ORM)
+// Demo product interface (to be replaced by Prisma/ORM later)
 interface Product {
   id: string;
   name: string;
   category: string;
   isActive: boolean;
-  attributes?: Record<string, unknown>; // 👈 תוקן מ-any ל-unknown!
+  attributes?: Record<string, unknown>;
 }
 
-// נתוני מוק זמניים לצורך בדיקה
+// Temporary mock data for testing
 const mockProducts: Product[] = [
   {
     id: '1',
@@ -30,16 +30,16 @@ const mockProducts: Product[] = [
 
 /**
  * GET /api/products
- * שליפת רשימת מוצרים פעילים (כולל אפשרות סינון לפי קטגוריה)
+ * Fetch active products list (supports category filtering)
  */
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
     const { category } = req.query;
 
-    // מחזירים רק מוצרים פעילים (Soft Delete check)
+    // Filter active products only
     let activeProducts = mockProducts.filter((p) => p.isActive);
 
-    // אם נשלחה קטגוריה ב-Query Params -> מסננים לפיה
+    // Filter by category if query parameter is provided
     if (category) {
       activeProducts = activeProducts.filter(
         (p) => p.category.toLowerCase() === String(category).toLowerCase()
@@ -52,13 +52,13 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'שגיאת שרת פנימית' });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
 /**
  * GET /api/products/:id
- * שליפת פרטי מוצר בודד
+ * Fetch single product details by ID
  */
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -66,7 +66,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
     const product = mockProducts.find((p) => p.id === id && p.isActive);
 
     if (!product) {
-      res.status(404).json({ success: false, message: 'המוצר לא נמצא' });
+      res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
 
@@ -76,20 +76,20 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'שגיאת שרת פנימית' });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
 /**
  * POST /api/admin/products
- * יצירת מוצר חדש (מוגן למנהל)
+ * Create a new product (Admin route)
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, category, attributes } = req.body;
 
     if (!name || !category) {
-      res.status(400).json({ success: false, message: 'שם מוצר וקטגוריה הם שדות חובה' });
+      res.status(400).json({ success: false, message: 'Product name and category are required' });
       return;
     }
 
@@ -105,18 +105,18 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 
     res.status(201).json({
       success: true,
-      message: 'המוצר נוצר בהצלחה',
+      message: 'Product created successfully',
       data: newProduct,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'שגיאת שרת פנימית' });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
 /**
  * PUT /api/admin/products/:id
- * עדכון מוצר קיים (מוגן למנהל)
+ * Update an existing product (Admin route)
  */
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -124,11 +124,11 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     const productIndex = mockProducts.findIndex((p) => p.id === id && p.isActive);
 
     if (productIndex === -1) {
-      res.status(404).json({ success: false, message: 'המוצר לעדכון לא נמצא' });
+      res.status(404).json({ success: false, message: 'Product to update was not found' });
       return;
     }
 
-    // עדכון השדות שהתקבלו ב-body
+    // Update fields provided in request body
     mockProducts[productIndex] = {
       ...mockProducts[productIndex],
       ...req.body,
@@ -136,18 +136,18 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
 
     res.status(200).json({
       success: true,
-      message: 'המוצר עודכן בהצלחה',
+      message: 'Product updated successfully',
       data: mockProducts[productIndex],
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'שגיאת שרת פנימית' });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
 /**
  * DELETE /api/admin/products/:id
- * מחיקת מוצר (Soft Delete - הפיכה ל-isActive: false)
+ * Soft delete a product (set isActive to false)
  */
 export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -155,19 +155,19 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
     const product = mockProducts.find((p) => p.id === id && p.isActive);
 
     if (!product) {
-      res.status(404).json({ success: false, message: 'המוצר למחיקה לא נמצא' });
+      res.status(404).json({ success: false, message: 'Product to delete was not found' });
       return;
     }
 
-    // ביצוע Soft Delete בלבד
+    // Perform soft delete
     product.isActive = false;
 
     res.status(200).json({
       success: true,
-      message: 'המוצר הוסר בהצלחה (Soft Delete)',
+      message: 'Product removed successfully (Soft Delete)',
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'שגיאת שרת פנימית' });
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
