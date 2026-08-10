@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 // Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
+import logger from './utils/logger';
+import authRoutes from './routes/auth.routes';
 
 // 1. יבוא נתיבי הקטלוג (Catalog Routes)
 import catalogRouter from './routes/catalog.routes';
@@ -10,10 +12,13 @@ import adminCatalogRouter from './routes/admin-catalog.routes';
 const app = express();
 const port = process.env.PORT || 3001;
 
+app.use('/api/auth', authRoutes);
+
 app.use(express.json());
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
+  logger.info('Health check endpoint requested');
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -47,11 +52,11 @@ app.use('/api/products', catalogRouter);
 app.use('/api/admin/products', adminCatalogRouter);
 
 app.listen(port, async () => {
-  console.info(`Backend server is running on port ${port}`);
+  logger.info(`Backend server is running on port ${port}`);
   try {
     await testDbConnection();
   } catch (err) {
-    console.error('Startup database connection test failed:', err);
+    logger.error('Startup database connection test failed', { error: err });
   }
 });
 

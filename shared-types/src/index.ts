@@ -3,11 +3,11 @@ export type UserRole = 'REQUESTER' | 'MANAGER' | 'WORKER';
 
 export interface User {
   id: string;
-  fullName: string;
-  militaryEmail: string;
+  fullName: string | null;
+  militaryEmail: string | null;
   adUsername: string;
-  unit: string;
-  phone: string;
+  unit: string | null;
+  phone: string | null;
   role: UserRole;
   createdAt: Date | string;
 }
@@ -134,11 +134,20 @@ export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'W
 export interface OrderStatusHistory {
   id: string;
   orderId: string;
+  fromStatus?: OrderStatus | null;
+  toStatus: OrderStatus;
+  changedByUserId?: string | null;
+  changedBySource: ChangeSource;
+  changedAt: Date | string;
+  note?: string | null;
+}
+
+export interface LogStatusChangeParams {
+  orderId: string;
   fromStatus?: OrderStatus;
   toStatus: OrderStatus;
   changedByUserId?: string;
   changedBySource: ChangeSource;
-  changedAt: Date | string;
   note?: string;
 }
 
