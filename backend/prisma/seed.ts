@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import logger from '../src/utils/logger';
-const prisma = new PrismaClient();
+import { prisma } from '../src/config/db.js';
 
 async function main() {
   logger.info('Starting database seed...');
@@ -213,7 +212,18 @@ async function main() {
 
 main()
   .catch((error) => {
-    logger.error('Seed failed', { error });
+    if (error instanceof Error) {
+      logger.error('Seed failed', {
+        errorName: error.name,
+        errorMessage: error.message,
+        errorStack: error.stack,
+      });
+    } else {
+      logger.error('Seed failed', {
+        error: String(error),
+      });
+    }
+
     process.exit(1);
   })
   .finally(async () => {
