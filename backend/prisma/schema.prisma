@@ -30,14 +30,14 @@ enum ChangeSource {
 }
 
 model User {
-  id                   String               @id @default(uuid()) @db.Uuid
-  fullName             String               @map("full_name")
-  militaryEmail        String               @map("military_email")
-  adUsername           String               @unique @map("ad_username")
-  unit                 String
-  phone                String
-  role                 Role                 @default(REQUESTER)
-  createdAt            DateTime             @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  fullName      String?   @map("full_name")
+  militaryEmail String?   @map("military_email")
+  adUsername    String   @unique @map("ad_username")
+  unit          String?
+  phone         String?
+  role          Role     @default(REQUESTER)
+  createdAt     DateTime @default(now()) @map("created_at")
   statusHistoryEntries OrderStatusHistory[]
 
   @@map("users")
