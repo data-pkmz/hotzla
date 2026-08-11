@@ -29,8 +29,8 @@ export interface Product {
 }
 
 // Attribute Definitions (Exported from attribute.types.ts)
-import { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types';
-export * from './attribute.types';
+import { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
+export * from './attribute.types.js';
 
 export interface ProductAttributeDefinition {
   id: string;
