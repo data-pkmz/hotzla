@@ -29,17 +29,23 @@ export interface Product {
 }
 
 // Attribute Definitions (Exported from attribute.types.ts)
-import { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
-export * from './attribute.types.js';
+export {
+  AttributeType,
+  PricingImpactType,
+  PriceModifierType,
+  ProductAttributeOptionDto,
+  CreateAttributeDto,
+  UpdateAttributeDto,
+} from './attribute.types.js';
 
 export interface ProductAttributeDefinition {
   id: string;
   productId: string;
   attributeName: string;
-  attributeType: AttributeType;
+  attributeType: string;
   isRequired: boolean;
   displayOrder: number;
-  pricingRule: PricingImpactType;
+  pricingRule: string;
   unitPrice?: number;
   minValue?: number;
   maxValue?: number;
@@ -52,7 +58,7 @@ export interface ProductAttributeOption {
   optionLabel: string;
   optionValue: string;
   priceModifier: number;
-  priceModifierType: PriceModifierType;
+  priceModifierType: string;
   displayOrder: number;
 }
 
@@ -184,5 +190,3 @@ export interface PriceResult {
   totalPrice: number;
   breakdown: PriceBreakdownLine[];
 }
-
-export type { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
