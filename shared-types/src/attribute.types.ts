@@ -1,21 +1,24 @@
-export enum AttributeType {
-  SELECT = 'SELECT',
-  NUMBER = 'NUMBER',
-  CHECKBOX = 'CHECKBOX',
-  TEXT = 'TEXT',
-  FILE_UPLOAD = 'FILE_UPLOAD',
-}
+export const AttributeType = {
+  SELECT: 'SELECT',
+  NUMBER: 'NUMBER',
+  BOOLEAN: 'BOOLEAN',
+  TEXT: 'TEXT',
+  FILE_UPLOAD: 'FILE_UPLOAD',
+} as const;
+export type AttributeType = (typeof AttributeType)[keyof typeof AttributeType];
 
-export enum PricingImpactType {
-  NONE = 'NONE',
-  PER_UNIT_MULTIPLIER = 'PER_UNIT_MULTIPLIER',
-  FLAT_ADD_PER_OPTION = 'FLAT_ADD_PER_OPTION',
-}
+export const PricingImpactType = {
+  NONE: 'NONE',
+  PER_UNIT_MULTIPLIER: 'PER_UNIT_MULTIPLIER',
+  FLAT_ADD_PER_OPTION: 'FLAT_ADD_PER_OPTION',
+} as const;
+export type PricingImpactType = (typeof PricingImpactType)[keyof typeof PricingImpactType];
 
-export enum PriceModifierType {
-  FIXED_ADD = 'FIXED_ADD',
-  MULTIPLY = 'MULTIPLY',
-}
+export const PriceModifierType = {
+  FIXED_ADD: 'FIXED_ADD',
+  MULTIPLY: 'MULTIPLY',
+} as const;
+export type PriceModifierType = (typeof PriceModifierType)[keyof typeof PriceModifierType];
 
 export interface ProductAttributeOptionDto {
   id?: string;
@@ -23,7 +26,6 @@ export interface ProductAttributeOptionDto {
   optionValue: string;
   priceModifier?: number;
   priceModifierType?: PriceModifierType;
-  isPerUnit?: boolean;
   displayOrder?: number;
 }
 
