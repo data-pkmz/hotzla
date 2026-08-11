@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  AttributeType,
-  PricingImpactType,
-  PriceModifierType,
-} from 'shared-types/dist/attribute.types';
+import { AttributeType, PricingImpactType, PriceModifierType } from 'shared-types';
 
 const getEnumValues = <T extends Record<string, string>>(obj: T) =>
   Object.values(obj) as [string, ...string[]];

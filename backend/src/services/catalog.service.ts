@@ -1,11 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import {
-  CreateAttributeDto,
-  UpdateAttributeDto,
-  ProductAttributeOptionDto,
-} from 'shared-types/dist/attribute.types';
+import { CreateAttributeDto, UpdateAttributeDto, ProductAttributeOptionDto } from 'shared-types';
 import {
   CreateAttributeSchema,
   UpdateAttributeSchema,

@@ -28,9 +28,9 @@ export interface Product {
   createdAt: Date | string;
 }
 
-// Attribute Definitions
-export type AttributeType = 'SELECT' | 'NUMBER' | 'BOOLEAN' | 'TEXT' | 'FILE_UPLOAD';
-export type PricingRule = 'NONE' | 'PER_UNIT_MULTIPLIER' | 'FLAT_ADD_PER_OPTION';
+// Attribute Definitions (Exported from attribute.types.ts)
+import { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types';
+export * from './attribute.types';
 
 export interface ProductAttributeDefinition {
   id: string;
@@ -39,14 +39,12 @@ export interface ProductAttributeDefinition {
   attributeType: AttributeType;
   isRequired: boolean;
   displayOrder: number;
-  pricingRule: PricingRule;
+  pricingRule: PricingImpactType;
   unitPrice?: number;
   minValue?: number;
   maxValue?: number;
   options?: ProductAttributeOption[];
 }
-
-export type PriceModifierType = 'FIXED_ADD' | 'MULTIPLY';
 
 export interface ProductAttributeOption {
   id: string;
@@ -55,7 +53,6 @@ export interface ProductAttributeOption {
   optionValue: string;
   priceModifier: number;
   priceModifierType: PriceModifierType;
-  isPerUnit: boolean;
   displayOrder: number;
 }
 
