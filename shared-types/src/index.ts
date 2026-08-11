@@ -184,3 +184,5 @@ export interface PriceResult {
   totalPrice: number;
   breakdown: PriceBreakdownLine[];
 }
+
+export type { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
