@@ -33,7 +33,7 @@ export class CatalogService {
         maxValue: dto.maxValue ?? null,
         attributeOptionEntries: dto.options
           ? {
-              create: dto.options.map((opt, index) => ({
+              create: dto.options.map((opt: ProductAttributeOptionDto, index: number) => ({
                 optionLabel: opt.optionLabel,
                 optionValue: opt.optionValue,
                 priceModifier: opt.priceModifier ?? 0,
