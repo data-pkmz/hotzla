@@ -24,7 +24,7 @@ export interface Product {
   productType: ProductType;
   basePrice: number;
   isActive: boolean;
-  createdBy: string;
+  createdBy: string | null;
   createdAt: Date | string;
 }
 
@@ -40,9 +40,9 @@ export interface ProductAttributeDefinition {
   isRequired: boolean;
   displayOrder: number;
   pricingRule: PricingRule;
-  unitPrice?: number;
-  minValue?: number;
-  maxValue?: number;
+  unitPrice: number | null;
+  minValue: number | null;
+  maxValue: number | null;
   options?: ProductAttributeOption[];
 }
 
@@ -100,11 +100,11 @@ export interface Order {
   budgetOfficerName: string;
   budgetOfficerEmail: string;
   totalPrice: number;
-  approvedByManagerId?: string;
-  approvedByBudgetAt?: Date | string;
-  approvedByManagerAt?: Date | string;
-  workerId?: string;
-  completedAt?: Date | string;
+  approvedByManagerId: string | null;
+  approvedByBudgetAt: Date | string | null;
+  approvedByManagerAt: Date | string | null;
+  workerId: string | null;
+  completedAt: Date | string | null;
   createdAt: Date | string;
   items?: OrderItem[];
 }
@@ -134,12 +134,12 @@ export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'W
 export interface OrderStatusHistory {
   id: string;
   orderId: string;
-  fromStatus?: OrderStatus;
+  fromStatus: OrderStatus | null;
   toStatus: OrderStatus;
-  changedByUserId?: string;
+  changedByUserId: string | null;
   changedBySource: ChangeSource;
   changedAt: Date | string;
-  note?: string;
+  note: string | null;
 }
 
 export interface LogStatusChangeParams {
