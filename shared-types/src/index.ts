@@ -60,6 +60,7 @@ export interface ProductAttributeOption {
   priceModifier: number;
   priceModifierType: string;
   displayOrder: number;
+  isPerUnit: boolean;
 }
 
 // Cart structures

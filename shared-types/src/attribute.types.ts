@@ -27,6 +27,7 @@ export interface ProductAttributeOptionDto {
   priceModifier?: number;
   priceModifierType?: PriceModifierType;
   displayOrder?: number;
+  isPerUnit?: boolean;
 }
 
 export interface CreateAttributeDto {

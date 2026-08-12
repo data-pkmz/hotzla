@@ -39,6 +39,7 @@ export class CatalogService {
                 priceModifier: opt.priceModifier ?? 0,
                 priceModifierType: opt.priceModifierType ?? 'FIXED_ADD',
                 displayOrder: opt.displayOrder ?? index,
+                isPerUnit: opt.isPerUnit ?? false,
               })),
             }
           : undefined,
@@ -123,6 +124,7 @@ export class CatalogService {
         priceModifier: dto.priceModifier ?? 0,
         priceModifierType: dto.priceModifierType ?? 'FIXED_ADD',
         displayOrder: dto.displayOrder ?? 0,
+        isPerUnit: dto.isPerUnit ?? false,
       },
     });
   }
@@ -135,6 +137,7 @@ export class CatalogService {
     if (dto.priceModifier !== undefined) dataToUpdate.priceModifier = dto.priceModifier;
     if (dto.priceModifierType !== undefined) dataToUpdate.priceModifierType = dto.priceModifierType;
     if (dto.displayOrder !== undefined) dataToUpdate.displayOrder = dto.displayOrder;
+    if (dto.isPerUnit !== undefined) dataToUpdate.isPerUnit = dto.isPerUnit;
 
     return prisma.productAttributeOption.update({
       where: { id },

@@ -16,6 +16,7 @@ export const ProductAttributeOptionSchema = z.object({
     .optional()
     .default(PriceModifierType.FIXED_ADD),
   displayOrder: z.number().optional(),
+  isPerUnit: z.boolean().optional(),
 });
 
 const CreateAttributeBaseSchema = z.object({
