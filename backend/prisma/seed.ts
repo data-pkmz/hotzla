@@ -157,6 +157,7 @@ async function main() {
       optionValue: 'A5',
       priceModifier: 0,
       priceModifierType: 'FIXED_ADD',
+      isPerUnit: false,
       displayOrder: 1,
     },
   });
@@ -173,6 +174,7 @@ async function main() {
       optionValue: 'A4',
       priceModifier: 15,
       priceModifierType: 'FIXED_ADD',
+      isPerUnit: false,
       displayOrder: 2,
     },
   });
