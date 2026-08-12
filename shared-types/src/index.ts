@@ -17,6 +17,7 @@ export type {
   OrderItemAttributeValue,
   ChangeSource,
   OrderStatusHistory,
+  LogStatusChangeParams,
   ApprovalToken,
   EmailDirection,
   EmailProcessedStatus,

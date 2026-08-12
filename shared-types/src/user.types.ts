@@ -142,6 +142,15 @@ export interface OrderStatusHistory {
   note?: string;
 }
 
+export interface LogStatusChangeParams {
+  orderId: string;
+  fromStatus?: OrderStatus;
+  toStatus: OrderStatus;
+  changedByUserId?: string;
+  changedBySource: ChangeSource;
+  note?: string;
+}
+
 // Approval Tokens
 export interface ApprovalToken {
   id: string;
