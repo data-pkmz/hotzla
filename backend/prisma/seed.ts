@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import logger from '../src/utils/logger';
-const prisma = new PrismaClient();
+import { prisma } from '../src/config/db.js';
 
 async function main() {
   logger.info('Starting database seed...');
@@ -158,6 +157,7 @@ async function main() {
       optionValue: 'A5',
       priceModifier: 0,
       priceModifierType: 'FIXED_ADD',
+      isPerUnit: false,
       displayOrder: 1,
     },
   });
@@ -174,6 +174,7 @@ async function main() {
       optionValue: 'A4',
       priceModifier: 15,
       priceModifierType: 'FIXED_ADD',
+      isPerUnit: false,
       displayOrder: 2,
     },
   });
@@ -213,7 +214,18 @@ async function main() {
 
 main()
   .catch((error) => {
-    logger.error('Seed failed', { error });
+    if (error instanceof Error) {
+      logger.error('Seed failed', {
+        errorName: error.name,
+        errorMessage: error.message,
+        errorStack: error.stack,
+      });
+    } else {
+      logger.error('Seed failed', {
+        error: String(error),
+      });
+    }
+
     process.exit(1);
   })
   .finally(async () => {
