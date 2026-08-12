@@ -52,3 +52,5 @@ export const DevUserSwitcher: React.FC = () => {
     </Box>
   );
 };
+
+export default DevUserSwitcher;
