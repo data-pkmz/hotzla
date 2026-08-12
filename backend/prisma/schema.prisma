@@ -94,14 +94,14 @@ model User {
 model OrderStatusHistory {
   id              String       @id @default(uuid()) @db.Uuid
   orderId         String       @map("order_id") @db.Uuid
-  orders Order @relation(fields: [orderId], references:[id])
+  orders          Order        @relation(fields: [orderId], references:[id])
   fromStatus      OrderStatus? @map("from_status")
   toStatus        OrderStatus  @map("to_status")
   changedByUserId String?      @map("changed_by_user_id") @db.Uuid
   changedBySource ChangeSource @map("changed_by_source")
   changedAt       DateTime     @default(now()) @map("changed_at")
   note            String?      @db.Text
-  isDeleted       Boolean  @default(false) @map("is_deleted")
+  isDeleted       Boolean      @default(false) @map("is_deleted")
 
   changedByUser User? @relation(fields: [changedByUserId], references: [id])
 
@@ -117,8 +117,9 @@ model Product {
   basePrice     Decimal      @map("base_price")
   isActive      Boolean      @map("is_active")
   createdBy     String?      @map("created_by") @db.Uuid
-  createdByUser User? @relation(fields: [createdBy], references: [id])
+  createdByUser User?        @relation(fields: [createdBy], references: [id])
   createdAt     DateTime     @default(now()) @map("created_at")
+  isDeleted     Boolean      @default(false) @map("is_deleted")
   attributeDefinitionEntries ProductAttributeDefinition[]
   cartItemEntries CartItem[]
   orderItemEntries OrderItem[]
@@ -127,8 +128,8 @@ model Product {
 
 model ProductAttributeDefinition {
   id            String        @id @default(uuid()) @db.Uuid
-  productId     String?       @map("product_id") @db.Uuid
-  product Product? @relation(fields: [productId], references: [id])
+  productId     String        @map("product_id") @db.Uuid
+  product       Product       @relation(fields: [productId], references: [id])
   attributeName String        @map("attribute_name")
   attributeType AttributeType @map("attribute_type")
   isRequired    Boolean       @map("is_required")
@@ -137,22 +138,23 @@ model ProductAttributeDefinition {
   unitPrice     Decimal?      @map("unit_price")
   minValue      Decimal?      @map("min_value")
   maxValue      Decimal?      @map("max_value")
-  isDeleted     Boolean  @default(false) @map("is_deleted")
+  isDeleted     Boolean       @default(false) @map("is_deleted")
   attributeOptionEntries ProductAttributeOption[]
   orderAttributeEntries OrderItemAttributeValue[]
   @@map("product_attribute_definition")
 }
 
 model ProductAttributeOption {
-  id                      String              @id @default(uuid()) @db.Uuid
-  attributeDefinitionId   String              @map("attribute_definition_id") @db.Uuid
-  attributeDefinition ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
-  optionLabel             String              @map("option_label")
-  optionValue             String              @map("option_value")
-  priceModifier           Decimal             @map("price_modifier")
-  priceModifierType       PriceModifierType   @map("price_modifier_type")
-  displayOrder            Int                 @map("display_order")
-  isDeleted               Boolean  @default(false) @map("is_deleted")
+  id                      String                     @id @default(uuid()) @db.Uuid
+  attributeDefinitionId   String                     @map("attribute_definition_id") @db.Uuid
+  attributeDefinition     ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
+  optionLabel             String                     @map("option_label")
+  optionValue             String                     @map("option_value")
+  priceModifier           Decimal                    @map("price_modifier")
+  priceModifierType       PriceModifierType          @map("price_modifier_type")
+  displayOrder            Int                        @map("display_order")
+  isDeleted               Boolean                    @default(false) @map("is_deleted")
+  isPerUnit               Boolean                    @default(false) @map("is_per_unit")
   orderAttributeEntries OrderItemAttributeValue[]
   @@map("product_attribute_options")
 }
@@ -160,11 +162,11 @@ model ProductAttributeOption {
 model Cart {
   id                String         @id @default(uuid()) @db.Uuid
   userId            String         @map("user_id") @db.Uuid
-  user User @relation(fields: [userId], references: [id])
+  user              User           @relation(fields: [userId], references: [id])
   status            Status
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @map("updated_at")
-  isDeleted         Boolean  @default(false) @map("is_deleted")
+  isDeleted         Boolean        @default(false) @map("is_deleted")
   cartItemEntries CartItem[]
   @@map("carts")
 }
@@ -172,13 +174,13 @@ model Cart {
 model CartItem {
   id                  String         @id @default(uuid()) @db.Uuid
   cartId              String         @map("cart_id") @db.Uuid
-  cart Cart @relation(fields: [cartId], references: [id])
+  cart                Cart           @relation(fields: [cartId], references: [id])
   productId           String         @map("product_id") @db.Uuid
-  product Product @relation(fields: [productId], references: [id])
+  product             Product        @relation(fields: [productId], references: [id])
   uploadedFilePath    String         @map("uploaded_file_path")
   computedPrice       Decimal        @map("computed_price")
   selectedAttributes  Json           @map("selected_attributes")
-  isDeleted           Boolean  @default(false) @map("is_deleted")
+  isDeleted           Boolean        @default(false) @map("is_deleted")
   @@map("cart_items")
 }
 
@@ -186,22 +188,22 @@ model Order {
   id                  String         @id @default(uuid()) @db.Uuid
   orderNumber         String         @unique @map("order_number")
   requesterId         String         @map("requester_id") @db.Uuid
-  requester User @relation("orderRequester", fields: [requesterId], references: [id])
+  requester           User           @relation("orderRequester", fields: [requesterId], references: [id])
   unit                String
-  status              Status
+  status              OrderStatus
   budgetOfficerName   String         @map("budget_officer_name")
   budgetOfficerEmail  String         @map("budget_officer_email")
   totalPrice          Decimal        @map("total_price")
-  approvedByManagerId String         @map("approved_by_manager_id") @db.Uuid
-  approvedByManager User @relation("orderApprover", fields: [approvedByManagerId], references: [id])
-  approvedByManagerAt  DateTime       @map("approved_by_manager_at")
-  workerId            String         @map("worker_id") @db.Uuid
-  worker User @relation("orderWorker", fields: [workerId], references: [id])
-  completedAt         DateTime       @map("completed_at")
+  approvedByManagerId String?        @map("approved_by_manager_id") @db.Uuid
+  approvedByManager   User?          @relation("orderApprover", fields: [approvedByManagerId], references: [id])
+  approvedByManagerAt DateTime?      @map("approved_by_manager_at")
+  workerId            String?        @map("worker_id") @db.Uuid
+  worker              User?          @relation("orderWorker", fields: [workerId], references: [id])
+  completedAt         DateTime?      @map("completed_at")
   createdAt           DateTime       @default(now()) @map("created_at")
-  isDeleted           Boolean  @default(false) @map("is_deleted")
+  isDeleted           Boolean        @default(false) @map("is_deleted")
   itemEntries OrderItem[]
-  emailLogEntires EmailLog[]
+  emailLogEntries EmailLog[]
   approvedTokenEntries ApprovalToken[]
   orderStatus OrderStatusHistory[]
   @@map("orders")
@@ -210,52 +212,52 @@ model Order {
 model OrderItem {
   id                   String         @id @default(uuid()) @db.Uuid
   orderId              String         @map("order_id") @db.Uuid
-  order Order @relation(fields: [orderId], references: [id])
+  order                Order          @relation(fields: [orderId], references: [id])
   productId            String         @map("product_id") @db.Uuid
-  product Product @relation(fields: [productId], references: [id])
+  product              Product        @relation(fields: [productId], references: [id])
   uploadedFilePath     String         @map("uploaded_file_path")
   computedUnitPrice    Decimal        @map("computed_unit_price")
   computedTotalPrice   Decimal        @map("computed_total_price")
-  isDeleted            Boolean  @default(false) @map("is_deleted")
+  isDeleted            Boolean        @default(false) @map("is_deleted")
   itemAttributeEntries OrderItemAttributeValue[]
   @@map("order_items")
 }
 
 model OrderItemAttributeValue {
-  id                    String         @id @default(uuid()) @db.Uuid
-  orderItemId           String         @map("order_item_id") @db.Uuid
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
-  attributeDefinitionId String         @map("attribute_definition_id") @db.Uuid
-  attributeDefinition ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
-  selectedOptionId      String         @map("selected_option_id") @db.Uuid
-  selectedOption ProductAttributeOption @relation(fields: [selectedOptionId], references: [id])
-  valueText             String         @map("value_text")
-  isDeleted             Boolean  @default(false) @map("is_deleted")
+  id                    String                     @id @default(uuid()) @db.Uuid
+  orderItemId           String                     @map("order_item_id") @db.Uuid
+  orderItem             OrderItem                  @relation(fields: [orderItemId], references: [id])
+  attributeDefinitionId String                     @map("attribute_definition_id") @db.Uuid
+  attributeDefinition   ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
+  selectedOptionId      String                     @map("selected_option_id") @db.Uuid
+  selectedOption        ProductAttributeOption     @relation(fields: [selectedOptionId], references: [id])
+  valueText             String                     @map("value_text")
+  isDeleted             Boolean                    @default(false) @map("is_deleted")
   @@map("order_item_attribute_values")
 }
 
 model EmailLog {
-  id                   String          @id @default(uuid()) @db.Uuid
-  orderId              String          @map("order_id") @db.Uuid
-  order Order @relation(fields: [orderId], references: [id])
-  direction            Direction 
-  toAddress            String          @map("to_address")
-  fromAddress          String          @map("from_address")
-  subject              String 
-  processedStatus      ProcessedStatus @map("processed_status")
-  createdAt            DateTime        @default(now()) @map("created_at")
-  isDeleted            Boolean  @default(false) @map("is_deleted")
+  id                 String          @id @default(uuid()) @db.Uuid
+  orderId            String          @map("order_id") @db.Uuid
+  order              Order           @relation(fields: [orderId], references: [id])
+  direction          Direction 
+  toAddress          String          @map("to_address")
+  fromAddress        String          @map("from_address")
+  subject            String 
+  processedStatus    ProcessedStatus @map("processed_status")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  isDeleted          Boolean         @default(false) @map("is_deleted")
   @@map("email_log")
 }
 
 model ApprovalToken {
   id                   String          @id @default(uuid()) @db.Uuid
   orderId              String          @map("order_id") @db.Uuid
-  order Order @relation(fields: [orderId], references: [id])
+  order                Order           @relation(fields: [orderId], references: [id])
   token                String          @unique
   isUsed               Boolean         @map("is_used")
   expiresAt            DateTime        @map("expires_at")
-  usedAt               DateTime        @map("used_at")    
-  isDeleted            Boolean  @default(false) @map("is_deleted")
+  usedAt               DateTime?       @map("used_at")    
+  isDeleted            Boolean         @default(false) @map("is_deleted")
   @@map("approval_tokens")        
 }
