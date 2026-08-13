@@ -1,4 +1,4 @@
-import { prisma } from '../config/db.js';
+import { prisma } from '../config/db';
 import type { Product, ProductAttributeDefinition } from '@prisma/client';
 import type { ProductType, AttributeType, PricingRule } from 'shared-types';
 

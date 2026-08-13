@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
-import logger from '../utils/logger.js';
+import logger from '../utils/logger';
 const authService = new AuthService();
 
 export async function getCurrentUser(req: Request, res: Response) {

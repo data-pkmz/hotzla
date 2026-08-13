@@ -1,5 +1,5 @@
 import logger from '../src/utils/logger';
-import { prisma } from '../src/config/db.js';
+import { prisma } from '../src/config/db';
 
 async function main() {
   logger.info('Starting database seed...');
