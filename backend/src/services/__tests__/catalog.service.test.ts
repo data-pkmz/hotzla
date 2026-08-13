@@ -1,5 +1,5 @@
-import { CatalogService } from '../catalog.service.js';
-import { prisma } from '../../config/db.js';
+import { CatalogService } from '../catalog.service';
+import { prisma } from '../../config/db';
 import { Prisma, ProductType } from '@prisma/client';
 import type { Product, ProductAttributeDefinition } from '@prisma/client';
 
@@ -32,7 +32,7 @@ const attribute: ProductAttributeDefinition = {
   isDeleted: false,
 };
 
-jest.mock('../../config/db.js', () => ({
+jest.mock('../../config/db', () => ({
   prisma: {
     product: {
       findMany: jest.fn(),
