@@ -1,63 +1,16 @@
-// Enums for Users
-export type UserRole = 'REQUESTER' | 'MANAGER' | 'WORKER';
+import type { Product } from './product.types.js';
 
-export interface User {
-  id: string;
-  fullName: string | null;
-  militaryEmail: string | null;
-  adUsername: string;
-  unit: string | null;
-  phone: string | null;
-  role: UserRole;
-  createdAt: Date | string;
-}
+export type { UserRole, User } from './user.types.js';
 
-// Enums for Products
-export type ProductType = 'FIXED' | 'DYNAMIC';
-
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  category: string;
-  productType: ProductType;
-  basePrice: number;
-  isActive: boolean;
-  createdBy: string;
-  createdAt: Date | string;
-}
-
-// Attribute Definitions
-export type AttributeType = 'SELECT' | 'NUMBER' | 'BOOLEAN' | 'TEXT' | 'FILE_UPLOAD';
-export type PricingRule = 'NONE' | 'PER_UNIT_MULTIPLIER' | 'FLAT_ADD_PER_OPTION';
-
-export interface ProductAttributeDefinition {
-  id: string;
-  productId: string;
-  attributeName: string;
-  attributeType: AttributeType;
-  isRequired: boolean;
-  displayOrder: number;
-  pricingRule: PricingRule;
-  unitPrice?: number;
-  minValue?: number;
-  maxValue?: number;
-  options?: ProductAttributeOption[];
-}
-
-export type PriceModifierType = 'FIXED_ADD' | 'MULTIPLY';
-
-export interface ProductAttributeOption {
-  id: string;
-  attributeDefinitionId: string;
-  optionLabel: string;
-  optionValue: string;
-  priceModifier: number;
-  priceModifierType: PriceModifierType;
-  isPerUnit: boolean;
-  displayOrder: number;
-}
+export type {
+  ProductType,
+  Product,
+  AttributeType,
+  PricingRule,
+  PriceModifierType,
+  ProductAttributeDefinition,
+  ProductAttributeOption,
+} from './product.types.js';
 
 // Cart structures
 export type CartStatus = 'ACTIVE' | 'CONVERTED' | 'ABANDONED';
@@ -91,55 +44,18 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'REJECTED';
 
-export interface Order {
-  id: string;
-  orderNumber: string;
-  requesterId: string;
-  unit: string;
-  status: OrderStatus;
-  budgetOfficerName: string;
-  budgetOfficerEmail: string;
-  totalPrice: number;
-  approvedByManagerId?: string;
-  approvedByBudgetAt?: Date | string;
-  approvedByManagerAt?: Date | string;
-  workerId?: string;
-  completedAt?: Date | string;
-  createdAt: Date | string;
-  items?: OrderItem[];
-}
-
-export interface OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
-  uploadedFilePath?: string;
-  computedUnitPrice: number;
-  computedTotalPrice: number;
-  attributeValues?: OrderItemAttributeValue[];
-  product?: Product;
-}
-
-export interface OrderItemAttributeValue {
-  id: string;
-  orderItemId: string;
-  attributeDefinitionId: string;
-  selectedOptionId?: string;
-  valueText: string;
-}
-
 // Order Status History
 export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'WORKER_UI';
 
 export interface OrderStatusHistory {
   id: string;
   orderId: string;
-  fromStatus?: OrderStatus | null;
+  fromStatus: OrderStatus | null;
   toStatus: OrderStatus;
-  changedByUserId?: string | null;
+  changedByUserId: string | null;
   changedBySource: ChangeSource;
   changedAt: Date | string;
-  note?: string | null;
+  note: string | null;
 }
 
 export interface LogStatusChangeParams {
@@ -186,4 +102,41 @@ export interface PriceBreakdownLine {
 export interface PriceResult {
   totalPrice: number;
   breakdown: PriceBreakdownLine[];
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  uploadedFilePath?: string;
+  computedUnitPrice: number;
+  computedTotalPrice: number;
+  attributeValues?: OrderItemAttributeValue[];
+  product?: Product;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  requesterId: string;
+  unit: string;
+  status: OrderStatus;
+  budgetOfficerName: string;
+  budgetOfficerEmail: string;
+  totalPrice: number;
+  approvedByManagerId: string | null;
+  approvedByBudgetAt: Date | string | null;
+  approvedByManagerAt: Date | string | null;
+  workerId: string | null;
+  completedAt: Date | string | null;
+  createdAt: Date | string;
+  items?: OrderItem[];
+}
+
+export interface OrderItemAttributeValue {
+  id: string;
+  orderItemId: string;
+  attributeDefinitionId: string;
+  selectedOptionId?: string;
+  valueText: string;
 }
