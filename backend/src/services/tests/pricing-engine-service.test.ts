@@ -19,9 +19,9 @@ jest.mock('../../config/db.js', () => ({
   },
 }));
 
-// ============================================================
-// Fixtures
-// ============================================================
+/**
+ *Fixtures.
+ */
 
 const product: Product = {
   id: 'product-1',
@@ -130,9 +130,9 @@ const flatBindingOption: ProductAttributeOption = {
   isDeleted: false,
 };
 
-// ============================================================
-// Tests
-// ============================================================
+/**
+ *Tests.
+ */
 
 describe('PricingEngineService', () => {
   beforeEach(() => {
@@ -141,9 +141,9 @@ describe('PricingEngineService', () => {
     jest.mocked(prisma.product.findFirst).mockResolvedValue(product);
   });
 
-  // ============================================================
-  // Quantity
-  // ============================================================
+  /**
+   *Quantity.
+   */
 
   describe('quantity validation', () => {
     it('rejects quantity zero', async () => {
@@ -152,7 +152,7 @@ describe('PricingEngineService', () => {
           productId: 'product-1',
           quantity: 0,
         })
-      ).rejects.toThrow('Quantity must be a positive integer');
+      ).rejects.toThrow('הכמות חייבת להיות מספר שלם וחיובי');
     });
 
     it('rejects a negative quantity', async () => {
@@ -161,7 +161,7 @@ describe('PricingEngineService', () => {
           productId: 'product-1',
           quantity: -1,
         })
-      ).rejects.toThrow('Quantity must be a positive integer');
+      ).rejects.toThrow('הכמות חייבת להיות מספר שלם וחיובי');
     });
 
     it('rejects a fractional quantity', async () => {
@@ -170,13 +170,13 @@ describe('PricingEngineService', () => {
           productId: 'product-1',
           quantity: 1.5,
         })
-      ).rejects.toThrow('Quantity must be a positive integer');
+      ).rejects.toThrow('הכמות חייבת להיות מספר שלם וחיובי');
     });
   });
 
-  // ============================================================
-  // Base product price
-  // ============================================================
+  /**
+   *Base product price.
+   */
 
   describe('base price', () => {
     it('multiplies base price by product quantity', async () => {
@@ -216,7 +216,7 @@ describe('PricingEngineService', () => {
           productId: 'product-1',
           quantity: 1,
         })
-      ).rejects.toThrow('negative base price');
+      ).rejects.toThrow('מחיר בסיס שלילי');
     });
 
     it('only loads active and non-deleted products', async () => {
@@ -242,13 +242,13 @@ describe('PricingEngineService', () => {
           productId: 'missing-product',
           quantity: 1,
         })
-      ).rejects.toThrow('Product not found or unavailable');
+      ).rejects.toThrow('המוצר לא נמצא או אינו זמין');
     });
   });
 
-  // ============================================================
-  // NUMBER
-  // ============================================================
+  /**
+   *NUMBER.
+   */
 
   describe('NUMBER attributes', () => {
     beforeEach(() => {
@@ -267,7 +267,9 @@ describe('PricingEngineService', () => {
         ],
       });
 
-      // 100 copies × 1.2 = 120
+      /**
+       *100 copies × 1.2 = 120
+       */
       expect(result.baseTotal).toBe(0);
       expect(result.totalAdditionalPrice).toBe(120);
       expect(result.totalPrice).toBe(120);
@@ -292,7 +294,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('requires a numeric value');
+      ).rejects.toThrow('דורש ערך מספרי');
     });
 
     it('rejects a value below minValue', async () => {
@@ -307,7 +309,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('below its minimum value');
+      ).rejects.toThrow('נמוך מהערך המינימלי המותר');
     });
 
     it('rejects a value above maxValue', async () => {
@@ -322,7 +324,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('above its maximum value');
+      ).rejects.toThrow('גבוה מהערך המקסימלי המותר');
     });
 
     it('rejects zero unit price', async () => {
@@ -342,7 +344,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('requires a positive unit price');
+      ).rejects.toThrow('דורש מחיר ליחידה גדול מאפס');
     });
 
     it('rejects negative unit price', async () => {
@@ -362,13 +364,13 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('requires a positive unit price');
+      ).rejects.toThrow('דורש מחיר ליחידה גדול מאפס');
     });
   });
 
-  // ============================================================
-  // SELECT
-  // ============================================================
+  /**
+   *SELECT.
+   */
 
   describe('SELECT attributes', () => {
     it('multiplies a per-unit option by product quantity', async () => {
@@ -387,7 +389,9 @@ describe('PricingEngineService', () => {
         ],
       });
 
-      // 0.2 × 100 = 20
+      /**
+       *0.2 × 100 = 20
+       */
       expect(result.totalAdditionalPrice).toBe(20);
       expect(result.totalPrice).toBe(20);
 
@@ -416,7 +420,9 @@ describe('PricingEngineService', () => {
         ],
       });
 
-      // 8 once, not 8 × 100.
+      /**
+       *8 once, not 8 × 100.
+       */
       expect(result.totalAdditionalPrice).toBe(8);
       expect(result.totalPrice).toBe(8);
 
@@ -454,9 +460,11 @@ describe('PricingEngineService', () => {
         ],
       });
 
-      // 0.2 × 10 = 2
-      // + 3 once
-      // = 5
+      /**
+       *0.2 × 10 = 2
+       *+ 3 once
+       *= 5
+       */
       expect(result.totalAdditionalPrice).toBe(5);
     });
 
@@ -474,7 +482,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('requires a selected option');
+      ).rejects.toThrow('דורש בחירת אפשרות');
     });
 
     it('rejects an invalid or deleted selected option', async () => {
@@ -493,7 +501,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('One or more selected options');
+      ).rejects.toThrow('אפשרות אחת או יותר שנבחרו אינן תקינות');
     });
 
     it('rejects a negative option price modifier', async () => {
@@ -517,13 +525,13 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('negative price modifier');
+      ).rejects.toThrow('תוספת מחיר שלילית');
     });
   });
 
-  // ============================================================
-  // BOOLEAN
-  // ============================================================
+  /**
+   *BOOLEAN.
+   */
 
   describe('BOOLEAN attributes', () => {
     beforeEach(() => {
@@ -574,13 +582,13 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('requires a boolean value');
+      ).rejects.toThrow('דורש ערך בוליאני');
     });
   });
 
-  // ============================================================
-  // TEXT
-  // ============================================================
+  /**
+   *TEXT.
+   */
 
   describe('TEXT attributes', () => {
     beforeEach(() => {
@@ -610,9 +618,9 @@ describe('PricingEngineService', () => {
     });
   });
 
-  // ============================================================
-  // Full specification example
-  // ============================================================
+  /**
+   *Full specification example.
+   */
 
   describe('complete dynamic product calculation', () => {
     it('calculates the documented 148 price example', async () => {
@@ -646,20 +654,22 @@ describe('PricingEngineService', () => {
         ],
       });
 
-      // Base:
-      // 0 × 100 = 0
-      //
-      // Copies:
-      // 100 × 1.2 = 120
-      //
-      // Chromo paper:
-      // 0.2 × 100 = 20
-      //
-      // Spiral binding:
-      // +8 once
-      //
-      // Total:
-      // 0 + 120 + 20 + 8 = 148
+      /**
+       *Base:
+       *0 × 100 = 0
+       *
+       *Copies:
+       *100 × 1.2 = 120
+       *
+       *Chromo paper:
+       *0.2 × 100 = 20
+       *
+       *Spiral binding:
+       *+8 once
+       *
+       *Total:
+       *0 + 120 + 20 + 8 = 148
+       */
 
       expect(result.baseTotal).toBe(0);
       expect(result.totalAdditionalPrice).toBe(148);
@@ -672,9 +682,9 @@ describe('PricingEngineService', () => {
     });
   });
 
-  // ============================================================
-  // Attribute validation
-  // ============================================================
+  /**
+   *Attribute validation.
+   */
 
   describe('attribute validation', () => {
     it('rejects an attribute that does not belong to the product', async () => {
@@ -690,7 +700,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('is invalid for this product');
+      ).rejects.toThrow('אינו תקין עבור מוצר זה');
     });
 
     it('searches only for a non-deleted attribute belonging to the product', async () => {
@@ -717,26 +727,26 @@ describe('PricingEngineService', () => {
     });
   });
 
-  // ============================================================
-  // Prisma errors
-  // ============================================================
+  /**
+   *Prisma errors.
+   */
 
   describe('Prisma errors', () => {
     it('propagates product database errors', async () => {
-      jest.mocked(prisma.product.findFirst).mockRejectedValue(new Error('Database error'));
+      jest.mocked(prisma.product.findFirst).mockRejectedValue(new Error('שגיאת מסד נתונים'));
 
       await expect(
         PricingEngineService.calculatePrice({
           productId: 'product-1',
           quantity: 1,
         })
-      ).rejects.toThrow('Database error');
+      ).rejects.toThrow('שגיאת מסד נתונים');
     });
 
     it('propagates attribute database errors', async () => {
       jest
         .mocked(prisma.productAttributeDefinition.findFirst)
-        .mockRejectedValue(new Error('Database error'));
+        .mockRejectedValue(new Error('שגיאת מסד נתונים'));
 
       await expect(
         PricingEngineService.calculatePrice({
@@ -749,7 +759,7 @@ describe('PricingEngineService', () => {
             },
           ],
         })
-      ).rejects.toThrow('Database error');
+      ).rejects.toThrow('שגיאת מסד נתונים');
     });
   });
 });
