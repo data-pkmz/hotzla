@@ -2,15 +2,26 @@ import type { Product } from './product.types.js';
 
 export type { UserRole, User } from './user.types.js';
 
+import type { Product } from './product.types.js';
+
+export type { UserRole, User } from './user.types.js';
+
 export type {
   ProductType,
   Product,
   AttributeType,
+  ProductAttributeDefinition,
   PricingRule,
   PriceModifierType,
-  ProductAttributeDefinition,
   ProductAttributeOption,
 } from './product.types.js';
+
+export type {
+  SelectedAttributeInput,
+  CalculatePriceParams,
+  PriceBreakdownLine,
+  PriceResult,
+} from './pricing.types.js';
 
 // Cart structures
 export type CartStatus = 'ACTIVE' | 'CONVERTED' | 'ABANDONED';
@@ -44,18 +55,55 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'REJECTED';
 
+export interface Order {
+  id: string;
+  orderNumber: string;
+  requesterId: string;
+  unit: string;
+  status: OrderStatus;
+  budgetOfficerName: string;
+  budgetOfficerEmail: string;
+  totalPrice: number;
+  approvedByManagerId?: string;
+  approvedByBudgetAt?: Date | string;
+  approvedByManagerAt?: Date | string;
+  workerId?: string;
+  completedAt?: Date | string;
+  createdAt: Date | string;
+  items?: OrderItem[];
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  uploadedFilePath?: string;
+  computedUnitPrice: number;
+  computedTotalPrice: number;
+  attributeValues?: OrderItemAttributeValue[];
+  product?: Product;
+}
+
+export interface OrderItemAttributeValue {
+  id: string;
+  orderItemId: string;
+  attributeDefinitionId: string;
+  selectedOptionId?: string;
+  valueText: string;
+}
+
 // Order Status History
 export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'WORKER_UI';
 
 export interface OrderStatusHistory {
   id: string;
   orderId: string;
-  fromStatus: OrderStatus | null;
+  fromStatus?: OrderStatus | null;
   toStatus: OrderStatus;
-  changedByUserId: string | null;
+  changedByUserId?: string | null;
   changedBySource: ChangeSource;
   changedAt: Date | string;
-  note: string | null;
+  note?: string | null;
 }
 
 export interface LogStatusChangeParams {
@@ -90,53 +138,4 @@ export interface EmailLog {
   subject: string;
   processedStatus: EmailProcessedStatus;
   createdAt: Date | string;
-}
-
-// Pricing Engine interfaces
-export interface PriceBreakdownLine {
-  attributeName: string;
-  selectedValue: string;
-  contribution: number;
-}
-
-export interface PriceResult {
-  totalPrice: number;
-  breakdown: PriceBreakdownLine[];
-}
-
-export interface OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
-  uploadedFilePath?: string;
-  computedUnitPrice: number;
-  computedTotalPrice: number;
-  attributeValues?: OrderItemAttributeValue[];
-  product?: Product;
-}
-
-export interface Order {
-  id: string;
-  orderNumber: string;
-  requesterId: string;
-  unit: string;
-  status: OrderStatus;
-  budgetOfficerName: string;
-  budgetOfficerEmail: string;
-  totalPrice: number;
-  approvedByManagerId: string | null;
-  approvedByBudgetAt: Date | string | null;
-  approvedByManagerAt: Date | string | null;
-  workerId: string | null;
-  completedAt: Date | string | null;
-  createdAt: Date | string;
-  items?: OrderItem[];
-}
-
-export interface OrderItemAttributeValue {
-  id: string;
-  orderItemId: string;
-  attributeDefinitionId: string;
-  selectedOptionId?: string;
-  valueText: string;
 }
