@@ -52,9 +52,9 @@ describe('CatalogService', () => {
     jest.clearAllMocks();
   });
 
-  // ============================================================
-  // getProducts
-  // ============================================================
+  /**
+   *Tests for getProducts.
+   */
 
   describe('getProducts', () => {
     it('returns active and non-deleted products ordered by name', async () => {
@@ -86,18 +86,18 @@ describe('CatalogService', () => {
     });
 
     it('propagates Prisma errors', async () => {
-      const error = new Error('Database error');
+      const error = new Error('שגיאת מסד נתונים');
 
       jest.mocked(prisma.product.findMany).mockRejectedValue(error);
 
-      await expect(CatalogService.getProducts()).rejects.toThrow('Database error');
+      await expect(CatalogService.getProducts()).rejects.toThrow('שגיאת מסד נתונים');
     });
   });
 });
 
-// ============================================================
-// getProductById
-// ============================================================
+/**
+ *Tests for getProductById.
+ */
 
 describe('getProductById', () => {
   it('returns an active and non-deleted product', async () => {
@@ -127,14 +127,14 @@ describe('getProductById', () => {
   });
 
   it('propagates Prisma errors', async () => {
-    jest.mocked(prisma.product.findFirst).mockRejectedValue(new Error('Database error'));
+    jest.mocked(prisma.product.findFirst).mockRejectedValue(new Error('שגיאת מסד נתונים'));
 
-    await expect(CatalogService.getProductById('product-1')).rejects.toThrow('Database error');
+    await expect(CatalogService.getProductById('product-1')).rejects.toThrow('שגיאת מסד נתונים');
   });
 
-  // ============================================================
-  // createProduct
-  // ============================================================
+  /**
+   *Tests for createProduct.
+   */
 
   describe('createProduct', () => {
     it('creates a product with the correct data', async () => {
@@ -195,7 +195,7 @@ describe('getProductById', () => {
     });
 
     it('propagates Prisma errors', async () => {
-      jest.mocked(prisma.product.create).mockRejectedValue(new Error('Database error'));
+      jest.mocked(prisma.product.create).mockRejectedValue(new Error('שגיאת מסד נתונים'));
 
       await expect(
         CatalogService.createProduct({
@@ -205,13 +205,13 @@ describe('getProductById', () => {
           productType: 'FIXED',
           basePrice: 20,
         })
-      ).rejects.toThrow('Database error');
+      ).rejects.toThrow('שגיאת מסד נתונים');
     });
   });
 
-  // ============================================================
-  // updateProduct
-  // ============================================================
+  /**
+   *Tests for updateProduct.
+   */
 
   describe('updateProduct', () => {
     it('updates the supplied product fields', async () => {
@@ -254,19 +254,19 @@ describe('getProductById', () => {
     });
 
     it('propagates Prisma errors', async () => {
-      jest.mocked(prisma.product.update).mockRejectedValue(new Error('Product not found'));
+      jest.mocked(prisma.product.update).mockRejectedValue(new Error('המוצר לא נמצא'));
 
       await expect(
         CatalogService.updateProduct('product-1', {
           name: 'Updated',
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('המוצר לא נמצא');
     });
   });
 
-  // ============================================================
-  // softDeleteProduct
-  // ============================================================
+  /**
+   *Tests for softDeleteProduct.
+   */
 
   describe('softDeleteProduct', () => {
     it('marks the product as deleted and inactive', async () => {
@@ -286,17 +286,15 @@ describe('getProductById', () => {
     });
 
     it('propagates Prisma errors', async () => {
-      jest.mocked(prisma.product.update).mockRejectedValue(new Error('Product not found'));
+      jest.mocked(prisma.product.update).mockRejectedValue(new Error('המוצר לא נמצא'));
 
-      await expect(CatalogService.softDeleteProduct('product-1')).rejects.toThrow(
-        'Product not found'
-      );
+      await expect(CatalogService.softDeleteProduct('product-1')).rejects.toThrow('המוצר לא נמצא');
     });
   });
 
-  // ============================================================
-  // activateProduct
-  // ============================================================
+  /**
+   *Tests for activateProduct.
+   */
 
   describe('activateProduct', () => {
     it('activates a product that has not been deleted', async () => {
@@ -316,10 +314,10 @@ describe('getProductById', () => {
     });
 
     it('does not activate a deleted product', async () => {
-      jest.mocked(prisma.product.update).mockRejectedValue(new Error('Record not found'));
+      jest.mocked(prisma.product.update).mockRejectedValue(new Error('הרשומה לא נמצאה'));
 
       await expect(CatalogService.activateProduct('deleted-product')).rejects.toThrow(
-        'Record not found'
+        'הרשומה לא נמצאה'
       );
 
       expect(jest.mocked(prisma.product.update)).toHaveBeenCalledWith({
@@ -334,9 +332,9 @@ describe('getProductById', () => {
     });
   });
 
-  // ============================================================
-  // deactivateProduct
-  // ============================================================
+  /**
+   *Tests for deactivateProduct.
+   */
 
   describe('deactivateProduct', () => {
     it('deactivates a product without deleting it', async () => {
@@ -356,17 +354,17 @@ describe('getProductById', () => {
     });
 
     it('does not deactivate a deleted product', async () => {
-      jest.mocked(prisma.product.update).mockRejectedValue(new Error('Record not found'));
+      jest.mocked(prisma.product.update).mockRejectedValue(new Error('הרשומה לא נמצאה'));
 
       await expect(CatalogService.deactivateProduct('deleted-product')).rejects.toThrow(
-        'Record not found'
+        'הרשומה לא נמצאה'
       );
     });
   });
 
-  // ============================================================
-  // createAttribute
-  // ============================================================
+  /**
+   *Tests for createAttribute.
+   */
 
   describe('createAttribute', () => {
     it('creates an attribute definition for a product', async () => {
@@ -404,7 +402,7 @@ describe('getProductById', () => {
     it('propagates Prisma errors', async () => {
       jest
         .mocked(prisma.productAttributeDefinition.create)
-        .mockRejectedValue(new Error('Product not found'));
+        .mockRejectedValue(new Error('המוצר לא נמצא'));
 
       await expect(
         CatalogService.createAttribute('product-1', {
@@ -414,13 +412,13 @@ describe('getProductById', () => {
           displayOrder: 1,
           pricingRule: 'NONE',
         })
-      ).rejects.toThrow('Product not found');
+      ).rejects.toThrow('המוצר לא נמצא');
     });
   });
 
-  // ============================================================
-  // updateAttribute
-  // ============================================================
+  /**
+   *Tests for updateAttribute.
+   */
 
   describe('updateAttribute', () => {
     it('updates the supplied attribute fields', async () => {
@@ -444,19 +442,19 @@ describe('getProductById', () => {
     it('propagates Prisma errors', async () => {
       jest
         .mocked(prisma.productAttributeDefinition.update)
-        .mockRejectedValue(new Error('Attribute not found'));
+        .mockRejectedValue(new Error('המאפיין לא נמצא'));
 
       await expect(
         CatalogService.updateAttribute('attribute-1', {
           attributeName: 'Updated',
         })
-      ).rejects.toThrow('Attribute not found');
+      ).rejects.toThrow('המאפיין לא נמצא');
     });
   });
 
-  // ============================================================
-  // softDeleteAttribute
-  // ============================================================
+  /**
+   *Tests for softDeleteAttribute.
+   */
 
   describe('softDeleteAttribute', () => {
     it('marks the attribute as deleted', async () => {
@@ -476,10 +474,10 @@ describe('getProductById', () => {
     it('propagates Prisma errors', async () => {
       jest
         .mocked(prisma.productAttributeDefinition.update)
-        .mockRejectedValue(new Error('Attribute not found'));
+        .mockRejectedValue(new Error('המאפיין לא נמצא'));
 
       await expect(CatalogService.softDeleteAttribute('attribute-1')).rejects.toThrow(
-        'Attribute not found'
+        'המאפיין לא נמצא'
       );
     });
   });

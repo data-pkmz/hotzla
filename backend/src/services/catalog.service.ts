@@ -1,5 +1,6 @@
 import { prisma } from '../config/db.js';
 import type { Product, ProductAttributeDefinition } from '@prisma/client';
+import type { ProductType, AttributeType, PricingRule } from 'shared-types';
 
 export class CatalogService {
   /**
@@ -41,7 +42,7 @@ export class CatalogService {
     name: string;
     description: string;
     category: string;
-    productType: 'FIXED' | 'DYNAMIC';
+    productType: ProductType;
     basePrice: number;
     createdBy?: string;
   }): Promise<Product> {
@@ -67,7 +68,7 @@ export class CatalogService {
       name?: string;
       description?: string;
       category?: string;
-      productType?: 'FIXED' | 'DYNAMIC';
+      productType?: ProductType;
       basePrice?: number;
     }
   ): Promise<Product> {
@@ -136,10 +137,10 @@ export class CatalogService {
     productId: string,
     data: {
       attributeName: string;
-      attributeType: 'SELECT' | 'NUMBER' | 'BOOLEAN' | 'TEXT' | 'FILE_UPLOAD';
+      attributeType: AttributeType;
       isRequired: boolean;
       displayOrder: number;
-      pricingRule: 'NONE' | 'PER_UNIT_MULTIPLIER' | 'FLAT_ADD_PER_OPTION';
+      pricingRule: PricingRule;
       unitPrice?: number;
       minValue?: number;
       maxValue?: number;
@@ -167,10 +168,10 @@ export class CatalogService {
     id: string,
     data: {
       attributeName?: string;
-      attributeType?: 'SELECT' | 'NUMBER' | 'BOOLEAN' | 'TEXT' | 'FILE_UPLOAD';
+      attributeType?: AttributeType;
       isRequired?: boolean;
       displayOrder?: number;
-      pricingRule?: 'NONE' | 'PER_UNIT_MULTIPLIER' | 'FLAT_ADD_PER_OPTION';
+      pricingRule?: PricingRule;
       unitPrice?: number;
       minValue?: number;
       maxValue?: number;
