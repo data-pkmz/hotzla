@@ -2,10 +2,6 @@ import type { Product } from './product.types.js';
 
 export type { UserRole, User } from './user.types.js';
 
-import type { Product } from './product.types.js';
-
-export type { UserRole, User } from './user.types.js';
-
 export type {
   ProductType,
   Product,
