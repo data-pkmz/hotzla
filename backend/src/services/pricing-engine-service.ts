@@ -10,7 +10,7 @@ export class PricingEngineService {
      *Product quantity must be a positive whole number.
      */
     if (!Number.isInteger(quantity) || quantity <= 0) {
-      throw new Error('Quantity must be a positive integer');
+      throw new Error('הכמות חייבת להיות מספר שלם וחיובי');
     }
 
     /**
@@ -25,14 +25,14 @@ export class PricingEngineService {
     });
 
     if (!product) {
-      throw new Error('Product not found or unavailable');
+      throw new Error('המוצר לא נמצא או אינו זמין');
     }
 
     /**
      *Base price may be 0, but not negative.
      */
     if (product.basePrice.isNegative()) {
-      throw new Error(`Product ${product.id} has a negative base price`);
+      throw new Error(`למוצר ${product.id} יש מחיר בסיס שלילי`);
     }
 
     const quantityDecimal = new Prisma.Decimal(quantity);
@@ -63,7 +63,7 @@ export class PricingEngineService {
 
       if (!attributeDefinition) {
         throw new Error(
-          `Attribute ${selectedAttribute.attributeDefinitionId} is invalid for this product`
+          `המאפיין ${selectedAttribute.attributeDefinitionId} אינו תקין עבור מוצר זה`
         );
       }
 
@@ -84,7 +84,7 @@ export class PricingEngineService {
         case AttributeType.NUMBER: {
           if (attributeDefinition.pricingRule !== PricingRule.PER_UNIT_MULTIPLIER) {
             throw new Error(
-              `NUMBER attribute ${attributeDefinition.id} must use PER_UNIT_MULTIPLIER pricing`
+              `המאפיין המספרי ${attributeDefinition.id} חייב להשתמש בתמחור PER_UNIT_MULTIPLIER`
             );
           }
 
@@ -92,14 +92,14 @@ export class PricingEngineService {
             attributeDefinition.unitPrice === null ||
             attributeDefinition.unitPrice.lessThanOrEqualTo(0)
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a positive unit price`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש מחיר ליחידה גדול מאפס`);
           }
 
           if (
             typeof selectedAttribute.value !== 'number' ||
             !Number.isFinite(selectedAttribute.value)
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a numeric value`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש ערך מספרי`);
           }
 
           const numericValue = new Prisma.Decimal(selectedAttribute.value);
@@ -108,14 +108,14 @@ export class PricingEngineService {
             attributeDefinition.minValue !== null &&
             numericValue.lessThan(attributeDefinition.minValue)
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} is below its minimum value`);
+            throw new Error(`המאפיין ${attributeDefinition.id} נמוך מהערך המינימלי המותר`);
           }
 
           if (
             attributeDefinition.maxValue !== null &&
             numericValue.greaterThan(attributeDefinition.maxValue)
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} is above its maximum value`);
+            throw new Error(`המאפיין ${attributeDefinition.id} גבוה מהערך המקסימלי המותר`);
           }
 
           additionalPrice = numericValue.mul(attributeDefinition.unitPrice);
@@ -136,7 +136,7 @@ export class PricingEngineService {
           const selectedOptionIds = selectedAttribute.selectedOptionIds ?? [];
 
           if (selectedOptionIds.length === 0) {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a selected option`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש בחירת אפשרות`);
           }
 
           const uniqueSelectedOptionIds = [...new Set(selectedOptionIds)];
@@ -153,7 +153,7 @@ export class PricingEngineService {
 
           if (selectedOptions.length !== uniqueSelectedOptionIds.length) {
             throw new Error(
-              `One or more selected options for attribute ${attributeDefinition.id} are invalid`
+              `אפשרות אחת או יותר שנבחרו אינן תקינות עבור המאפיין ${attributeDefinition.id}`
             );
           }
 
@@ -161,11 +161,11 @@ export class PricingEngineService {
 
           for (const option of selectedOptions) {
             if (option.priceModifierType !== PriceModifierType.FIXED_ADD) {
-              throw new Error(`Option ${option.id} must use FIXED_ADD pricing`);
+              throw new Error(`האפשרות ${option.id} חייבת להשתמש בתמחור FIXED_ADD`);
             }
 
             if (option.priceModifier.isNegative()) {
-              throw new Error(`Option ${option.id} has a negative price modifier`);
+              throw new Error(`לאפשרות ${option.id} יש תוספת מחיר שלילית`);
             }
 
             let optionPrice = option.priceModifier;
@@ -190,7 +190,7 @@ export class PricingEngineService {
          */
         case AttributeType.BOOLEAN: {
           if (typeof selectedAttribute.value !== 'boolean') {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a boolean value`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש ערך בוליאני`);
           }
 
           selectedValue = selectedAttribute.value ? 'true' : 'false';
@@ -204,7 +204,7 @@ export class PricingEngineService {
             attributeDefinition.unitPrice === null ||
             attributeDefinition.unitPrice.lessThanOrEqualTo(0)
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a positive unit price`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש מחיר ליחידה גדול מאפס`);
           }
 
           additionalPrice = attributeDefinition.unitPrice;
@@ -222,7 +222,7 @@ export class PricingEngineService {
             selectedAttribute.value !== undefined &&
             typeof selectedAttribute.value !== 'string'
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a text value`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש ערך טקסט`);
           }
 
           additionalPrice = new Prisma.Decimal(0);
@@ -243,7 +243,7 @@ export class PricingEngineService {
             selectedAttribute.value !== undefined &&
             typeof selectedAttribute.value !== 'string'
           ) {
-            throw new Error(`Attribute ${attributeDefinition.id} requires a file value`);
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש ערך קובץ`);
           }
 
           additionalPrice = new Prisma.Decimal(0);
@@ -255,7 +255,7 @@ export class PricingEngineService {
         }
 
         default: {
-          throw new Error(`Unsupported attribute type for attribute ${attributeDefinition.id}`);
+          throw new Error(`סוג מאפיין לא נתמך עבור המאפיין ${attributeDefinition.id}`);
         }
       }
 

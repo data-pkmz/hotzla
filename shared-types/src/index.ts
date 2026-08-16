@@ -64,11 +64,11 @@ export interface Order {
   budgetOfficerName: string;
   budgetOfficerEmail: string;
   totalPrice: number;
-  approvedByManagerId?: string;
-  approvedByBudgetAt?: Date | string;
-  approvedByManagerAt?: Date | string;
-  workerId?: string;
-  completedAt?: Date | string;
+  approvedByManagerId: string | null;
+  approvedByBudgetAt: Date | string | null;
+  approvedByManagerAt: Date | string | null;
+  workerId: string | null;
+  completedAt: Date | string | null;
   createdAt: Date | string;
   items?: OrderItem[];
 }
