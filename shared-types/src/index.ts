@@ -5,12 +5,18 @@ export type { UserRole, User } from './user.types.js';
 export type {
   ProductType,
   Product,
-  AttributeType,
   ProductAttributeDefinition,
   PricingRule,
-  PriceModifierType,
   ProductAttributeOption,
 } from './product.types.js';
+
+export { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
+
+export type {
+  ProductAttributeOptionDto,
+  CreateAttributeDto,
+  UpdateAttributeDto,
+} from './attribute.types.js';
 
 export type {
   SelectedAttributeInput,

@@ -1,3 +1,5 @@
+import type { AttributeType, PriceModifierType, PricingImpactType } from './attribute.types.js';
+
 // Product types
 
 export type ProductType = 'FIXED' | 'DYNAMIC';
@@ -16,10 +18,8 @@ export interface Product {
 }
 
 // Attribute Definitions
-export type AttributeType = 'SELECT' | 'NUMBER' | 'BOOLEAN' | 'TEXT' | 'FILE_UPLOAD';
-export type PricingRule = 'NONE' | 'PER_UNIT_MULTIPLIER' | 'FLAT_ADD_PER_OPTION';
-
-export type PriceModifierType = 'FIXED_ADD' | 'MULTIPLY';
+export type { AttributeType, PriceModifierType };
+export type PricingRule = PricingImpactType;
 
 export interface ProductAttributeDefinition {
   id: string;
