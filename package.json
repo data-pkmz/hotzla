@@ -1,0 +1,40 @@
+{
+  "name": "hotzla-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "shared-types",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "prisma:generate": "npm run prisma:generate -w backend",
+    "build:shared": "npm run build -w shared-types",
+    "build:backend": "npm run build -w backend",
+    "build:frontend": "npm run build -w frontend",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "ci:local": "npm run lint && npm run type-check && npm run format:check && npm test",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "npm run prisma:generate && tsc --noEmit -p frontend/tsconfig.app.json && tsc --noEmit -p backend/tsconfig.json && tsc --noEmit -p shared-types/tsconfig.json",
+    "test": "npm run test --workspaces --if-present",
+    "install:all": "npm install",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.1.0",
+    "prettier": "^3.9.5",
+    "typescript-eslint": "^8.64.0"
+  }
+}

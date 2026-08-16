@@ -1,0 +1,55 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+
+env:
+  DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/hotzla_dev"
+
+jobs:
+  build-lint-test:
+    name: Build, Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Shared Types
+        run: npm run build:shared
+
+      - name: Generate Prisma Client
+        run: npm run prisma:generate
+
+      
+
+      - name: Build Projects
+        run: npm run build
+
+      - name: Type Check
+        run: npm run type-check
+
+      - name: Run Linting (Zero Warnings Allowed)
+        run: npm run lint
+
+      - name: Check Formatting
+        run: npm run format:check
+
+      - name: Run Tests
+        run: npm run test
