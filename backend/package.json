@@ -4,7 +4,7 @@
   "private": true,
   "main": "dist/app.js",
   "scripts": {
-    "build": "prisma generate && tsc",
+    "build": "prisma generate && tsc -b",
     "prisma:generate": "prisma generate",
     "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "start": "node dist/app.js",
