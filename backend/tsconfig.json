@@ -3,10 +3,8 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "paths": {
-      "shared-types": ["../shared-types"]
-    }
+    "types": ["node", "jest"],
+    "isolatedModules": true
   },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../shared-types" }]
+  "include": ["src/**/*"]
 }

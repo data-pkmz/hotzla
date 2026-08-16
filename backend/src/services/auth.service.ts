@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
 import type { User } from 'shared-types';
-import { prisma } from '../config/db.js';
+import { prisma } from '../config/db';
 
 export class AuthService {
   async getOrCreateUser(adUsername: string): Promise<User> {

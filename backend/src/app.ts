@@ -5,12 +5,17 @@ import { testDbConnection } from './config/db';
 import logger from './utils/logger';
 import authRoutes from './routes/auth.routes';
 
+// 1. Import Catalog Routes
+import catalogRouter from './routes/catalog.routes';
+import adminCatalogRouter from './routes/admin-catalog.routes';
+
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use('/api/auth', authRoutes);
-
 app.use(express.json());
+
+// Authentication routes
+app.use('/api/auth', authRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
@@ -26,10 +31,10 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.get('/api/demo-user', (_req: Request, res: Response) => {
   const demoUser: User = {
     id: '123e4567-e89b-12d3-a456-426614174000',
-    fullName: 'עמית ישראלי',
+    fullName: 'Amit Israeli',
     militaryEmail: 'amit.israeli@mail.idf.il',
     adUsername: 'amit_israeli',
-    unit: 'מרכז פיתוח',
+    unit: 'Development Center',
     phone: '050-1234567',
     role: 'REQUESTER',
     createdAt: new Date(),
@@ -42,6 +47,10 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
     defaultStatus: initialStatus,
   });
 });
+
+// 2. Register Catalog routes
+app.use('/api/products', catalogRouter);
+app.use('/api/admin/products', adminCatalogRouter);
 
 app.listen(port, async () => {
   logger.info(`Backend server is running on port ${port}`);

@@ -7,10 +7,10 @@ export const DevUserSwitcher: React.FC = () => {
   const { currentUser, setRole } = useAuthStore();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
-  // Check if Mock Auth is explicitly enabled in environment variables
-  const isMockAuthEnabled = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+  // בודק אם מופעל Mock Auth (ב-Vite)
+  const isMockAuthEnabled = import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'false';
 
-  if (!isMockAuthEnabled || !currentUser) return null;
+  if (!isMockAuthEnabled) return null;
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -36,7 +36,7 @@ export const DevUserSwitcher: React.FC = () => {
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => handleClose()}>
         <Box sx={{ px: 2, py: 1 }}>
           <Typography variant="caption" color="text.secondary">
-            Switch User Identity (Dev Only)
+            החלף זהות משתמש (Dev Only)
           </Typography>
         </Box>
         {(Object.keys(MOCK_USERS) as UserRole[]).map((role) => (

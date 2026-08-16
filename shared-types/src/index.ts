@@ -1,67 +1,29 @@
-// Enums for Users
-export type UserRole = 'REQUESTER' | 'MANAGER' | 'WORKER';
+import type { Product } from './product.types.js';
 
-export interface User {
-  id: string;
-  fullName: string | null;
-  militaryEmail: string | null;
-  adUsername: string;
-  unit: string | null;
-  phone: string | null;
-  role: UserRole;
-  createdAt: Date | string;
-}
+export type { UserRole, User } from './user.types.js';
 
-// Enums for Products
-export type ProductType = 'FIXED' | 'DYNAMIC';
+export type {
+  ProductType,
+  Product,
+  ProductAttributeDefinition,
+  PricingRule,
+  ProductAttributeOption,
+} from './product.types.js';
 
-export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  category: string;
-  productType: ProductType;
-  basePrice: number;
-  isActive: boolean;
-  createdBy: string;
-  createdAt: Date | string;
-}
+export { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
 
-// Attribute Definitions (Exported from attribute.types.ts)
-export {
-  AttributeType,
-  PricingImpactType,
-  PriceModifierType,
+export type {
   ProductAttributeOptionDto,
   CreateAttributeDto,
   UpdateAttributeDto,
 } from './attribute.types.js';
 
-export interface ProductAttributeDefinition {
-  id: string;
-  productId: string;
-  attributeName: string;
-  attributeType: string;
-  isRequired: boolean;
-  displayOrder: number;
-  pricingRule: string;
-  unitPrice?: number;
-  minValue?: number;
-  maxValue?: number;
-  options?: ProductAttributeOption[];
-}
-
-export interface ProductAttributeOption {
-  id: string;
-  attributeDefinitionId: string;
-  optionLabel: string;
-  optionValue: string;
-  priceModifier: number;
-  priceModifierType: string;
-  displayOrder: number;
-  isPerUnit: boolean;
-}
+export type {
+  SelectedAttributeInput,
+  CalculatePriceParams,
+  PriceBreakdownLine,
+  PriceResult,
+} from './pricing.types.js';
 
 // Cart structures
 export type CartStatus = 'ACTIVE' | 'CONVERTED' | 'ABANDONED';
@@ -104,11 +66,11 @@ export interface Order {
   budgetOfficerName: string;
   budgetOfficerEmail: string;
   totalPrice: number;
-  approvedByManagerId?: string;
-  approvedByBudgetAt?: Date | string;
-  approvedByManagerAt?: Date | string;
-  workerId?: string;
-  completedAt?: Date | string;
+  approvedByManagerId: string | null;
+  approvedByBudgetAt: Date | string | null;
+  approvedByManagerAt: Date | string | null;
+  workerId: string | null;
+  completedAt: Date | string | null;
   createdAt: Date | string;
   items?: OrderItem[];
 }
@@ -178,16 +140,4 @@ export interface EmailLog {
   subject: string;
   processedStatus: EmailProcessedStatus;
   createdAt: Date | string;
-}
-
-// Pricing Engine interfaces
-export interface PriceBreakdownLine {
-  attributeName: string;
-  selectedValue: string;
-  contribution: number;
-}
-
-export interface PriceResult {
-  totalPrice: number;
-  breakdown: PriceBreakdownLine[];
 }

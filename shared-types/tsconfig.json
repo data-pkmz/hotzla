@@ -1,12 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "composite": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "declaration": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "outDir": "./dist"
   },
   "include": ["src/**/*", "../backend/src/express.d.ts"]
 }
