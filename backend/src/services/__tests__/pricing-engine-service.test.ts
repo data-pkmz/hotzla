@@ -28,6 +28,7 @@ const product: Product = {
   name: 'הדפסת חוברת הדרכה',
   description: 'חוברת הדרכה',
   category: 'הדפסה',
+  imageUrl: '/images/test-product.jpg',
   productType: ProductType.DYNAMIC,
   basePrice: new Prisma.Decimal(0),
   isActive: true,

@@ -28,12 +28,6 @@ ALTER COLUMN "completed_at" DROP NOT NULL;
 -- AlterTable
 ALTER TABLE "product_attribute_definition" ALTER COLUMN "product_id" SET NOT NULL;
 
--- AlterTable
-ALTER TABLE "product_attribute_options" ADD COLUMN     "is_per_unit" BOOLEAN NOT NULL DEFAULT false;
-
--- AlterTable
-ALTER TABLE "products" ADD COLUMN     "is_deleted" BOOLEAN NOT NULL DEFAULT false;
-
 -- AddForeignKey
 ALTER TABLE "product_attribute_definition" ADD CONSTRAINT "product_attribute_definition_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

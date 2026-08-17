@@ -9,6 +9,7 @@ const products: Product[] = [
     name: 'כרטיסי ביקור',
     description: 'כרטיסי ביקור מקצועיים',
     category: 'הדפסה',
+    imageUrl: '/images/test-product.jpg',
     productType: ProductType.FIXED,
     basePrice: new Prisma.Decimal(50),
     isActive: true,
