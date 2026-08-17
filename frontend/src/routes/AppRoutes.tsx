@@ -8,6 +8,8 @@ import { MyOrdersPage } from '../pages/my-orders';
 import { OrdersTablePage } from '../pages/admin/orders-table';
 import { OrderDetailPage } from '../pages/admin/order-detail';
 import { ProductBuilderPage } from '../pages/admin/product-builder';
+/** Remove Test when done */
+import DynamicAttributeInputTest from '../components/catalog/DynamicAttributeInputTest';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -20,6 +22,8 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/orders" element={<OrdersTablePage />} />
       <Route path="/admin/order/:id" element={<OrderDetailPage />} />
       <Route path="/admin/builder" element={<ProductBuilderPage />} />
+      /** Remove Test when done */
+      <Route path="/attribute-test" element={<DynamicAttributeInputTest />} />
     </Routes>
   );
 };
