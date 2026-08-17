@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { CatalogService } from '../services/catalog.service';
 
 // Demo product interface (to be replaced by Prisma/ORM later)
 interface Product {
@@ -37,18 +38,18 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     const { category } = req.query;
 
     // Filter active products only
-    let activeProducts = mockProducts.filter((p) => p.isActive);
+    let products = await CatalogService.getProducts();
 
     // Filter by category if query parameter is provided
     if (category) {
-      activeProducts = activeProducts.filter(
-        (p) => p.category.toLowerCase() === String(category).toLowerCase()
+      products = products.filter(
+        (product) => product.category.toLowerCase() === String(category).toLowerCase()
       );
     }
 
     res.status(200).json({
       success: true,
-      data: activeProducts,
+      data: products,
     });
   } catch (error) {
     console.error(error);
@@ -63,7 +64,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const product = mockProducts.find((p) => p.id === id && p.isActive);
+    const product = await CatalogService.getProductById(id);
 
     if (!product) {
       res.status(404).json({ success: false, message: 'Product not found' });
