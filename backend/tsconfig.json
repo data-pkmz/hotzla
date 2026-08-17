@@ -1,11 +1,23 @@
 {
+  // Inherit base configuration settings from the parent tsconfig.json
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    // Redirect output structure to the 'dist' directory
     "outDir": "./dist",
-    "rootDir": "./src"
+    // Specify the root directory of input TypeScript files
+    "rootDir": "./src",
+    // Include global type definitions for Jest and Node.js
+    "types": ["jest", "node"],
+    // Ensure each file can be transpiled safely without relying on full type information
+    "isolatedModules": true,
+    // Enable interoperability between CommonJS and ES Modules (allows default imports from CommonJS modules)
+    "esModuleInterop": true
   },
+  // Specify which files and patterns should be included in the compilation
   "include": [
+    // Include all source files inside the 'src' directory recursively
     "src/**/*",
+    // Include specific shared authentication files outside the current project root
     "../auth-test/backend/controllers/auth.controller.ts",
     "../auth-test/backend/middlewares/auth.middleware.ts",
     "../auth-test/backend/routes/auth.routes.ts"
