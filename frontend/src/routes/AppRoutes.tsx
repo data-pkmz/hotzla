@@ -22,8 +22,6 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/orders" element={<OrdersTablePage />} />
       <Route path="/admin/order/:id" element={<OrderDetailPage />} />
       <Route path="/admin/builder" element={<ProductBuilderPage />} />
-      /** Remove Test when done */
-      <Route path="/attribute-test" element={<DynamicAttributeInputTest />} />
     </Routes>
   );
 };
