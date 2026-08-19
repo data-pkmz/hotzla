@@ -24,13 +24,9 @@ export default function SelectAttributeInput({
   onChange,
 }: SelectAttributeInputProps) {
   const { id, attributeName, displayStyle, isRequired, options = [] } = attributeDefinition;
-
   const selectedOptionId = value?.selectedOptionIds?.[0] ?? '';
-
   const isValid = !isRequired || selectedOptionId !== '';
-
   const sortedOptions = [...options].sort((a, b) => a.displayOrder - b.displayOrder);
-
   const handleChange = (optionId: string) => {
     onChange(
       {
