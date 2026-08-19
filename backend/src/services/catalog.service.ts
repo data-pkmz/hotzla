@@ -47,6 +47,18 @@ export class CatalogService {
         isDeleted: false,
         isActive: true,
       },
+      include: {
+        attributeDefinitionEntries: {
+          where: { isDeleted: false },
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            attributeOptionEntries: {
+              where: { isDeleted: false },
+              orderBy: { displayOrder: 'asc' },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -71,6 +83,97 @@ export class CatalogService {
         isActive: true,
         createdBy: data.createdBy,
       },
+    });
+  }
+
+  public static async createProductWithDefinitions(data: {
+    name: string;
+    description: string;
+    category: string;
+    productType: ProductType;
+    basePrice: number;
+    definitions?: Array<{
+      attributeName: string;
+      attributeType: AttributeType;
+      isRequired: boolean;
+      displayOrder: number;
+      pricingRule: PricingRule;
+      unitPrice?: number | null;
+      minValue?: number | null;
+      maxValue?: number | null;
+      options?: ProductAttributeOptionDto[];
+    }>;
+  }) {
+    return prisma.product.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        productType: data.productType,
+        basePrice: data.basePrice,
+        isActive: true,
+        attributeDefinitionEntries: {
+          create: (data.definitions ?? []).map((definition) => ({
+            attributeName: definition.attributeName,
+            attributeType: definition.attributeType,
+            isRequired: definition.isRequired,
+            displayOrder: definition.displayOrder,
+            pricingRule: definition.pricingRule,
+            unitPrice: definition.unitPrice ?? null,
+            minValue: definition.minValue ?? null,
+            maxValue: definition.maxValue ?? null,
+            attributeOptionEntries: {
+              create: (definition.options ?? []).map((option, index) => ({
+                optionLabel: option.optionLabel,
+                optionValue: option.optionValue,
+                priceModifier: option.priceModifier ?? 0,
+                priceModifierType: option.priceModifierType ?? 'FIXED_ADD',
+                displayOrder: option.displayOrder ?? index,
+                isPerUnit: option.isPerUnit ?? false,
+              })),
+            },
+          })),
+        },
+      },
+      include: { attributeDefinitionEntries: { include: { attributeOptionEntries: true } } },
+    });
+  }
+
+  public static async updateProductWithDefinitions(
+    id: string,
+    data: Parameters<typeof CatalogService.createProductWithDefinitions>[0]
+  ) {
+    return prisma.$transaction(async (transaction) => {
+      const product = await transaction.product.update({
+        where: { id },
+        data: {
+          name: data.name,
+          description: data.description,
+          category: data.category,
+          productType: data.productType,
+          basePrice: data.basePrice,
+        },
+      });
+      await transaction.productAttributeDefinition.updateMany({ where: { productId: id }, data: { isDeleted: true } });
+      return transaction.product.update({
+        where: { id: product.id },
+        data: {
+          attributeDefinitionEntries: {
+            create: (data.definitions ?? []).map((definition) => ({
+              attributeName: definition.attributeName,
+              attributeType: definition.attributeType,
+              isRequired: definition.isRequired,
+              displayOrder: definition.displayOrder,
+              pricingRule: definition.pricingRule,
+              unitPrice: definition.unitPrice ?? null,
+              minValue: definition.minValue ?? null,
+              maxValue: definition.maxValue ?? null,
+              attributeOptionEntries: { create: (definition.options ?? []).map((option, index) => ({ optionLabel: option.optionLabel, optionValue: option.optionValue, priceModifier: option.priceModifier ?? 0, priceModifierType: option.priceModifierType ?? 'FIXED_ADD', displayOrder: option.displayOrder ?? index, isPerUnit: option.isPerUnit ?? false })) },
+            })),
+          },
+        },
+        include: { attributeDefinitionEntries: { where: { isDeleted: false }, include: { attributeOptionEntries: true } } },
+      });
     });
   }
 

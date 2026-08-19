@@ -7,6 +7,8 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+const DRAWER_WIDTH = 240;
+
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -19,10 +21,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           flexGrow: 1,
           p: 3,
           width: '100%',
+          ml: { xs: 0, sm: `${DRAWER_WIDTH}px` },
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
         }}
       >
         <Toolbar /> {/* מרווח עבור ה-Header הקיים בפתח העמוד */}
-        {children}
+        <Box sx={{ width: '100%', maxWidth: 1280 }}>{children}</Box>
       </Box>
     </Box>
   );

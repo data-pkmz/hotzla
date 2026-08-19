@@ -17,25 +17,24 @@ export const Header: React.FC = () => {
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
-      <Toolbar>
-        <PrintIcon sx={{ color: 'primary.main', mr: 1, ml: 1 }} />
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          DPS - הוצאה לאור
-        </Typography>
-
-        <Box sx={{ flexGrow: 1 }} />
-
-        {/* רכיב החלפת משתמשים בפיתוח */}
-        <DevUserSwitcher />
-
-        {/* פרטי משתמש נוכחי */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-            {currentUser.name.charAt(0)}
-          </Avatar>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {currentUser.name}
+      <Toolbar sx={{ position: 'relative', direction: 'rtl', pr: { xs: 2, sm: 3 }, pl: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+          <PrintIcon sx={{ color: 'primary.main' }} />
+          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', color: 'primary.main', whiteSpace: 'nowrap' }}>
+            DPS - הוצאה לאור
           </Typography>
+        </Box>
+
+        <Box sx={{ display: { xs: 'none', sm: 'flex' }, direction: 'ltr', alignItems: 'center', gap: 2, position: 'absolute', left: { sm: 24, md: 32 }, top: '50%', transform: 'translateY(-50%)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+              {currentUser.name.charAt(0)}
+            </Avatar>
+            <Typography variant="body2" sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}>
+              {currentUser.name}
+            </Typography>
+          </Box>
+          <DevUserSwitcher />
         </Box>
       </Toolbar>
     </AppBar>

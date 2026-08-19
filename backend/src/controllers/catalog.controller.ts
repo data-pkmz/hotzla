@@ -87,22 +87,14 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, category, attributes } = req.body;
+    const { name, category, description = '', basePrice = 0, productType = 'DYNAMIC', definitions = [] } = req.body;
 
     if (!name || !category) {
       res.status(400).json({ success: false, message: 'Product name and category are required' });
       return;
     }
 
-    const newProduct: Product = {
-      id: String(Date.now()),
-      name,
-      category,
-      attributes: (attributes as Record<string, unknown>) || {},
-      isActive: true,
-    };
-
-    mockProducts.push(newProduct);
+    const newProduct = await CatalogService.createProductWithDefinitions({ name, category, description, basePrice, productType, definitions });
 
     res.status(201).json({
       success: true,
@@ -122,23 +114,13 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const productIndex = mockProducts.findIndex((p) => p.id === id && p.isActive);
-
-    if (productIndex === -1) {
-      res.status(404).json({ success: false, message: 'Product to update was not found' });
-      return;
-    }
-
-    // Update fields provided in request body
-    mockProducts[productIndex] = {
-      ...mockProducts[productIndex],
-      ...req.body,
-    };
+    const { name, category, description = '', basePrice = 0, productType = 'DYNAMIC', definitions = [] } = req.body;
+    const updatedProduct = await CatalogService.updateProductWithDefinitions(id, { name, category, description, basePrice, productType, definitions });
 
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
-      data: mockProducts[productIndex],
+      data: updatedProduct,
     });
   } catch (error) {
     console.error(error);
