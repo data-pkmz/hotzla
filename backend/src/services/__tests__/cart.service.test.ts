@@ -125,5 +125,42 @@ describe('CartService', () => {
 
       expect(result).toEqual(mockCreatedItem);
     });
+
+    it('should throw an error if the PricingEngineService fails (e.g. product not found)', async () => {
+      // Arrange: Force PricingEngineService to simulate a product not found error
+      (PricingEngineService.calculatePrice as jest.Mock).mockRejectedValue(
+        new Error('Product not found')
+      );
+
+      const input: AddToCartInput = {
+        productId: 'bad-product-id',
+        quantity: 1,
+        selectedAttributes: [],
+      };
+
+      // Act & Assert: The function MUST crash with the exact error message
+      await expect(CartService.addItemToCart('user-1', input)).rejects.toThrow('Product not found');
+
+      // Verify that the database was NEVER called to save the item
+      expect(prisma.cartItem.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateItem', () => {
+    it('should throw an error if the cart item is not found in the database', async () => {
+      // Arrange: Force Prisma to return null when searching for the item
+      (prisma.cartItem.findUnique as jest.Mock).mockResolvedValue(null);
+
+      const input = { quantity: 2, selectedAttributes: [] };
+
+      // Act & Assert
+      await expect(CartService.updateItem('fake-item-id', input)).rejects.toThrow(
+        'Cart item not found'
+      );
+
+      // Verify we didn't try to calculate a price or update the database
+      expect(PricingEngineService.calculatePrice).not.toHaveBeenCalled();
+      expect(prisma.cartItem.update).not.toHaveBeenCalled();
+    });
   });
 });
