@@ -19,17 +19,11 @@ export default function FileUploadAttributeInput({
   onChange,
 }: FileUploadAttributeInputProps) {
   const { id, attributeName, isRequired } = attributeDefinition;
-
   const [file, setFile] = useState<File | null>(null);
-
   const [isDragging, setIsDragging] = useState(false);
-
   const isValid = !isRequired || file !== null;
-
   const MAX_FILE_SIZE = 20 * 1024 * 1024;
-
   const [fileError, setFileError] = useState<string | null>(null);
-
   const handleFile = (selectedFile: File | null) => {
     if (!selectedFile) {
       setFile(null);
