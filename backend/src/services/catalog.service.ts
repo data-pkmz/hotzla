@@ -161,7 +161,7 @@ export class CatalogService {
         productId,
         attributeName: dto.attributeName,
         attributeType: dto.attributeType,
-        displayStyle: dto.displayStyle ?? null,
+        displayStyle: dto.displayStyle,
         isRequired: dto.isRequired ?? false,
         displayOrder: dto.displayOrder ?? 0,
         pricingRule: dto.pricingRule ?? 'NONE',

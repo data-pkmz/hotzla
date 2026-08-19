@@ -53,9 +53,7 @@ export const createAttributeSchema = z
   .object({
     attributeName: z.string().trim().min(1, 'Attribute name is required'),
     attributeType: z.enum(['SELECT', 'NUMBER', 'BOOLEAN', 'TEXT', 'FILE_UPLOAD']),
-    displayStyle: z
-      .enum(['DROPDOWN', 'CARDS', 'CHECKBOX', 'SWITCH', 'SINGLE_LINE', 'MULTI_LINE'])
-      .optional(),
+    displayStyle: z.enum(['DROPDOWN', 'CARDS', 'CHECKBOX', 'SWITCH', 'SINGLE_LINE', 'MULTI_LINE']),
     isRequired: z.boolean(),
     displayOrder: z.number().int().nonnegative('Display order cannot be negative'),
     pricingRule: z.enum(['NONE', 'PER_UNIT_MULTIPLIER', 'FLAT_ADD_PER_OPTION']),
