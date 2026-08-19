@@ -6,6 +6,7 @@ export type {
   ProductType,
   Product,
   ProductAttributeDefinition,
+  AttributeDisplayStyle,
   PricingRule,
   ProductAttributeOption,
 } from './product.types.js';

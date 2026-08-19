@@ -24,6 +24,7 @@ const attribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'Paper Type',
   attributeType: 'SELECT',
+  displayStyle: 'CARDS',
   isRequired: true,
   displayOrder: 1,
   pricingRule: 'NONE',
@@ -372,6 +373,7 @@ describe('getProductById', () => {
       const data = {
         attributeName: 'Paper Type',
         attributeType: 'SELECT' as const,
+        displayStyle: 'CARDS' as const,
         isRequired: true,
         displayOrder: 1,
         pricingRule: 'NONE' as const,
@@ -390,6 +392,7 @@ describe('getProductById', () => {
           productId: 'product-1',
           attributeName: data.attributeName,
           attributeType: data.attributeType,
+          displayStyle: data.displayStyle,
           isRequired: data.isRequired,
           displayOrder: data.displayOrder,
           pricingRule: data.pricingRule,
@@ -409,6 +412,7 @@ describe('getProductById', () => {
         CatalogService.createAttribute('product-1', {
           attributeName: 'Size',
           attributeType: 'NUMBER',
+          displayStyle: 'NUMBER_INPUT',
           isRequired: false,
           displayOrder: 1,
           pricingRule: 'NONE',

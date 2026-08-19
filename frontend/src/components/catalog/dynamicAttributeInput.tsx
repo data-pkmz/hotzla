@@ -1,4 +1,4 @@
-import { Checkbox, FormControlLabel, TextField } from '@mui/material';
+import { Checkbox, FormControlLabel, Switch, TextField, Typography } from '@mui/material';
 
 import type { ProductAttributeDefinition, SelectedAttributeInput } from 'shared-types';
 
@@ -17,7 +17,7 @@ export default function DynamicAttributeInput({
   value,
   onChange,
 }: DynamicAttributeInputProps) {
-  const { id, attributeName, attributeType, isRequired } = attributeDefinition;
+  const { id, attributeName, attributeType, displayStyle, isRequired } = attributeDefinition;
 
   switch (attributeType) {
     case 'SELECT':
@@ -41,25 +41,38 @@ export default function DynamicAttributeInput({
     case 'BOOLEAN': {
       const checked = typeof value?.value === 'boolean' ? value.value : false;
 
+      const handleBooleanChange = (newValue: boolean) => {
+        onChange(
+          {
+            attributeDefinitionId: id,
+            value: newValue,
+          },
+          true
+        );
+      };
+
+      const control =
+        displayStyle === 'SWITCH' ? (
+          <Switch
+            checked={checked}
+            size="small"
+            onChange={(event) => handleBooleanChange(event.target.checked)}
+          />
+        ) : (
+          <Checkbox
+            checked={checked}
+            size="small"
+            onChange={(event) => handleBooleanChange(event.target.checked)}
+          />
+        );
+
       return (
         <FormControlLabel
-          control={
-            <Checkbox
-              checked={checked}
-              onChange={(event) => {
-                const newValue = event.target.checked;
-
-                onChange(
-                  {
-                    attributeDefinitionId: id,
-                    value: newValue,
-                  },
-                  true
-                );
-              }}
-            />
-          }
-          label={attributeName}
+          control={control}
+          label={<Typography variant="body2">{attributeName}</Typography>}
+          sx={{
+            m: 0,
+          }}
         />
       );
     }
@@ -69,28 +82,59 @@ export default function DynamicAttributeInput({
 
       const hasError = isRequired && textValue.trim().length === 0;
 
+      const isMultiline = displayStyle === 'MULTI_LINE';
+
       return (
-        <TextField
-          fullWidth
-          label={attributeName}
-          required={isRequired}
-          value={textValue}
-          error={hasError}
-          helperText={hasError ? 'שדה זה הוא שדה חובה' : undefined}
-          onChange={(event) => {
-            const newValue = event.target.value;
+        <div>
+          <Typography
+            variant="body2"
+            sx={{
+              direction: 'ltr',
+              mb: 0.75,
+              fontWeight: 500,
+            }}
+          >
+            {attributeName}
+            {isRequired ? ' *' : ''}
+          </Typography>
 
-            const isValid = !isRequired || newValue.trim().length > 0;
+          <TextField
+            fullWidth
+            size="small"
+            multiline={isMultiline}
+            minRows={isMultiline ? 4 : undefined}
+            value={textValue}
+            error={hasError}
+            helperText={hasError ? 'שדה זה הוא שדה חובה' : undefined}
+            onChange={(event) => {
+              const newValue = event.target.value;
 
-            onChange(
-              {
-                attributeDefinitionId: id,
-                value: newValue,
-              },
-              isValid
-            );
-          }}
-        />
+              const isValid = !isRequired || newValue.trim().length > 0;
+
+              onChange(
+                {
+                  attributeDefinitionId: id,
+                  value: newValue,
+                },
+                isValid
+              );
+            }}
+            sx={
+              isMultiline
+                ? {
+                    direction: 'ltr',
+                    textAlign: 'left',
+                  }
+                : {
+                    direction: 'ltr',
+                    textAlign: 'right',
+                    '& .MuiOutlinedInput-root': {
+                      height: 40,
+                    },
+                  }
+            }
+          />
+        </div>
       );
     }
 
