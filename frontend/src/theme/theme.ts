@@ -5,16 +5,10 @@ export const theme = createTheme({
   direction: 'rtl',
   palette: {
     primary: {
-<<<<<<< HEAD
       main: colors.primary,
       light: colors.primaryContainer,
       dark: '#020b1a',
       contrastText: colors.onPrimary,
-=======
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
     },
     secondary: {
       main: colors.secondary,
@@ -37,13 +31,8 @@ export const theme = createTheme({
       contrastText: colors.onError,
     },
     background: {
-<<<<<<< HEAD
       default: colors.background,
       paper: colors.surfaceContainerLowest,
-=======
-      default: '#f4f6f8',
-      paper: '#ffffff',
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
     },
     text: {
       primary: colors.onSurface,
@@ -70,7 +59,6 @@ export const theme = createTheme({
     customStatus: colors.status,
   },
   typography: {
-<<<<<<< HEAD
     fontFamily: typography.fontFamily,
     h1: {
       fontFamily: typography.fontFamily,
@@ -160,24 +148,15 @@ export const theme = createTheme({
   },
   shape: {
     borderRadius: 8,
-=======
-    fontFamily: 'Rubik, Heebo, system-ui, -apple-system, sans-serif',
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
-<<<<<<< HEAD
         body: {
           backgroundColor: colors.background,
           color: colors.onSurface,
           fontFamily: typography.fontFamily,
           direction: 'rtl',
-=======
-        root: {
-          borderRadius: 12,
-          boxShadow: '0 4px 12px 0 rgba(0,0,0,0.05)',
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
         },
       },
     },
@@ -187,7 +166,6 @@ export const theme = createTheme({
           borderRadius: radii.default,
           textTransform: 'none',
           fontWeight: 600,
-<<<<<<< HEAD
           boxShadow: 'none',
           padding: '8px 18px',
           transition: 'all 0.15s ease-in-out',
@@ -358,8 +336,6 @@ export const theme = createTheme({
         },
         separator: {
           color: colors.outlineVariant,
-=======
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
         },
       },
     },

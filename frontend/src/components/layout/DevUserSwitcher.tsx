@@ -52,8 +52,5 @@ export const DevUserSwitcher: React.FC = () => {
     </Box>
   );
 };
-<<<<<<< HEAD
 
 export default DevUserSwitcher;
-=======
->>>>>>> 8a3a984 (feat: add initial layout components and RTL cache)
