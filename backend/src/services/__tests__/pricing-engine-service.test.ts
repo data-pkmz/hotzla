@@ -10,7 +10,7 @@ import {
 import type { Product, ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 
 import { prisma } from '../../config/db.js';
-import { PricingEngineService } from '../pricing-engine-service.js';
+import { PricingEngineService } from '../pricing-engine.service.js';
 
 jest.mock('../../config/db.js', () => ({
   prisma: {
@@ -289,6 +289,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-copies',
           attributeName: 'כמות עותקים',
           selectedValue: '100',
           contribution: 120,
@@ -410,6 +411,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-paper',
           attributeName: 'סוג נייר',
           selectedValue: 'כרומו',
           contribution: 20,
@@ -441,6 +443,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-binding',
           attributeName: 'כריכה',
           selectedValue: 'ספירלה',
           contribution: 8,
@@ -580,7 +583,7 @@ describe('PricingEngineService', () => {
       });
 
       expect(result.totalAdditionalPrice).toBe(0);
-      expect(result.breakdown[0].contribution).toBe(0);
+      expect(result.breakdown).toEqual([]);
     });
 
     it('rejects a non-boolean value', async () => {
@@ -621,13 +624,7 @@ describe('PricingEngineService', () => {
       });
 
       expect(result.totalAdditionalPrice).toBe(0);
-      expect(result.breakdown).toEqual([
-        {
-          attributeName: 'הערות מיוחדות',
-          selectedValue: 'נא להדפיס בצבע',
-          contribution: 0,
-        },
-      ]);
+      expect(result.breakdown).toEqual([]);
     });
   });
 

@@ -9,6 +9,7 @@ export type {
   AttributeDisplayStyle,
   PricingRule,
   ProductAttributeOption,
+  ProductDetails,
 } from './product.types.js';
 
 export { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';

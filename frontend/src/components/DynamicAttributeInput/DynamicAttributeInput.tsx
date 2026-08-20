@@ -2,9 +2,9 @@ import { Checkbox, FormControlLabel, Switch, TextField, Typography } from '@mui/
 
 import type { ProductAttributeDefinition, SelectedAttributeInput } from 'shared-types';
 
-import NumberAttributeInput from './Inputs/NumberAttributeInputs';
-import SelectAttributeInput from './Inputs/SelectAttributeInput';
-import FileUploadAttributeInput from './Inputs/FileUploadAttributeInput';
+import NumberAttributeInput from './inputs/NumberAttributeInput';
+import SelectAttributeInput from './inputs/SelectAttributeInput';
+import FileUploadAttributeInput from './inputs/FileUploadAttributeInput';
 
 interface DynamicAttributeInputProps {
   attributeDefinition: ProductAttributeDefinition;

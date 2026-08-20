@@ -48,4 +48,15 @@ export interface ProductAttributeOption {
 }
 
 export type AttributeDisplayStyle =
-  'DROPDOWN' | 'CARDS' | 'NUMBER_INPUT' | 'CHECKBOX' | 'SWITCH' | 'SINGLE_LINE' | 'MULTI_LINE';
+  | 'DROPDOWN'
+  | 'CARDS'
+  | 'NUMBER_INPUT'
+  | 'CHECKBOX'
+  | 'SWITCH'
+  | 'SINGLE_LINE'
+  | 'MULTI_LINE'
+  | 'FILE_DROPZONE';
+
+export interface ProductDetails extends Product {
+  attributes: ProductAttributeDefinition[];
+}

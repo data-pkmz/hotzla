@@ -172,13 +172,21 @@ erDiagram
     USERS ||--o{ ORDERS : "creates"
     USERS ||--o{ CARTS : "owns"
     USERS ||--o{ ORDER_STATUS_HISTORY : "performs"
+    USERS ||--o{ PRODUCTS : "creates"
+
     PRODUCTS ||--o{ PRODUCT_ATTRIBUTE_DEFINITIONS : "has"
     PRODUCT_ATTRIBUTE_DEFINITIONS ||--o{ PRODUCT_ATTRIBUTE_OPTIONS : "has"
+
     PRODUCTS ||--o{ ORDER_ITEMS : "referenced_by"
     PRODUCTS ||--o{ CART_ITEMS : "referenced_by"
+
     CARTS ||--o{ CART_ITEMS : "contains"
     ORDERS ||--o{ ORDER_ITEMS : "contains"
+
     ORDER_ITEMS ||--o{ ORDER_ITEM_ATTRIBUTE_VALUES : "has"
+    PRODUCT_ATTRIBUTE_DEFINITIONS ||--o{ ORDER_ITEM_ATTRIBUTE_VALUES : "referenced_by"
+    PRODUCT_ATTRIBUTE_OPTIONS ||--o{ ORDER_ITEM_ATTRIBUTE_VALUES : "referenced_by"
+
     ORDERS ||--o{ ORDER_STATUS_HISTORY : "has"
     ORDERS ||--o{ APPROVAL_TOKENS : "has"
     ORDERS ||--o{ EMAIL_LOG : "linked_to"
@@ -192,6 +200,7 @@ erDiagram
         string phone
         enum role "REQUESTER|MANAGER|WORKER"
         timestamp created_at
+        boolean is_deleted
     }
 
     PRODUCTS {
@@ -205,6 +214,7 @@ erDiagram
         boolean is_active
         uuid created_by FK
         timestamp created_at
+        boolean is_deleted
     }
 
     PRODUCT_ATTRIBUTE_DEFINITIONS {
@@ -212,12 +222,14 @@ erDiagram
         uuid product_id FK
         string attribute_name
         enum attribute_type "SELECT|NUMBER|BOOLEAN|TEXT|FILE_UPLOAD"
+        enum display_style "DROPDOWN|CARDS|NUMBER_INPUT|CHECKBOX|SWITCH|SINGLE_LINE|MULTI_LINE|FILE_DROPZONE"
         boolean is_required
         int display_order
         enum pricing_rule "NONE|PER_UNIT_MULTIPLIER|FLAT_ADD_PER_OPTION"
         numeric unit_price
         numeric min_value
         numeric max_value
+        boolean is_deleted
     }
 
     PRODUCT_ATTRIBUTE_OPTIONS {
@@ -228,6 +240,8 @@ erDiagram
         numeric price_modifier
         enum price_modifier_type "FIXED_ADD|MULTIPLY"
         int display_order
+        boolean is_per_unit
+        boolean is_deleted
     }
 
     CARTS {
@@ -236,15 +250,18 @@ erDiagram
         enum status "ACTIVE|CONVERTED|ABANDONED"
         timestamp created_at
         timestamp updated_at
+        boolean is_deleted
     }
 
     CART_ITEMS {
         uuid id PK
         uuid cart_id FK
         uuid product_id FK
+        numeric quantity
         string uploaded_file_path
         numeric computed_price
         jsonb selected_attributes
+        boolean is_deleted
     }
 
     ORDERS {
@@ -252,16 +269,16 @@ erDiagram
         string order_number UK
         uuid requester_id FK
         string unit
-        enum status
+        enum status "PENDING_BUDGET|BUDGET_APPROVED|APPROVED_FOR_PRODUCTION|IN_PRINTING|READY_FOR_PICKUP|COMPLETED|REJECTED"
         string budget_officer_name
         string budget_officer_email
         numeric total_price
         uuid approved_by_manager_id FK
-        timestamp approved_by_budget_at
         timestamp approved_by_manager_at
         uuid worker_id FK
         timestamp completed_at
         timestamp created_at
+        boolean is_deleted
     }
 
     ORDER_ITEMS {
@@ -271,6 +288,7 @@ erDiagram
         string uploaded_file_path
         numeric computed_unit_price
         numeric computed_total_price
+        boolean is_deleted
     }
 
     ORDER_ITEM_ATTRIBUTE_VALUES {
@@ -279,6 +297,7 @@ erDiagram
         uuid attribute_definition_id FK
         uuid selected_option_id FK
         string value_text
+        boolean is_deleted
     }
 
     ORDER_STATUS_HISTORY {
@@ -290,6 +309,7 @@ erDiagram
         enum changed_by_source "SYSTEM|EMAIL_BUDGET_OFFICER|MANAGER_UI|WORKER_UI"
         timestamp changed_at
         text note
+        boolean is_deleted
     }
 
     APPROVAL_TOKENS {
@@ -299,6 +319,7 @@ erDiagram
         boolean is_used
         timestamp expires_at
         timestamp used_at
+        boolean is_deleted
     }
 
     EMAIL_LOG {
@@ -310,6 +331,7 @@ erDiagram
         string subject
         enum processed_status "PENDING|MATCHED|IGNORED|ERROR"
         timestamp created_at
+        boolean is_deleted
     }
 ```
 
