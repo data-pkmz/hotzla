@@ -9,10 +9,10 @@ import {
 
 import type { Product, ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 
-import { prisma } from '../../config/db.js';
-import { PricingEngineService } from '../pricing-engine.service.js';
+import { prisma } from '../../config/db';
+import { PricingEngineService } from '../pricing-engine.service';
 
-jest.mock('../../config/db.js', () => ({
+jest.mock('../../config/db', () => ({
   prisma: {
     product: {
       findFirst: jest.fn(),
