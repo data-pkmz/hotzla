@@ -1,5 +1,7 @@
 import { AttributeType, Prisma, PricingRule, PriceModifierType } from '@prisma/client';
-import { prisma } from '../config/db.js';
+
+import { prisma } from '../config/db';
+
 import type { CalculatePriceParams, PriceBreakdownLine, PriceResult } from 'shared-types';
 
 export class PricingEngineService {
@@ -7,14 +9,14 @@ export class PricingEngineService {
     const { productId, quantity, selectedAttributes = [] } = params;
 
     /**
-     *Product quantity must be a positive whole number.
+     * Product quantity must be a positive whole number.
      */
     if (!Number.isInteger(quantity) || quantity <= 0) {
       throw new Error('הכמות חייבת להיות מספר שלם וחיובי');
     }
 
     /**
-     *Loads the active, non-deleted product.
+     * Loads the active, non-deleted product.
      */
     const product = await prisma.product.findFirst({
       where: {
@@ -29,7 +31,7 @@ export class PricingEngineService {
     }
 
     /**
-     *Base price may be 0, but not negative.
+     * Base price may be 0, but not negative.
      */
     if (product.basePrice.isNegative()) {
       throw new Error(`למוצר ${product.id} יש מחיר בסיס שלילי`);
@@ -38,19 +40,19 @@ export class PricingEngineService {
     const quantityDecimal = new Prisma.Decimal(quantity);
 
     /**
-     *Base price is always independent from attribute pricing.
+     * Base price is always independent from attribute pricing.
      */
     const baseTotal = product.basePrice.mul(quantityDecimal);
 
     const breakdown: PriceBreakdownLine[] = [];
 
     /**
-     *Keeps all money calculations as Decimal until returning.
+     * Keeps all money calculations as Decimal until returning.
      */
     let totalAdditionalPrice = new Prisma.Decimal(0);
 
     /**
-     *Calculates every selected attribute independently.
+     * Calculates every selected attribute independently.
      */
     for (const selectedAttribute of selectedAttributes) {
       const attributeDefinition = await prisma.productAttributeDefinition.findFirst({
@@ -67,19 +69,19 @@ export class PricingEngineService {
         );
       }
 
-      let additionalPrice: InstanceType<typeof Prisma.Decimal>;
+      let additionalPrice: Prisma.Decimal;
       let selectedValue: string;
 
       switch (attributeDefinition.attributeType) {
         /**
-         *Calculates NUMBER attribute pricing.
+         * Calculates NUMBER attribute pricing.
          *
-         *Example:
-         *value = 100
-         *unitPrice = 1.2
+         * Example:
+         * value = 100
+         * unitPrice = 1.2
          *
-         *Additional price:
-         *100 × 1.2 = 120
+         * Additional price:
+         * 100 × 1.2 = 120
          */
         case AttributeType.NUMBER: {
           if (attributeDefinition.pricingRule !== PricingRule.PER_UNIT_MULTIPLIER) {
@@ -125,12 +127,14 @@ export class PricingEngineService {
         }
 
         /**
-         *Calculates SELECT attribute pricing.
+         * Calculates SELECT attribute pricing.
          *
-         *Pricing comes from ProductAttributeOption.priceModifier.
+         * Pricing comes from
+         * ProductAttributeOption.priceModifier.
          *
-         *When isPerUnit is true, priceModifier is multiplied by
-         *the product quantity. Otherwise, priceModifier is added once.
+         * When isPerUnit is true, priceModifier is
+         * multiplied by the product quantity.
+         * Otherwise, priceModifier is added once.
          */
         case AttributeType.SELECT: {
           const selectedOptionIds = selectedAttribute.selectedOptionIds ?? [];
@@ -183,10 +187,10 @@ export class PricingEngineService {
         }
 
         /**
-         *Calculates BOOLEAN attribute pricing.
+         * Calculates BOOLEAN attribute pricing.
          *
-         *A false value has no price contribution.
-         *A true value adds the definition unit price once.
+         * A false value has no price contribution.
+         * A true value adds the definition unit price once.
          */
         case AttributeType.BOOLEAN: {
           if (typeof selectedAttribute.value !== 'boolean') {
@@ -213,9 +217,9 @@ export class PricingEngineService {
         }
 
         /**
-         *Handles TEXT attributes.
+         * Handles TEXT attributes.
          *
-         *Text attributes do not affect pricing.
+         * Text attributes do not affect pricing.
          */
         case AttributeType.TEXT: {
           if (
@@ -234,9 +238,9 @@ export class PricingEngineService {
         }
 
         /**
-         *Handles FILE_UPLOAD attributes.
+         * Handles FILE_UPLOAD attributes.
          *
-         *Uploaded files do not affect pricing.
+         * Uploaded files do not affect pricing.
          */
         case AttributeType.FILE_UPLOAD: {
           if (
@@ -261,16 +265,24 @@ export class PricingEngineService {
 
       totalAdditionalPrice = totalAdditionalPrice.add(additionalPrice);
 
-      breakdown.push({
-        attributeName: attributeDefinition.attributeName,
-        selectedValue,
-        contribution: additionalPrice.toNumber(),
-      });
+      /**
+       * Only attributes that actually change the price
+       * belong in the visible price breakdown.
+       */
+      if (!additionalPrice.isZero()) {
+        breakdown.push({
+          attributeDefinitionId: attributeDefinition.id,
+          attributeName: attributeDefinition.attributeName,
+          selectedValue,
+          contribution: additionalPrice.toNumber(),
+        });
+      }
     }
 
     const totalPrice = baseTotal.add(totalAdditionalPrice);
 
     return {
+      quantity,
       baseTotal: baseTotal.toNumber(),
       totalAdditionalPrice: totalAdditionalPrice.toNumber(),
       totalPrice: totalPrice.toNumber(),

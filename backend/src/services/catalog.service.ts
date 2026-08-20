@@ -16,6 +16,12 @@ import {
   UpdateDisplayOrderSchema,
 } from '../validations/attribute.validation';
 
+type ProductAttributeDefinitionWithOptions = Prisma.ProductAttributeDefinitionGetPayload<{
+  include: {
+    attributeOptionEntries: true;
+  };
+}>;
+
 export class CatalogService {
   // ============================================================
   // PRODUCTS CRUD
@@ -225,7 +231,7 @@ export class CatalogService {
    */
   public static async getAttributeDefinitions(
     productId: string
-  ): Promise<ProductAttributeDefinition[]> {
+  ): Promise<ProductAttributeDefinitionWithOptions[]> {
     return prisma.productAttributeDefinition.findMany({
       where: { productId, isDeleted: false },
       include: {

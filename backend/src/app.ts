@@ -4,6 +4,7 @@ import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
 import logger from './utils/logger';
 import authRoutes from './routes/auth.routes';
+import pricingRoutes from './routes/pricing.routes';
 
 // 1. Import Catalog Routes
 import catalogRouter from './routes/catalog.routes';
@@ -51,6 +52,9 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
 // 2. Register Catalog routes
 app.use('/api/products', catalogRouter);
 app.use('/api/admin/products', adminCatalogRouter);
+
+// 3. Register Pricing routes
+app.use('/api/pricing', pricingRoutes);
 
 app.listen(port, async () => {
   logger.info(`Backend server is running on port ${port}`);
