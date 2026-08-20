@@ -2,8 +2,7 @@
 import { Status } from '@prisma/client';
 import { prisma } from '../../config/db.js';
 import { CartService } from '../cart.service.js';
-import { CatalogService } from '../catalog.service.js';
-import { PricingEngineService } from '../pricing-engine-service.js';
+import { PricingEngineService } from '../pricing-engine.service.js';
 import type { AddToCartInput } from 'shared-types';
 
 // 1. Mocking Prisma and our internal services
@@ -16,20 +15,14 @@ jest.mock('../../config/db.js', () => ({
     },
     cartItem: {
       create: jest.fn(),
-      findUnique: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
   },
 }));
 
-jest.mock('../catalog.service.js', () => ({
-  CatalogService: {
-    getProductById: jest.fn(),
-  },
-}));
-
-jest.mock('../pricing-engine-service.js', () => ({
+jest.mock('../pricing-engine.service.js', () => ({
   PricingEngineService: {
     calculatePrice: jest.fn(),
   },
@@ -84,9 +77,6 @@ describe('CartService', () => {
       const mockCart = { id: 'cart-1', userId: 'user-1', status: Status.ACTIVE };
       (prisma.cart.findFirst as jest.Mock).mockResolvedValue(mockCart);
 
-      const mockProduct = { id: 'prod-1', name: 'Test Product' };
-      (CatalogService.getProductById as jest.Mock).mockResolvedValue(mockProduct);
-
       const mockPriceResult = { totalPrice: 150.5 };
       (PricingEngineService.calculatePrice as jest.Mock).mockResolvedValue(mockPriceResult);
 
@@ -115,11 +105,10 @@ describe('CartService', () => {
         data: expect.objectContaining({
           cartId: 'cart-1',
           productId: 'prod-1',
+          quantity: 5,
           computedPrice: 150.5,
-          selectedAttributes: {
-            quantity: 5,
-            attributes: input.selectedAttributes,
-          },
+          selectedAttributes: input.selectedAttributes,
+          uploadedFilePath: '',
         }),
       });
 
@@ -149,7 +138,7 @@ describe('CartService', () => {
   describe('updateItem', () => {
     it('should throw an error if the cart item is not found in the database', async () => {
       // Arrange: Force Prisma to return null when searching for the item
-      (prisma.cartItem.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.cartItem.findFirst as jest.Mock).mockResolvedValue(null);
 
       const input = { quantity: 2, selectedAttributes: [] };
 
