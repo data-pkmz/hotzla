@@ -15,7 +15,11 @@ export class CartService {
         isDeleted: false,
       },
       include: {
-        cartItemEntries: true,
+        cartItemEntries: {
+          include: {
+            product: true,
+          },
+        },
       },
     });
 
@@ -30,7 +34,11 @@ export class CartService {
         updatedAt: new Date(),
       },
       include: {
-        cartItemEntries: true,
+        cartItemEntries: {
+          include: {
+            product: true,
+          },
+        },
       },
     });
 
