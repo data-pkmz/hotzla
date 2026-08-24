@@ -9,6 +9,7 @@ import pricingRoutes from './routes/pricing.routes';
 // 1. Import Catalog Routes
 import catalogRouter from './routes/catalog.routes';
 import adminCatalogRouter from './routes/admin-catalog.routes';
+import fileRouter from './routes/file.routes';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -17,6 +18,9 @@ app.use(express.json());
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
+
+// File routes
+app.use('/api/files', fileRouter);
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
