@@ -96,7 +96,7 @@ export class FileController {
       // Serve the file to the browser
       res.sendFile(absolutePath, (err) => {
         if (err) {
-          console.error('Error sending file to client:', err);
+          logger.error('Error sending file to client:', err);
           if (!res.headersSent) {
             res.status(404).json({ error: 'File not found on disk' });
           }
