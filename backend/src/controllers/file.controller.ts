@@ -3,6 +3,7 @@ import { Role } from '@prisma/client';
 import { FileStorageService } from '../services/file-storage.service';
 import { AuthService } from '../services/auth.service';
 import { prisma } from '../config/db';
+import logger from '../utils/logger';
 
 // We use the globally augmented Express Request from express.d.ts
 
@@ -22,7 +23,7 @@ export class FileController {
       const filePath = await FileStorageService.saveFile(req.file.buffer, req.file.originalname);
       res.status(200).json({ filePath });
     } catch (error) {
-      console.error('Error saving file:', error);
+      logger.error('Error saving file:', error);
       res.status(500).json({ error: 'Internal server error while saving the file' });
     }
   }
@@ -79,7 +80,7 @@ export class FileController {
       // 5. User is not the owner and doesn't have privileges
       res.status(403).json({ error: 'Forbidden: You do not have permission to access this file' });
     } catch (error) {
-      console.error('Error downloading file:', error);
+      logger.error('Error downloading file:', error);
       res.status(500).json({ error: 'Internal server error while processing download' });
     }
   }

@@ -49,9 +49,10 @@ export class FileStorageService {
    */
   static getSecureAbsolutePath(relativePath: string): string {
     const absolutePath = path.resolve(this.basePath, relativePath);
+    const resolvedBase = path.resolve(this.basePath);
 
-    // Security check: Make sure the hacker didn't send "../../../windows/system32"
-    if (!absolutePath.startsWith(path.resolve(this.basePath))) {
+    const relative = path.relative(resolvedBase, absolutePath);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new Error('Security Error: Invalid file path.');
     }
 
