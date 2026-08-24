@@ -26,6 +26,7 @@ export interface ProductAttributeDefinition {
   productId: string;
   attributeName: string;
   attributeType: AttributeType;
+  displayStyle: AttributeDisplayStyle;
   isRequired: boolean;
   displayOrder: number;
   pricingRule: PricingRule;
@@ -44,4 +45,18 @@ export interface ProductAttributeOption {
   priceModifierType: PriceModifierType;
   isPerUnit: boolean;
   displayOrder: number;
+}
+
+export type AttributeDisplayStyle =
+  | 'DROPDOWN'
+  | 'CARDS'
+  | 'NUMBER_INPUT'
+  | 'CHECKBOX'
+  | 'SWITCH'
+  | 'SINGLE_LINE'
+  | 'MULTI_LINE'
+  | 'FILE_DROPZONE';
+
+export interface ProductDetails extends Product {
+  attributes: ProductAttributeDefinition[];
 }

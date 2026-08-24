@@ -1,4 +1,5 @@
 import { Box, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import type { Product } from 'shared-types';
 
@@ -7,9 +8,24 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const navigate = useNavigate();
+
   const basePrice = Number(product.basePrice);
+
+  const handleProductClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
   return (
     <Card
+      onClick={handleProductClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          handleProductClick();
+        }
+      }}
       sx={{
         height: '100%',
         display: 'flex',
@@ -18,6 +34,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         borderColor: 'divider',
         boxShadow: 'none',
         overflow: 'hidden',
+        cursor: 'pointer',
+        transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+
+        '&:hover': {
+          boxShadow: 3,
+          transform: 'translateY(-2px)',
+        },
       }}
     >
       {/* Product image */}
@@ -111,6 +134,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </Box>
             ₪{basePrice.toFixed(2)}
           </Typography>
+
           <Box
             sx={{
               display: 'flex',

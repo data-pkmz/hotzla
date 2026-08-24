@@ -4,6 +4,7 @@ import type { Product, ProductAttributeDefinition, ProductAttributeOption } from
 import type {
   ProductType,
   AttributeType,
+  AttributeDisplayStyle,
   PricingRule,
   CreateAttributeDto,
   UpdateAttributeDto,
@@ -14,6 +15,12 @@ import {
   UpdateAttributeSchema,
   UpdateDisplayOrderSchema,
 } from '../validations/attribute.validation';
+
+type ProductAttributeDefinitionWithOptions = Prisma.ProductAttributeDefinitionGetPayload<{
+  include: {
+    attributeOptionEntries: true;
+  };
+}>;
 
 export class CatalogService {
   // ============================================================
@@ -160,6 +167,7 @@ export class CatalogService {
         productId,
         attributeName: dto.attributeName,
         attributeType: dto.attributeType,
+        displayStyle: dto.displayStyle,
         isRequired: dto.isRequired ?? false,
         displayOrder: dto.displayOrder ?? 0,
         pricingRule: dto.pricingRule ?? 'NONE',
@@ -193,6 +201,7 @@ export class CatalogService {
     data: {
       attributeName: string;
       attributeType: AttributeType;
+      displayStyle: AttributeDisplayStyle;
       isRequired: boolean;
       displayOrder: number;
       pricingRule: PricingRule;
@@ -206,6 +215,7 @@ export class CatalogService {
         productId,
         attributeName: data.attributeName,
         attributeType: data.attributeType,
+        displayStyle: data.displayStyle,
         isRequired: data.isRequired,
         displayOrder: data.displayOrder,
         pricingRule: data.pricingRule,
@@ -221,7 +231,7 @@ export class CatalogService {
    */
   public static async getAttributeDefinitions(
     productId: string
-  ): Promise<ProductAttributeDefinition[]> {
+  ): Promise<ProductAttributeDefinitionWithOptions[]> {
     return prisma.productAttributeDefinition.findMany({
       where: { productId, isDeleted: false },
       include: {
@@ -247,6 +257,7 @@ export class CatalogService {
 
     if (dto.attributeName !== undefined) dataToUpdate.attributeName = dto.attributeName;
     if (dto.attributeType !== undefined) dataToUpdate.attributeType = dto.attributeType;
+    if (dto.displayStyle !== undefined) dataToUpdate.displayStyle = dto.displayStyle;
     if (dto.isRequired !== undefined) dataToUpdate.isRequired = dto.isRequired;
     if (dto.displayOrder !== undefined) dataToUpdate.displayOrder = dto.displayOrder;
     if (dto.pricingRule !== undefined) dataToUpdate.pricingRule = dto.pricingRule;

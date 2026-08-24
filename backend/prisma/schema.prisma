@@ -42,6 +42,21 @@ enum AttributeType {
   FILE_UPLOAD
 }
 
+enum AttributeDisplayStyle {
+  DROPDOWN
+  CARDS
+
+  NUMBER_INPUT
+
+  CHECKBOX
+  SWITCH
+
+  SINGLE_LINE
+  MULTI_LINE
+
+  FILE_DROPZONE
+}
+
 enum PricingRule {
   NONE
   PER_UNIT_MULTIPLIER
@@ -128,18 +143,19 @@ model Product {
 }
 
 model ProductAttributeDefinition {
-  id            String        @id @default(uuid()) @db.Uuid
-  productId     String        @map("product_id") @db.Uuid
-  product       Product       @relation(fields: [productId], references: [id])
-  attributeName String        @map("attribute_name")
-  attributeType AttributeType @map("attribute_type")
-  isRequired    Boolean       @map("is_required")
-  displayOrder  Int           @map("display_order")
-  pricingRule   PricingRule   @map("pricing_rule")
-  unitPrice     Decimal?      @map("unit_price")
-  minValue      Decimal?      @map("min_value")
-  maxValue      Decimal?      @map("max_value")
-  isDeleted     Boolean       @default(false) @map("is_deleted")
+  id            String                   @id @default(uuid()) @db.Uuid
+  productId     String                   @map("product_id") @db.Uuid
+  product       Product                  @relation(fields: [productId], references: [id])
+  attributeName String                   @map("attribute_name")
+  attributeType AttributeType            @map("attribute_type")
+  displayStyle  AttributeDisplayStyle    @map("display_style")
+  isRequired    Boolean                  @map("is_required")
+  displayOrder  Int                      @map("display_order")
+  pricingRule   PricingRule              @map("pricing_rule")
+  unitPrice     Decimal?                 @map("unit_price")
+  minValue      Decimal?                 @map("min_value")
+  maxValue      Decimal?                 @map("max_value")
+  isDeleted     Boolean                  @default(false) @map("is_deleted")
   attributeOptionEntries ProductAttributeOption[]
   orderAttributeEntries OrderItemAttributeValue[]
   @@map("product_attribute_definition")
@@ -178,6 +194,7 @@ model CartItem {
   cart                Cart           @relation(fields: [cartId], references: [id])
   productId           String         @map("product_id") @db.Uuid
   product             Product        @relation(fields: [productId], references: [id])
+  quantity            Decimal
   uploadedFilePath    String         @map("uploaded_file_path")
   computedPrice       Decimal        @map("computed_price")
   selectedAttributes  Json           @map("selected_attributes")

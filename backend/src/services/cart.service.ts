@@ -1,21 +1,26 @@
 import { prisma } from '../config/db.js';
 import { Status, Prisma } from '@prisma/client';
-import { PricingEngineService } from './pricing-engine-service.js';
-import type { AddToCartInput, UpdateCartItemInput, CartItemAttributesJson } from 'shared-types';
+import { PricingEngineService } from './pricing-engine.service.js';
+
+import type { AddToCartInput, UpdateCartItemInput } from 'shared-types';
 
 export class CartService {
   /**
-   * Fetch the active cart for the user, or create a new one if it doesn't exist.
+   * Fetch the active cart for the user,
+   * or create a new one if it doesn't exist.
    */
   static async getActiveCart(userId: string) {
     const existingCart = await prisma.cart.findFirst({
       where: {
-        userId: userId,
+        userId,
         status: Status.ACTIVE,
         isDeleted: false,
       },
       include: {
         cartItemEntries: {
+          where: {
+            isDeleted: false,
+          },
           include: {
             product: true,
           },
@@ -27,22 +32,23 @@ export class CartService {
       return existingCart;
     }
 
-    const newCart = await prisma.cart.create({
+    return prisma.cart.create({
       data: {
-        userId: userId,
+        userId,
         status: Status.ACTIVE,
         updatedAt: new Date(),
       },
       include: {
         cartItemEntries: {
+          where: {
+            isDeleted: false,
+          },
           include: {
             product: true,
           },
         },
       },
     });
-
-    return newCart;
   }
 
   /**
@@ -51,90 +57,114 @@ export class CartService {
   static async addItemToCart(userId: string, input: AddToCartInput) {
     const cart = await this.getActiveCart(userId);
 
-    // Calculate the real price using the Pricing Engine
-    // Don't forget the 'await' since it returns a Promise!
+    /**
+     * Always calculate the authoritative price on the server.
+     */
     const priceResult = await PricingEngineService.calculatePrice({
       productId: input.productId,
       quantity: input.quantity,
       selectedAttributes: input.selectedAttributes,
     });
 
-    // We store quantity inside the JSON so we don't lose it,
-    // since there is no 'quantity' column in the CartItem table.
-    const jsonToSave: CartItemAttributesJson = {
-      quantity: input.quantity,
-      attributes: input.selectedAttributes,
-    };
-
-    // Add the item to the database
-    const newItem = await prisma.cartItem.create({
+    return prisma.cartItem.create({
       data: {
         cartId: cart.id,
         productId: input.productId,
+
+        /**
+         * Quantity is first-class cart-item data,
+         * not part of selectedAttributes.
+         */
+        quantity: input.quantity,
+
         computedPrice: priceResult.totalPrice,
-        selectedAttributes: jsonToSave as unknown as Prisma.InputJsonValue,
-        uploadedFilePath: input.uploadedFilePath || '',
+
+        /**
+         * selectedAttributes contains only the
+         * dynamic product configuration.
+         */
+        selectedAttributes: input.selectedAttributes as unknown as Prisma.InputJsonValue,
+
+        uploadedFilePath: input.uploadedFilePath ?? '',
       },
     });
-
-    return newItem;
   }
 
   /**
-   * Update an existing cart item (change attributes/quantity) and recalculate price.
+   * Update an existing cart item
+   * and recalculate its price.
    */
   static async updateItem(cartItemId: string, input: UpdateCartItemInput) {
-    // Get the existing item to find the productId
-    const existingItem = await prisma.cartItem.findUnique({
-      where: { id: cartItemId },
+    const existingItem = await prisma.cartItem.findFirst({
+      where: {
+        id: cartItemId,
+        isDeleted: false,
+      },
     });
 
-    if (!existingItem) throw new Error('Cart item not found');
+    if (!existingItem) {
+      throw new Error('Cart item not found');
+    }
 
-    // Recalculate price with new attributes and quantity
     const priceResult = await PricingEngineService.calculatePrice({
       productId: existingItem.productId,
       quantity: input.quantity,
       selectedAttributes: input.selectedAttributes,
     });
 
-    const jsonToSave: CartItemAttributesJson = {
-      quantity: input.quantity,
-      attributes: input.selectedAttributes,
-    };
-
-    // Update the database
-    const updatedItem = await prisma.cartItem.update({
-      where: { id: cartItemId },
+    return prisma.cartItem.update({
+      where: {
+        id: cartItemId,
+      },
       data: {
-        selectedAttributes: jsonToSave as unknown as Prisma.InputJsonValue,
+        quantity: input.quantity,
+
+        selectedAttributes: input.selectedAttributes as unknown as Prisma.InputJsonValue,
+
         computedPrice: priceResult.totalPrice,
       },
     });
-
-    return updatedItem;
   }
 
   /**
-   * Remove an item from the cart.
+   * Soft-delete an item from the cart.
    */
   static async removeItem(cartItemId: string) {
-    await prisma.cartItem.delete({
-      where: { id: cartItemId },
+    const existingItem = await prisma.cartItem.findFirst({
+      where: {
+        id: cartItemId,
+        isDeleted: false,
+      },
+    });
+
+    if (!existingItem) {
+      throw new Error('Cart item not found');
+    }
+
+    return prisma.cartItem.update({
+      where: {
+        id: cartItemId,
+      },
+      data: {
+        isDeleted: true,
+      },
     });
   }
 
   /**
-   * Clear the active cart after a successful order.
+   * Clear the active cart after a successful order
+   * by marking it as converted.
    */
   static async clearCart(userId: string) {
-    await prisma.cart.updateMany({
+    return prisma.cart.updateMany({
       where: {
-        userId: userId,
+        userId,
         status: Status.ACTIVE,
+        isDeleted: false,
       },
       data: {
         status: Status.CONVERTED,
+        updatedAt: new Date(),
       },
     });
   }

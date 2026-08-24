@@ -1,23 +1,2 @@
-import React from 'react';
-import type { ProductAttributeDefinition } from 'shared-types';
-
-interface DynamicAttributeInputProps {
-  definition: ProductAttributeDefinition;
-  value: unknown;
-  onChange: (value: unknown) => void;
-}
-
-export const DynamicAttributeInput: React.FC<DynamicAttributeInputProps> = ({
-  definition,
-  value,
-  onChange,
-}) => {
-  return (
-    <div className="dynamic-attribute-input">
-      <label>{definition.attributeName}</label>
-      <input type="text" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />
-      <span style={{ fontSize: '0.8em', color: 'gray' }}> ({definition.attributeType})</span>
-    </div>
-  );
-};
-export default DynamicAttributeInput;
+export { default as DynamicAttributeInput } from './DynamicAttributeInput';
+export { default as AttributeForm } from './AttributeForm';

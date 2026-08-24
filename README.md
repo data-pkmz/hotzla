@@ -1,76 +1,189 @@
-# מערכת "הוצאה לאור דיגיטלית" (Digital Publishing System – DPS)
-
-מערכת ה-DPS מחליפה את התהליך הידני של הזמנת חומרי דפוס מול בית הדפוס הארגוני (הוצל"א) של פיקוד מרכז בממשק דיגיטלי מלא, הכולל קטלוג מוצרים, מנוע תמחור אוטומטי, ושרשרת אישורים דיגיטלית.
-
-פרויקט זה מנוהל כ-**Monorepo** מבוסס **npm workspaces** ומחולק לשלושה חלקים מרכזיים.
-
----
-
-## תיעוד ואפיון המערכת
-
-כדי להבין לעומק את הדרישות העסקיות, מודל הנתונים, ותרשימי הזרימה המלאים של הפרויקט, יש לעיין במסמך האפיון המצורף לריפו זה. המסמך מכיל את ה-SDD המלא.
-
-- **[למעבר למסמך האפיון המלא - DPS_SDD](./DPS_SDD.md)**
-
----
-
-## מבנה התיקיות והחבילות (Monorepo Workspaces)
-
-```text
-hotzla_v0/
-├── shared-types/     # חבילת טיפוסים משותפת (TypeScript definitions)
-├── backend/          # שרת ה-API (Node.js + Express + TypeScript)
-├── frontend/         # אפליקציית הלקוח (React 18 + TS + Vite + Material UI)
-├── package.json      # קובץ הגדרת workspaces וסקריפטים גלובליים
-└── tsconfig.json     # הגדרות TypeScript כלליות
-```
-
-### פירוט השכבות:
-
-1.  **[shared-types](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/shared-types/)**: מכילה את כל ממשקי הנתונים והטיפוסים המשותפים (כגון `User`, `Order`, `Product`, `OrderStatus` ועוד). הן ה-Backend והן ה-Frontend מייבאים את הטיפוסים מחבילה זו כדי לשמור על מקור אמת יחיד (Single Source of Truth).
-2.  **[backend](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/backend/)**: שרת API המבוסס על Express. התיקייה מאורגנת בצורה שכבתי: `config`, `controllers`, `routes`, `services`, `middlewares` ו-`repositories`.
-3.  **[frontend](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/frontend/)**: אפליקציית React מוגדרת עם תמיכה מלאה ב-RTL וב-Material UI, וכוללת את שלד התיקיות הנדרש עבור ה-pages, components, stores (Zustand) ו-services (React Query).
-
----
-
 ## הוראות הרצה ופיתוח מקומי
 
 ### 1. דרישות קדם (Prerequisites)
 
-- **Node.js**: גרסה 18 או 20 LTS.
-- **npm**: גרסה 9 ומעלה (התומכת ב-workspaces).
+לפני הרצת הפרויקט יש לוודא שמותקנים במחשב:
 
-### 2. התקנת תלויות וקישור חבילות
+- **Node.js**
+- **npm** עם תמיכה ב-Workspaces
+- **Docker Desktop** – נדרש להרצת שירותי התשתית באמצעות Docker Compose
 
-משורש הפרויקט (Root), הרץ את הפקודה הבאה כדי להתקין את כל התלויות עבור כל ה-workspaces וליצור את הקישורים ביניהם:
+---
+
+### 2. התקנת תלויות
+
+בהרצה ראשונה של הפרויקט על מחשב חדש, יש להריץ משורש הפרויקט:
 
 ```bash
 npm install
 ```
 
-### 3. בנייה (Build)
+פקודה זו מתקינה את התלויות עבור כל חבילות ה-Monorepo ומקשרת בין ה-Workspaces.
 
-לפני הרצת השרתים בפעם הראשונה או לאחר שינוי בטיפוסים המשותפים (`shared-types`), יש לבצע בנייה של החבילה המשותפת ושאר הפרויקטים על ידי הרצת הפקודה הבאה משורש הפרויקט:
+---
+
+### 3. בניית `shared-types`
+
+בהרצה ראשונה של הפרויקט, או לאחר שינוי בטיפוסים המשותפים, יש לבנות את חבילת `shared-types`:
+
+```bash
+npm run build:shared
+```
+
+ה-Frontend וה-Backend משתמשים בחבילה זו כמקור אמת משותף עבור טיפוסי TypeScript, ולכן יש לוודא שהיא בנויה לפני הרצת המערכת.
+
+---
+
+### 4. הפעלת שירותי התשתית
+
+יש לוודא ש-Docker Desktop פועל ולאחר מכן להריץ משורש הפרויקט:
+
+```bash
+docker compose up
+```
+
+Docker Compose מפעיל את שירותי התשתית הנדרשים לפיתוח המקומי, כולל:
+
+- **PostgreSQL** – מסד הנתונים של המערכת.
+- **Nginx** – Reverse Proxy המשמש כנקודת הכניסה למערכת.
+
+Nginx מאזין בפורט `8080` ומנתב את הבקשות אל ה-Frontend וה-Backend.
+
+---
+
+### 5. הכנת מסד הנתונים
+
+בהרצה ראשונה יש לוודא שמסד הנתונים מאותחל ומכיל את נתוני הפיתוח הנדרשים.
+
+יש להריץ את ה-Seed של Prisma:
+
+```bash
+npm run db:seed
+```
+
+> יש להוסיף את הסקריפט `db:seed` ל-`package.json` בהתאם לפקודת ה-Seed המוגדרת בפרויקט.
+
+יש צורך לבצע Seed בעיקר בהרצה ראשונה, לאחר איפוס מסד הנתונים, או כאשר נתוני ה-Seed השתנו.
+
+---
+
+### 6. הרצת ה-Backend
+
+בטרמינל נפרד, משורש הפרויקט:
+
+```bash
+npm run dev:backend
+```
+
+שרת ה-Backend מבוסס Express ומאזין כברירת מחדל בפורט:
+
+```text
+3001
+```
+
+---
+
+### 7. הרצת ה-Frontend
+
+בטרמינל נוסף, משורש הפרויקט:
+
+```bash
+npm run dev:frontend
+```
+
+שרת הפיתוח של Vite מאזין כברירת מחדל בפורט:
+
+```text
+5173
+```
+
+---
+
+### 8. פתיחת המערכת בדפדפן
+
+לאחר ש-Docker Compose, ה-Backend וה-Frontend פועלים, יש לפתוח את המערכת דרך Nginx בכתובת:
+
+```text
+http://localhost:8080
+```
+
+> **חשוב:** במהלך הפיתוח יש לגשת למערכת דרך פורט `8080` ולא ישירות דרך Vite בפורט `5173`.
+
+זרימת הבקשות המקומית היא:
+
+```text
+Browser
+   │
+   ▼
+Nginx :8080
+   │
+   ├── /       → Frontend :5173
+   │
+   └── /api/   → Backend :3001
+```
+
+כך סביבת הפיתוח המקומית עובדת דרך אותו Reverse Proxy ומאפשרת ל-Frontend לבצע קריאות API באמצעות נתיבים כגון:
+
+```text
+/api/products
+/api/pricing/calculate
+/api/auth/...
+```
+
+ללא צורך לפנות ישירות לפורט של ה-Backend.
+
+---
+
+## הרצה מהירה לאחר ההתקנה הראשונית
+
+לאחר שהפרויקט כבר הותקן, `shared-types` נבנה ומסד הנתונים אותחל, בדרך כלל מספיק להפעיל שלושה תהליכים:
+
+**טרמינל 1 – Docker:**
+
+```bash
+docker compose up
+```
+
+**טרמינל 2 – Backend:**
+
+```bash
+npm run dev:backend
+```
+
+**טרמינל 3 – Frontend:**
+
+```bash
+npm run dev:frontend
+```
+
+ולאחר מכן לפתוח:
+
+```text
+http://localhost:8080
+```
+
+---
+
+## בנייה (Build)
+
+לבניית הפרויקט:
 
 ```bash
 npm run build
 ```
 
-או לבניית חבילה ספציפית:
+ניתן גם לבנות כל Workspace בנפרד:
 
-- בניית טיפוסים משותפים בלבד: `npm run build:shared`
-- בניית צד השרת בלבד: `npm run build:backend`
-- בניית צד הלקוח בלבד: `npm run build:frontend`
+```bash
+npm run build:shared
+npm run build:backend
+npm run build:frontend
+```
 
-### 4. הרצה במצב פיתוח (Local Development)
+לאחר שינוי ב-`shared-types`, מומלץ להריץ לפחות:
 
-ניתן להריץ את שרתי הפיתוח משורש הפרויקט:
+```bash
+npm run build:shared
+```
 
-- **הרצת ה-Backend** (מאזין בפורט `3001` כברירת מחדל):
-  ```bash
-  npm run dev:backend
-  ```
-- **הרצת ה-Frontend** (Vite Dev Server, מאזין בפורט `5173` כברירת מחדל):
-  ```bash
-  npm run dev:frontend
-  ```
+לפני המשך הפיתוח.

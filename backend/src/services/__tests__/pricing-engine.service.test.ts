@@ -1,11 +1,18 @@
-import { AttributeType, Prisma, PricingRule, PriceModifierType, ProductType } from '@prisma/client';
+import {
+  AttributeType,
+  Prisma,
+  PricingRule,
+  PriceModifierType,
+  ProductType,
+  AttributeDisplayStyle,
+} from '@prisma/client';
 
 import type { Product, ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 
-import { prisma } from '../../config/db.js';
-import { PricingEngineService } from '../pricing-engine-service.js';
+import { prisma } from '../../config/db';
+import { PricingEngineService } from '../pricing-engine.service';
 
-jest.mock('../../config/db.js', () => ({
+jest.mock('../../config/db', () => ({
   prisma: {
     product: {
       findFirst: jest.fn(),
@@ -42,6 +49,7 @@ const numberAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'כמות עותקים',
   attributeType: AttributeType.NUMBER,
+  displayStyle: AttributeDisplayStyle.NUMBER_INPUT,
   isRequired: true,
   displayOrder: 1,
   pricingRule: PricingRule.PER_UNIT_MULTIPLIER,
@@ -56,6 +64,7 @@ const paperAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'סוג נייר',
   attributeType: AttributeType.SELECT,
+  displayStyle: AttributeDisplayStyle.CARDS,
   isRequired: true,
   displayOrder: 2,
   pricingRule: PricingRule.FLAT_ADD_PER_OPTION,
@@ -70,6 +79,7 @@ const bindingAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'כריכה',
   attributeType: AttributeType.SELECT,
+  displayStyle: AttributeDisplayStyle.DROPDOWN,
   isRequired: false,
   displayOrder: 3,
   pricingRule: PricingRule.FLAT_ADD_PER_OPTION,
@@ -84,6 +94,7 @@ const booleanAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'כריכת ספירלה',
   attributeType: AttributeType.BOOLEAN,
+  displayStyle: AttributeDisplayStyle.CHECKBOX,
   isRequired: false,
   displayOrder: 4,
   pricingRule: PricingRule.FLAT_ADD_PER_OPTION,
@@ -98,6 +109,7 @@ const textAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'הערות מיוחדות',
   attributeType: AttributeType.TEXT,
+  displayStyle: AttributeDisplayStyle.MULTI_LINE,
   isRequired: false,
   displayOrder: 5,
   pricingRule: PricingRule.NONE,
@@ -277,6 +289,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-copies',
           attributeName: 'כמות עותקים',
           selectedValue: '100',
           contribution: 120,
@@ -398,6 +411,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-paper',
           attributeName: 'סוג נייר',
           selectedValue: 'כרומו',
           contribution: 20,
@@ -429,6 +443,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-binding',
           attributeName: 'כריכה',
           selectedValue: 'ספירלה',
           contribution: 8,
@@ -568,7 +583,7 @@ describe('PricingEngineService', () => {
       });
 
       expect(result.totalAdditionalPrice).toBe(0);
-      expect(result.breakdown[0].contribution).toBe(0);
+      expect(result.breakdown).toEqual([]);
     });
 
     it('rejects a non-boolean value', async () => {
@@ -609,13 +624,7 @@ describe('PricingEngineService', () => {
       });
 
       expect(result.totalAdditionalPrice).toBe(0);
-      expect(result.breakdown).toEqual([
-        {
-          attributeName: 'הערות מיוחדות',
-          selectedValue: 'נא להדפיס בצבע',
-          contribution: 0,
-        },
-      ]);
+      expect(result.breakdown).toEqual([]);
     });
   });
 

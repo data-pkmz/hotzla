@@ -64,20 +64,58 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
     const product = await CatalogService.getProductById(id);
 
     if (!product) {
-      res.status(404).json({ success: false, message: 'Product not found' });
+      res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
       return;
     }
 
+    const attributeDefinitions = await CatalogService.getAttributeDefinitions(id);
+
+    const attributes = attributeDefinitions.map((attribute) => ({
+      id: attribute.id,
+      productId: attribute.productId,
+      attributeName: attribute.attributeName,
+      attributeType: attribute.attributeType,
+      displayStyle: attribute.displayStyle,
+      isRequired: attribute.isRequired,
+      displayOrder: attribute.displayOrder,
+      pricingRule: attribute.pricingRule,
+      unitPrice: attribute.unitPrice?.toNumber() ?? null,
+      minValue: attribute.minValue?.toNumber() ?? null,
+      maxValue: attribute.maxValue?.toNumber() ?? null,
+      options: attribute.attributeOptionEntries.map((option) => ({
+        id: option.id,
+        attributeDefinitionId: option.attributeDefinitionId,
+        optionLabel: option.optionLabel,
+        optionValue: option.optionValue,
+        priceModifier: option.priceModifier.toNumber(),
+        priceModifierType: option.priceModifierType,
+        isPerUnit: option.isPerUnit,
+        displayOrder: option.displayOrder,
+      })),
+    }));
+
     res.status(200).json({
       success: true,
-      data: product,
+      data: {
+        ...product,
+        basePrice: product.basePrice.toNumber(),
+        attributes,
+      },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 

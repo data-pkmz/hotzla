@@ -129,6 +129,23 @@ async function main() {
     },
   });
 
+  const pricingTestProduct = await prisma.product.upsert({
+    where: {
+      id: '00000000-0000-0000-0000-000000000005',
+    },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000005',
+      name: 'חוברת הדרכה לבדיקה',
+      description: 'מוצר פיתוח לבדיקת מנוע התמחור.',
+      category: 'בדיקות',
+      productType: 'DYNAMIC',
+      basePrice: 0,
+      isActive: true,
+      createdBy: manager.id,
+    },
+  });
+
   // --------------------
   // Notebook attributes
   // --------------------
@@ -143,6 +160,7 @@ async function main() {
       productId: notebooks.id,
       attributeName: 'גודל',
       attributeType: 'SELECT',
+      displayStyle: 'DROPDOWN',
       isRequired: true,
       displayOrder: 1,
       pricingRule: 'FLAT_ADD_PER_OPTION',
@@ -197,6 +215,7 @@ async function main() {
       productId: rollups.id,
       attributeName: 'רוחב',
       attributeType: 'NUMBER',
+      displayStyle: 'NUMBER_INPUT',
       isRequired: true,
       displayOrder: 1,
       pricingRule: 'PER_UNIT_MULTIPLIER',
@@ -206,13 +225,216 @@ async function main() {
     },
   });
 
+  // --------------------
+  // Pricing test product attributes
+  // --------------------
+
+  // NUMBER:
+  // Example:
+  // 100 copies * 1.2 = 120
+  const copiesAttribute = await prisma.productAttributeDefinition.upsert({
+    where: {
+      id: '10000000-0000-0000-0000-000000000010',
+    },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000010',
+      productId: pricingTestProduct.id,
+      attributeName: 'כמות עותקים',
+      attributeType: 'NUMBER',
+      displayStyle: 'NUMBER_INPUT',
+      isRequired: true,
+      displayOrder: 1,
+      pricingRule: 'PER_UNIT_MULTIPLIER',
+      unitPrice: 1.2,
+      minValue: 1,
+      maxValue: 1000,
+    },
+  });
+
+  // SELECT:
+  // Paper type, where price can be multiplied by product quantity.
+  const paperTypeAttribute = await prisma.productAttributeDefinition.upsert({
+    where: {
+      id: '10000000-0000-0000-0000-000000000011',
+    },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000011',
+      productId: pricingTestProduct.id,
+      attributeName: 'סוג נייר',
+      attributeType: 'SELECT',
+      displayStyle: 'CARDS',
+      isRequired: true,
+      displayOrder: 2,
+      pricingRule: 'FLAT_ADD_PER_OPTION',
+    },
+  });
+
+  await prisma.productAttributeOption.upsert({
+    where: {
+      id: '20000000-0000-0000-0000-000000000010',
+    },
+    update: {},
+    create: {
+      id: '20000000-0000-0000-0000-000000000010',
+      attributeDefinitionId: paperTypeAttribute.id,
+      optionLabel: 'רגיל',
+      optionValue: 'REGULAR',
+      priceModifier: 0,
+      priceModifierType: 'FIXED_ADD',
+      isPerUnit: true,
+      displayOrder: 1,
+    },
+  });
+
+  await prisma.productAttributeOption.upsert({
+    where: {
+      id: '20000000-0000-0000-0000-000000000011',
+    },
+    update: {},
+    create: {
+      id: '20000000-0000-0000-0000-000000000011',
+      attributeDefinitionId: paperTypeAttribute.id,
+      optionLabel: 'כרומו',
+      optionValue: 'CHROME',
+      priceModifier: 0.2,
+      priceModifierType: 'FIXED_ADD',
+      isPerUnit: true,
+      displayOrder: 2,
+    },
+  });
+
+  // SELECT:
+  // Binding is a one-time price addition.
+  const bindingAttribute = await prisma.productAttributeDefinition.upsert({
+    where: {
+      id: '10000000-0000-0000-0000-000000000012',
+    },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000012',
+      productId: pricingTestProduct.id,
+      attributeName: 'כריכה',
+      attributeType: 'SELECT',
+      displayStyle: 'DROPDOWN',
+      isRequired: true,
+      displayOrder: 3,
+      pricingRule: 'FLAT_ADD_PER_OPTION',
+    },
+  });
+
+  await prisma.productAttributeOption.upsert({
+    where: {
+      id: '20000000-0000-0000-0000-000000000012',
+    },
+    update: {},
+    create: {
+      id: '20000000-0000-0000-0000-000000000012',
+      attributeDefinitionId: bindingAttribute.id,
+      optionLabel: 'ללא כריכה',
+      optionValue: 'NONE',
+      priceModifier: 0,
+      priceModifierType: 'FIXED_ADD',
+      isPerUnit: false,
+      displayOrder: 1,
+    },
+  });
+
+  await prisma.productAttributeOption.upsert({
+    where: {
+      id: '20000000-0000-0000-0000-000000000013',
+    },
+    update: {},
+    create: {
+      id: '20000000-0000-0000-0000-000000000013',
+      attributeDefinitionId: bindingAttribute.id,
+      optionLabel: 'ספירלה',
+      optionValue: 'SPIRAL',
+      priceModifier: 8,
+      priceModifierType: 'FIXED_ADD',
+      isPerUnit: false,
+      displayOrder: 2,
+    },
+  });
+
+  // BOOLEAN:
+  // Adds 5 once when checked.
+  await prisma.productAttributeDefinition.upsert({
+    where: {
+      id: '10000000-0000-0000-0000-000000000013',
+    },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000013',
+      productId: pricingTestProduct.id,
+      attributeName: 'למינציה',
+      attributeType: 'BOOLEAN',
+      displayStyle: 'CHECKBOX',
+      isRequired: false,
+      displayOrder: 4,
+      pricingRule: 'NONE',
+      unitPrice: 5,
+    },
+  });
+
+  // TEXT:
+  // No price contribution.
+  await prisma.productAttributeDefinition.upsert({
+    where: {
+      id: '10000000-0000-0000-0000-000000000014',
+    },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000014',
+      productId: pricingTestProduct.id,
+      attributeName: 'הערות מיוחדות',
+      attributeType: 'TEXT',
+      displayStyle: 'MULTI_LINE',
+      isRequired: false,
+      displayOrder: 5,
+      pricingRule: 'NONE',
+    },
+  });
+
+  // FILE_UPLOAD:
+  // No price contribution for now.
+  await prisma.productAttributeDefinition.upsert({
+    where: {
+      id: '10000000-0000-0000-0000-000000000015',
+    },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000015',
+      productId: pricingTestProduct.id,
+      attributeName: 'קובץ עיצוב',
+      attributeType: 'FILE_UPLOAD',
+      displayStyle: 'FILE_DROPZONE',
+      isRequired: false,
+      displayOrder: 6,
+      pricingRule: 'NONE',
+    },
+  });
+
   logger.info('Seeded development data', {
     users: {
       requester: requester.adUsername,
       manager: manager.adUsername,
       worker: worker.adUsername,
     },
-    products: [businessCards.name, letterhead.name, notebooks.name, rollups.name],
+    products: [
+      businessCards.name,
+      letterhead.name,
+      notebooks.name,
+      rollups.name,
+      pricingTestProduct.name,
+    ],
+    pricingTest: {
+      productId: pricingTestProduct.id,
+      copiesAttributeId: copiesAttribute.id,
+      paperTypeAttributeId: paperTypeAttribute.id,
+      bindingAttributeId: bindingAttribute.id,
+    },
   });
 }
 
