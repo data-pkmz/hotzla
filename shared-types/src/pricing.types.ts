@@ -6,6 +6,7 @@
 export interface SelectedAttributeInput {
   attributeDefinitionId: string;
   selectedOptionIds?: string[];
+  selectedOptionId?: string;
   value?: string | number | boolean;
 }
 
