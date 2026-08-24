@@ -1,0 +1,25 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: hotzla-nginx-staging
+    ports:
+      - '80:80'
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: hotzla-postgres-staging
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hotzla_staging_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotzla_staging_password}
+      POSTGRES_DB: ${POSTGRES_DB:-hotzla_staging_db}
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_staging_data:

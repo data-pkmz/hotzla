@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { createProduct, updateProduct, deleteProduct } from '../controllers/catalog.controller';
-//import { authMiddleware } from '../middlewares/auth.middleware'; // התליית הרשאות מ-DPS-012/013
+import { authMiddleware, requireManagerRole } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// כל הנתיבים בקובץ זה מוגנים ודורשים תפקיד MANAGER בלבד
-//router.use(authMiddleware(['MANAGER']));
+// Protect all admin catalog routes: require authentication + MANAGER role
+router.use(authMiddleware);
+router.use(requireManagerRole);
 
 // POST /api/admin/products
 router.post('/', createProduct);

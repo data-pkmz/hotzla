@@ -1,4 +1,4 @@
-# מערכת "הוצאה לאור דיגיטלית" (Digital Publishing System – DPS)
+# מערכת "הוצאה לאור דיגיטלית"
 
 מערכת ה-DPS מחליפה את התהליך הידני של הזמנת חומרי דפוס מול בית הדפוס הארגוני (הוצל"א) של פיקוד מרכז בממשק דיגיטלי מלא, הכולל קטלוג מוצרים, מנוע תמחור אוטומטי, ושרשרת אישורים דיגיטלית.
 
@@ -8,9 +8,10 @@
 
 ## תיעוד ואפיון המערכת
 
-כדי להבין לעומק את הדרישות העסקיות, מודל הנתונים, ותרשימי הזרימה המלאים של הפרויקט, יש לעיין במסמך האפיון המצורף לריפו זה. המסמך מכיל את ה-SDD המלא.
-
-- **[למעבר למסמך האפיון המלא - DPS_SDD](./DPS_SDD.md)**
+- **[מסמך אפיון המערכת המלא (DPS_SDD)](./DPS_SDD.md)**
+- **[פירוט משימות מורחב לפיתוח (DPS_Detailed_Task_Breakdown)](./DPS_Detailed_Task_Breakdown.md)**
+- **[תיעוד תשתיות וסביבות עבודה (Infrastructure Setup)](./docs/infrastructure-setup.md)**
+- **[תיעוד אימות זהות (IWA & Mock Auth)](./docs/iwa-configuration.md)**
 
 ---
 
@@ -19,58 +20,156 @@
 ```text
 hotzla_v0/
 ├── shared-types/     # חבילת טיפוסים משותפת (TypeScript definitions)
-├── backend/          # שרת ה-API (Node.js + Express + TypeScript)
+├── backend/          # שרת ה-API (Node.js + Express + TypeScript + Prisma ORM)
 ├── frontend/         # אפליקציית הלקוח (React 18 + TS + Vite + Material UI)
+├── infra/            # קונפיגורציות תשתית (Nginx reverse proxy)
+├── docs/             # תיעוד ארכיטקטורה ותשתיות
+├── docker-compose.yml # הרצת PostgreSQL ו-Nginx מקומיים
 ├── package.json      # קובץ הגדרת workspaces וסקריפטים גלובליים
 └── tsconfig.json     # הגדרות TypeScript כלליות
 ```
 
-### פירוט השכבות:
+---
 
-1.  **[shared-types](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/shared-types/)**: מכילה את כל ממשקי הנתונים והטיפוסים המשותפים (כגון `User`, `Order`, `Product`, `OrderStatus` ועוד). הן ה-Backend והן ה-Frontend מייבאים את הטיפוסים מחבילה זו כדי לשמור על מקור אמת יחיד (Single Source of Truth).
-2.  **[backend](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/backend/)**: שרת API המבוסס על Express. התיקייה מאורגנת בצורה שכבתי: `config`, `controllers`, `routes`, `services`, `middlewares` ו-`repositories`.
-3.  **[frontend](file:///c:/Users/Eli/Desktop/Projects/Hotzla/hotzla_v0/frontend/)**: אפליקציית React מוגדרת עם תמיכה מלאה ב-RTL וב-Material UI, וכוללת את שלד התיקיות הנדרש עבור ה-pages, components, stores (Zustand) ו-services (React Query).
+## מדריך להתקנה, הרצה ובדיקות
+
+### 1. דרישות קדם
+
+- **Node.js**: גרסה `20.x` או `22.x` LTS.
+- **npm**: גרסה `9` ומעלה (התומכת ב-workspaces).
+- **Docker Desktop**: להרצת מסד הנתונים PostgreSQL ו-Nginx.
 
 ---
 
-## הוראות הרצה ופיתוח מקומי
-
-### 1. דרישות קדם (Prerequisites)
-
-- **Node.js**: גרסה 18 או 20 LTS.
-- **npm**: גרסה 9 ומעלה (התומכת ב-workspaces).
-
 ### 2. התקנת תלויות וקישור חבילות
 
-משורש הפרויקט (Root), הרץ את הפקודה הבאה כדי להתקין את כל התלויות עבור כל ה-workspaces וליצור את הקישורים ביניהם:
+משורש הפרויקט (Root), הרץ:
 
 ```bash
 npm install
 ```
 
-### 3. בנייה (Build)
+---
 
-לפני הרצת השרתים בפעם הראשונה או לאחר שינוי בטיפוסים המשותפים (`shared-types`), יש לבצע בנייה של החבילה המשותפת ושאר הפרויקטים על ידי הרצת הפקודה הבאה משורש הפרויקט:
+### 3. הגדרת משתני סביבה
+
+1. העתק את קובץ הדוגמה בשורש הפרויקט:
+   ```bash
+   cp .env.example .env
+   ```
+2. העתק את קובץ הדוגמה ב-Frontend:
+   ```bash
+   cp frontend/.env.example frontend/.env
+   ```
+3. העתק את קובץ הדוגמה ב-Backend:
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+
+---
+
+### 4. הקמת מסד נתונים PostgreSQL ו-Prisma Migrations
+
+#### א. הרצת PostgreSQL ב-Docker
+
+הרם את מסד הנתונים ו-Nginx בסביבה המקומית:
 
 ```bash
-npm run build
+docker-compose up -d
 ```
 
-או לבניית חבילה ספציפית:
+- מסד הנתונים זמין בכתובת `localhost:5433` (שם משתמש: `hotzla_user`, סיסמה: `hotzla_password`, DB: `hotzla_db`).
 
-- בניית טיפוסים משותפים בלבד: `npm run build:shared`
-- בניית צד השרת בלבד: `npm run build:backend`
-- בניית צד הלקוח בלבד: `npm run build:frontend`
+#### ב. הרצת Migrations וחלוקת סכימה
 
-### 4. הרצה במצב פיתוח (Local Development)
+משורש הפרויקט, הרץ את הסקריפט ליצירת הלקוח של Prisma והחלת הטבלאות ב-DB:
 
-ניתן להריץ את שרתי הפיתוח משורש הפרויקט:
+```bash
+npm run prisma:generate
+npx prisma migrate dev --schema=backend/prisma/schema.prisma
+```
 
-- **הרצת ה-Backend** (מאזין בפורט `3001` כברירת מחדל):
-  ```bash
-  npm run dev:backend
-  ```
-- **הרצת ה-Frontend** (Vite Dev Server, מאזין בפורט `5173` כברירת מחדל):
-  ```bash
-  npm run dev:frontend
-  ```
+#### ג. אכלוס נתוני דמו (Database Seeding)
+
+להזנת מוצרי דפוס ראשוניים (כרטיסי ביקור, חוברות, רול-אפים, נייר מכתבים) ומפרטים דינמיים:
+
+```bash
+npx prisma db seed --schema=backend/prisma/schema.prisma
+```
+
+---
+
+### 5. הרצת המערכת במצב פיתוח (Local Development)
+
+#### א. הרצת כל השירותים במקביל
+
+משורש הפרויקט ניתן להריץ את שרתי הפיתוח במקביל:
+
+```bash
+npm run dev:backend   # מאזין בפורט 3001
+npm run dev:frontend  # מאזין בפורט 5173 (עם Proxy שקוף ל-3001)
+```
+
+#### ב. גישה לאפליקציה בדפדפן
+
+- **דרך Nginx Proxy**: `http://localhost:8080`
+- **דרך Vite Dev Server**: `http://localhost:5173`
+- **שרת ה-API**: `http://localhost:3001/api`
+
+---
+
+### 6. בדיקות איכות קוד
+
+המערכת כוללת בדיקות אוטומטיות מלאות לכל השכבות:
+
+#### א. הרצת בדיקות יחידה
+
+הרצת כל בדיקות היחידה (מנוע תמחור, קטלוג, עגלת קניות, AuthService, AuditLog):
+
+```bash
+npm test
+```
+
+#### ב. בדיקת תקינות טיפוסים
+
+בדיקת קומפילציה מלאה ללא פליטת קבצים בכל 3 ה-workspaces:
+
+```bash
+npm run type-check
+```
+
+#### ג. בדיקת ESLint (Zero Warnings)
+
+הרצת בדיקת לינט קשיחה (אפס אזהרות מותרות):
+
+```bash
+npm run lint
+```
+
+#### ד. בדיקת עיצוב Prettier
+
+```bash
+npm run format:check
+```
+
+#### ה. הרצת בדיקה מאוחדת (CI Local Runner)
+
+להרצת כל שלבי הבדיקות ברצף (זהה ל-CI Pipeline ב-GitHub Actions):
+
+```bash
+npm run ci:local
+```
+
+---
+
+## 🛠️ סקריפטים מרכזיים ב-package.json
+
+| פקודה                  | תיאור                                       |
+| :--------------------- | :------------------------------------------ |
+| `npm run dev:backend`  | הרצת שרת ה-Backend במצב פיתוח (ts-node-dev) |
+| `npm run dev:frontend` | הרצת ה-Frontend במצב פיתוח (Vite)           |
+| `npm run build`        | בנייה מלאה לכל ה-workspaces                 |
+| `npm test`             | הרצת כל בדיקות היחידה בפרויקט               |
+| `npm run type-check`   | בדיקת סוגי TypeScript ללא שגיאות            |
+| `npm run lint`         | הרצת ESLint על כל הריפו                     |
+| `npm run format`       | עיצוב קוד אוטומטי בעזרת Prettier            |

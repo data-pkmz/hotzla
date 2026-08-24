@@ -1,33 +1,7 @@
 import { Request, Response } from 'express';
 import { CatalogService } from '../services/catalog.service';
-
-// Demo product interface (to be replaced by Prisma/ORM later)
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  isActive: boolean;
-  attributes?: Record<string, unknown>;
-}
-
-// Temporary mock data for testing
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'חוברת כרוכה A4',
-    category: 'booklets',
-    isActive: true,
-    attributes: { paperWeight: '135g' },
-  },
-  {
-    id: '2',
-    name: 'פוסטר 70x100',
-    category: 'posters',
-    isActive: true,
-    attributes: { finish: 'glossy' },
-  },
-  { id: '3', name: 'מוצר ישן שנמחק', category: 'posters', isActive: false },
-];
+import logger from '../utils/logger';
+import type { ProductType } from 'shared-types';
 
 /**
  * GET /api/products
@@ -37,10 +11,8 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
   try {
     const { category } = req.query;
 
-    // Filter active products only
     let products = await CatalogService.getProducts();
 
-    // Filter by category if query parameter is provided
     if (category) {
       products = products.filter(
         (product) => product.category.toLowerCase() === String(category).toLowerCase()
@@ -52,7 +24,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
       data: products,
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to fetch products', { error });
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
@@ -76,7 +48,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
       data: product,
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to fetch product by ID', { error, id: req.params.id });
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
@@ -87,22 +59,26 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, category, attributes } = req.body;
+    const { name, description, category, productType, basePrice } = req.body;
 
-    if (!name || !category) {
-      res.status(400).json({ success: false, message: 'Product name and category are required' });
+    if (!name || !category || basePrice === undefined) {
+      res.status(400).json({
+        success: false,
+        message: 'Product name, category, and basePrice are required',
+      });
       return;
     }
 
-    const newProduct: Product = {
-      id: String(Date.now()),
-      name,
-      category,
-      attributes: (attributes as Record<string, unknown>) || {},
-      isActive: true,
-    };
+    const createdBy = req.user?.adUsername;
 
-    mockProducts.push(newProduct);
+    const newProduct = await CatalogService.createProduct({
+      name,
+      description: description || '',
+      category,
+      productType: (productType as ProductType) || 'FIXED',
+      basePrice: Number(basePrice),
+      createdBy,
+    });
 
     res.status(201).json({
       success: true,
@@ -110,7 +86,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       data: newProduct,
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to create product', { error, body: req.body });
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
@@ -122,53 +98,48 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const productIndex = mockProducts.findIndex((p) => p.id === id && p.isActive);
+    const existingProduct = await CatalogService.getProductById(id);
 
-    if (productIndex === -1) {
+    if (!existingProduct) {
       res.status(404).json({ success: false, message: 'Product to update was not found' });
       return;
     }
 
-    // Update fields provided in request body
-    mockProducts[productIndex] = {
-      ...mockProducts[productIndex],
-      ...req.body,
-    };
+    const updatedProduct = await CatalogService.updateProduct(id, req.body);
 
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
-      data: mockProducts[productIndex],
+      data: updatedProduct,
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to update product', { error, id: req.params.id, body: req.body });
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
 /**
  * DELETE /api/admin/products/:id
- * Soft delete a product (set isActive to false)
+ * Soft delete a product (set isActive to false, isDeleted to true)
  */
 export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const product = mockProducts.find((p) => p.id === id && p.isActive);
+    const existingProduct = await CatalogService.getProductById(id);
 
-    if (!product) {
+    if (!existingProduct) {
       res.status(404).json({ success: false, message: 'Product to delete was not found' });
       return;
     }
 
-    // Perform soft delete
-    product.isActive = false;
+    await CatalogService.softDeleteProduct(id);
 
     res.status(200).json({
       success: true,
       message: 'Product removed successfully (Soft Delete)',
     });
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to delete product', { error, id: req.params.id });
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
