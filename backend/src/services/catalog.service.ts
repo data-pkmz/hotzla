@@ -71,6 +71,7 @@ export class CatalogService {
     category: string;
     productType: ProductType;
     basePrice: number;
+    isActive?: boolean;
     createdBy?: string;
   }): Promise<Product> {
     return prisma.product.create({
@@ -80,7 +81,7 @@ export class CatalogService {
         category: data.category,
         productType: data.productType,
         basePrice: data.basePrice,
-        isActive: true,
+        isActive: data.isActive ?? true,
         createdBy: data.createdBy,
       },
     });
@@ -92,6 +93,7 @@ export class CatalogService {
     category: string;
     productType: ProductType;
     basePrice: number;
+    isActive?: boolean;
     definitions?: Array<{
       attributeName: string;
       attributeType: AttributeType;
@@ -101,6 +103,11 @@ export class CatalogService {
       unitPrice?: number | null;
       minValue?: number | null;
       maxValue?: number | null;
+      selectionMode?: 'DROPDOWN' | 'FLAT' | 'MULTI' | null;
+      isMultipleSelection?: boolean;
+      maxLength?: number | null;
+      allowedFileTypes?: 'IMAGE' | 'PDF' | 'IMAGE_AND_PDF' | null;
+      allowMultipleFiles?: boolean;
       options?: ProductAttributeOptionDto[];
     }>;
   }) {
@@ -111,7 +118,7 @@ export class CatalogService {
         category: data.category,
         productType: data.productType,
         basePrice: data.basePrice,
-        isActive: true,
+        isActive: data.isActive ?? true,
         attributeDefinitionEntries: {
           create: (data.definitions ?? []).map((definition) => ({
             attributeName: definition.attributeName,
@@ -122,6 +129,11 @@ export class CatalogService {
             unitPrice: definition.unitPrice ?? null,
             minValue: definition.minValue ?? null,
             maxValue: definition.maxValue ?? null,
+            selectionMode: definition.selectionMode ?? null,
+            isMultipleSelection: definition.isMultipleSelection ?? false,
+            maxLength: definition.maxLength ?? null,
+            allowedFileTypes: definition.allowedFileTypes ?? null,
+            allowMultipleFiles: definition.allowMultipleFiles ?? false,
             attributeOptionEntries: {
               create: (definition.options ?? []).map((option, index) => ({
                 optionLabel: option.optionLabel,
@@ -152,6 +164,7 @@ export class CatalogService {
           category: data.category,
           productType: data.productType,
           basePrice: data.basePrice,
+          isActive: data.isActive ?? true,
         },
       });
       await transaction.productAttributeDefinition.updateMany({ where: { productId: id }, data: { isDeleted: true } });
@@ -168,6 +181,11 @@ export class CatalogService {
               unitPrice: definition.unitPrice ?? null,
               minValue: definition.minValue ?? null,
               maxValue: definition.maxValue ?? null,
+              selectionMode: definition.selectionMode ?? null,
+              isMultipleSelection: definition.isMultipleSelection ?? false,
+              maxLength: definition.maxLength ?? null,
+              allowedFileTypes: definition.allowedFileTypes ?? null,
+              allowMultipleFiles: definition.allowMultipleFiles ?? false,
               attributeOptionEntries: { create: (definition.options ?? []).map((option, index) => ({ optionLabel: option.optionLabel, optionValue: option.optionValue, priceModifier: option.priceModifier ?? 0, priceModifierType: option.priceModifierType ?? 'FIXED_ADD', displayOrder: option.displayOrder ?? index, isPerUnit: option.isPerUnit ?? false })) },
             })),
           },

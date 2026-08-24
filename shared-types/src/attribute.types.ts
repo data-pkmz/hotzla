@@ -7,6 +7,12 @@ export const AttributeType = {
 } as const;
 export type AttributeType = (typeof AttributeType)[keyof typeof AttributeType];
 
+export const SelectionMode = { DROPDOWN: 'DROPDOWN', FLAT: 'FLAT', MULTI: 'MULTI' } as const;
+export type SelectionMode = (typeof SelectionMode)[keyof typeof SelectionMode];
+
+export const FileTypeMode = { IMAGE: 'IMAGE', PDF: 'PDF', IMAGE_AND_PDF: 'IMAGE_AND_PDF' } as const;
+export type FileTypeMode = (typeof FileTypeMode)[keyof typeof FileTypeMode];
+
 export const PricingImpactType = {
   NONE: 'NONE',
   PER_UNIT_MULTIPLIER: 'PER_UNIT_MULTIPLIER',
@@ -40,6 +46,11 @@ export interface CreateAttributeDto {
   unitPrice?: number;
   minValue?: number;
   maxValue?: number;
+  selectionMode?: SelectionMode;
+  isMultipleSelection?: boolean;
+  maxLength?: number;
+  allowedFileTypes?: FileTypeMode;
+  allowMultipleFiles?: boolean;
   options?: ProductAttributeOptionDto[];
 }
 

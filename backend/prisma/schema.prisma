@@ -42,6 +42,18 @@ enum AttributeType {
   FILE_UPLOAD
 }
 
+enum SelectionMode {
+  DROPDOWN
+  FLAT
+  MULTI
+}
+
+enum FileTypeMode {
+  IMAGE
+  PDF
+  IMAGE_AND_PDF
+}
+
 enum PricingRule {
   NONE
   PER_UNIT_MULTIPLIER
@@ -139,6 +151,11 @@ model ProductAttributeDefinition {
   unitPrice     Decimal?      @map("unit_price")
   minValue      Decimal?      @map("min_value")
   maxValue      Decimal?      @map("max_value")
+  selectionMode SelectionMode? @map("selection_mode")
+  isMultipleSelection Boolean @default(false) @map("is_multiple_selection")
+  maxLength     Int?          @map("max_length")
+  allowedFileTypes FileTypeMode? @map("allowed_file_types")
+  allowMultipleFiles Boolean @default(false) @map("allow_multiple_files")
   isDeleted     Boolean       @default(false) @map("is_deleted")
   attributeOptionEntries ProductAttributeOption[]
   orderAttributeEntries OrderItemAttributeValue[]

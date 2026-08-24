@@ -21,14 +21,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           flexGrow: 1,
           p: 3,
           width: '100%',
+          minWidth: 0,
+          minHeight: '100vh',
           ml: { xs: 0, sm: `${DRAWER_WIDTH}px` },
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
+          overflow: 'hidden',
         }}
       >
-        <Toolbar /> {/* מרווח עבור ה-Header הקיים בפתח העמוד */}
-        <Box sx={{ width: '100%', maxWidth: 1280 }}>{children}</Box>
+        <Toolbar sx={{ flexShrink: 0 }} />
+        <Box sx={{ width: '100%', maxWidth: 1440, minWidth: 0, flex: 1, overflow: 'auto' }}>{children}</Box>
       </Box>
     </Box>
   );

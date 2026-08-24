@@ -30,6 +30,11 @@ const attribute: ProductAttributeDefinition = {
   unitPrice: new Prisma.Decimal(0),
   minValue: null,
   maxValue: null,
+  selectionMode: null,
+  maxLength: null,
+  allowedFileTypes: null,
+  isMultipleSelection: false,
+  allowMultipleFiles: false,
   isDeleted: false,
 };
 
@@ -115,6 +120,18 @@ describe('getProductById', () => {
         id: 'product-1',
         isDeleted: false,
         isActive: true,
+      },
+      include: {
+        attributeDefinitionEntries: {
+          where: { isDeleted: false },
+          orderBy: { displayOrder: 'asc' },
+          include: {
+            attributeOptionEntries: {
+              where: { isDeleted: false },
+              orderBy: { displayOrder: 'asc' },
+            },
+          },
+        },
       },
     });
   });

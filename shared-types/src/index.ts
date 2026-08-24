@@ -10,7 +10,7 @@ export type {
   ProductAttributeOption,
 } from './product.types.js';
 
-export { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
+export { AttributeType, FileTypeMode, PricingImpactType, PriceModifierType, SelectionMode } from './attribute.types.js';
 
 export type {
   ProductAttributeOptionDto,

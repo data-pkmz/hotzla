@@ -1,5 +1,38 @@
 import request from 'supertest';
-import app from '../../app'; // Ensure correct import path for your Express app
+
+jest.mock('../../config/db', () => ({
+  prisma: {},
+  testDbConnection: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../services/catalog.service', () => ({
+  CatalogService: {
+    getProducts: jest.fn(),
+    getProductById: jest.fn(),
+    createProductWithDefinitions: jest.fn(),
+    updateProductWithDefinitions: jest.fn(),
+    softDeleteProduct: jest.fn(),
+  },
+}));
+
+import app from '../../app';
+import { CatalogService } from '../../services/catalog.service';
+
+const mockProducts = [
+  { id: '1', name: 'חוברת כרוכה A4', category: 'booklets', isActive: true },
+  { id: '2', name: 'פוסטר 70x100', category: 'posters', isActive: true },
+];
+let deletedProductId: string | null = null;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  deletedProductId = null;
+  jest.mocked(CatalogService.getProducts).mockResolvedValue(mockProducts as never);
+  jest.mocked(CatalogService.getProductById).mockImplementation(async (id: string) => deletedProductId === id ? undefined as never : mockProducts.find((product) => product.id === id) as never);
+  jest.mocked(CatalogService.createProductWithDefinitions).mockImplementation(async (data) => ({ id: '4', ...data, isActive: true }) as never);
+  jest.mocked(CatalogService.updateProductWithDefinitions).mockImplementation((async (id: string, data: Parameters<typeof CatalogService.updateProductWithDefinitions>[1]) => id === '9999' ? undefined : ({ id, ...data, isActive: true })) as never);
+  jest.mocked(CatalogService.softDeleteProduct).mockImplementation(async (id: string) => { if (id !== '2') return undefined as never; deletedProductId = id; return { ...mockProducts[1], isActive: false } as never; });
+});
 
 describe('Catalog Routes - Integration Tests', () => {
 
