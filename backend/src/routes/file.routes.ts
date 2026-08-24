@@ -17,10 +17,14 @@ const upload = multer({
     fileSize: 20 * 1024 * 1024, // 20 MB
   },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || file.mimetype === 'image/jpeg') {
+    if (
+      file.mimetype === 'application/pdf' ||
+      file.mimetype === 'image/jpeg' ||
+      file.mimetype === 'image/png'
+    ) {
       cb(null, true);
     } else {
-      cb(new Error('Non authorized format, only pdf and jpeg allowed.'));
+      cb(new Error('Non authorized format, only pdf, jpeg, and png allowed.'));
     }
   },
 });
