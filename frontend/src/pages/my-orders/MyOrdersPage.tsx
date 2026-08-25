@@ -325,6 +325,11 @@ export default function MyOrdersPage() {
             ))}
           </Paper>
         )}
+        <OrderDetailsModal
+          open={selectedOrderId !== null}
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+        />
       </Container>
     </Box>
   );
