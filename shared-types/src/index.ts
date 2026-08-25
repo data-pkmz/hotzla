@@ -53,75 +53,8 @@ export interface CartItem {
   product?: Product;
 }
 
-// Order structures
-export type OrderStatus =
-  | 'PENDING_BUDGET'
-  | 'BUDGET_APPROVED'
-  | 'APPROVED_FOR_PRODUCTION'
-  | 'IN_PRINTING'
-  | 'READY_FOR_PICKUP'
-  | 'COMPLETED'
-  | 'REJECTED';
-
-export interface Order {
-  id: string;
-  orderNumber: string;
-  requesterId: string;
-  unit: string;
-  status: OrderStatus;
-  budgetOfficerName: string;
-  budgetOfficerEmail: string;
-  totalPrice: number;
-  approvedByManagerId: string | null;
-  approvedByBudgetAt: Date | string | null;
-  approvedByManagerAt: Date | string | null;
-  workerId: string | null;
-  completedAt: Date | string | null;
-  createdAt: Date | string;
-  items?: OrderItem[];
-}
-
-export interface OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
-  uploadedFilePath?: string;
-  computedUnitPrice: number;
-  computedTotalPrice: number;
-  attributeValues?: OrderItemAttributeValue[];
-  product?: Product;
-}
-
-export interface OrderItemAttributeValue {
-  id: string;
-  orderItemId: string;
-  attributeDefinitionId: string;
-  selectedOptionId?: string;
-  valueText: string;
-}
-
 // Order Status History
 export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'WORKER_UI';
-
-export interface OrderStatusHistory {
-  id: string;
-  orderId: string;
-  fromStatus?: OrderStatus | null;
-  toStatus: OrderStatus;
-  changedByUserId?: string | null;
-  changedBySource: ChangeSource;
-  changedAt: Date | string;
-  note?: string | null;
-}
-
-export interface LogStatusChangeParams {
-  orderId: string;
-  fromStatus?: OrderStatus;
-  toStatus: OrderStatus;
-  changedByUserId?: string;
-  changedBySource: ChangeSource;
-  note?: string;
-}
 
 // Approval Tokens
 export interface ApprovalToken {

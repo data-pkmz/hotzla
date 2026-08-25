@@ -11,7 +11,6 @@ export interface User {
   unit?: string;
 }
 
-// משתמשי דמו לבדיקה מקומית
 export const MOCK_USERS: Record<UserRole, User> = {
   REQUESTER: {
     id: 'usr-1',
@@ -49,6 +48,14 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   currentUser: MOCK_USERS.REQUESTER,
-  setRole: (role: UserRole) => set({ currentUser: MOCK_USERS[role] }),
-  setUserRole: (role: UserRole) => set({ currentUser: MOCK_USERS[role] }),
+
+  setRole: (role: UserRole) =>
+    set({
+      currentUser: MOCK_USERS[role],
+    }),
+
+  setUserRole: (role: UserRole) =>
+    set({
+      currentUser: MOCK_USERS[role],
+    }),
 }));

@@ -24,6 +24,7 @@ export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
+  quantity: number;
   uploadedFilePath?: string;
   computedUnitPrice: number;
   computedTotalPrice: number;

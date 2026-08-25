@@ -1,17 +1,13 @@
 import { useState } from 'react';
 
-import { Box, Chip, Container, Divider, Paper, Typography } from '@mui/material';
+import { Box, Container, Divider, Paper, Typography } from '@mui/material';
+
+import StatusBadge from '../../components/StatusBadge';
+import type { OrderStatus } from 'shared-types';
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-type OrderStatus =
-  | 'PENDING_BUDGET'
-  | 'BUDGET_APPROVED'
-  | 'APPROVED_FOR_PRODUCTION'
-  | 'IN_PRINTING'
-  | 'READY_FOR_PICKUP'
-  | 'COMPLETED'
-  | 'REJECTED';
+import OrderDetailsModal from '../../components/orders/OrderDetailsModal';
 
 interface MyOrder {
   id: string;
@@ -45,49 +41,6 @@ const mockOrders: MyOrder[] = [
   },
 ];
 
-const statusConfig: Record<
-  OrderStatus,
-  {
-    label: string;
-    color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-  }
-> = {
-  PENDING_BUDGET: {
-    label: 'ממתין לאישור תקציבי',
-    color: 'info',
-  },
-
-  BUDGET_APPROVED: {
-    label: 'תקציב אושר',
-    color: 'primary',
-  },
-
-  APPROVED_FOR_PRODUCTION: {
-    label: 'מאושר לייצור',
-    color: 'primary',
-  },
-
-  IN_PRINTING: {
-    label: 'בהדפסה',
-    color: 'warning',
-  },
-
-  READY_FOR_PICKUP: {
-    label: 'מוכן לאיסוף',
-    color: 'success',
-  },
-
-  COMPLETED: {
-    label: 'הושלם',
-    color: 'success',
-  },
-
-  REJECTED: {
-    label: 'נדחה',
-    color: 'error',
-  },
-};
-
 function formatDate(date: string) {
   return new Intl.DateTimeFormat('he-IL', {
     day: '2-digit',
@@ -96,16 +49,17 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-function formatPrice(price: number) {
+function formatPrice(price: number | string) {
   return new Intl.NumberFormat('he-IL', {
     style: 'currency',
     currency: 'ILS',
     maximumFractionDigits: 2,
-  }).format(price);
+  }).format(Number(price));
 }
 
 export default function MyOrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const orders = mockOrders;
 
   const handleOrderClick = (orderId: string) => {
     setSelectedOrderId(orderId);
@@ -127,11 +81,7 @@ export default function MyOrdersPage() {
       }}
     >
       <Container maxWidth="xl">
-        <Box
-          sx={{
-            mb: 4,
-          }}
-        >
+        <Box sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
             ההזמנות שלי
           </Typography>
@@ -139,7 +89,8 @@ export default function MyOrdersPage() {
           <Typography color="text.secondary">צפייה ומעקב אחר ההזמנות שלך.</Typography>
         </Box>
 
-        {mockOrders.length === 0 ? (
+        {/* No orders */}
+        {orders.length === 0 && (
           <Box
             sx={{
               py: 8,
@@ -154,7 +105,10 @@ export default function MyOrdersPage() {
               ההזמנות שלך יופיעו כאן לאחר השלמת ההזמנה הראשונה.
             </Typography>
           </Box>
-        ) : (
+        )}
+
+        {/* Orders list */}
+        {orders.length > 0 && (
           <Paper
             variant="outlined"
             sx={{
@@ -175,7 +129,7 @@ export default function MyOrdersPage() {
                 px: 3,
                 py: 2,
                 bgcolor: 'action.hover',
-                direction: 'rtl',
+                direction: 'ltr',
               }}
             >
               <Typography variant="body2" color="text.secondary" fontWeight={600}>
@@ -197,9 +151,7 @@ export default function MyOrdersPage() {
               <Box />
             </Box>
 
-            {mockOrders.map((order, index) => {
-              const status = statusConfig[order.status];
-
+            {orders.map((order, index) => {
               return (
                 <Box key={order.id}>
                   <Box
@@ -215,8 +167,7 @@ export default function MyOrdersPage() {
                       textAlign: 'inherit',
                       px: 3,
                       py: 2.5,
-                      direction: 'rtl',
-
+                      direction: 'ltr',
                       display: 'grid',
 
                       gridTemplateColumns: {
@@ -233,6 +184,7 @@ export default function MyOrdersPage() {
                       },
 
                       alignItems: 'center',
+
                       gap: {
                         xs: 1.5,
                         md: 2,
@@ -252,11 +204,7 @@ export default function MyOrdersPage() {
                     }}
                   >
                     {/* Order number */}
-                    <Box
-                      sx={{
-                        gridArea: 'order',
-                      }}
-                    >
+                    <Box sx={{ gridArea: 'order' }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -280,10 +228,12 @@ export default function MyOrdersPage() {
                           xs: 'details',
                           md: 'date',
                         },
+
                         display: {
                           xs: 'flex',
                           md: 'block',
                         },
+
                         alignItems: 'center',
                         flexWrap: 'wrap',
                         gap: 2,
@@ -333,15 +283,7 @@ export default function MyOrdersPage() {
                           },
                         }}
                       >
-                        <Chip
-                          label={status.label}
-                          color={status.color}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            fontWeight: 600,
-                          }}
-                        />
+                        <StatusBadge status={order.status} />
                       </Box>
                     </Box>
 
@@ -349,10 +291,12 @@ export default function MyOrdersPage() {
                     <Typography
                       sx={{
                         gridArea: 'price',
+
                         display: {
                           xs: 'none',
                           md: 'block',
                         },
+
                         fontWeight: 600,
                       }}
                     >
@@ -363,21 +307,14 @@ export default function MyOrdersPage() {
                     <Box
                       sx={{
                         gridArea: 'status',
+
                         display: {
                           xs: 'none',
                           md: 'block',
                         },
                       }}
                     >
-                      <Chip
-                        label={status.label}
-                        color={status.color}
-                        size="small"
-                        variant="outlined"
-                        sx={{
-                          fontWeight: 600,
-                        }}
-                      />
+                      <StatusBadge status={order.status} />
                     </Box>
 
                     {/* Arrow */}
@@ -390,12 +327,17 @@ export default function MyOrdersPage() {
                     />
                   </Box>
 
-                  {index !== mockOrders.length - 1 && <Divider />}
+                  {index !== orders.length - 1 && <Divider />}
                 </Box>
               );
             })}
           </Paper>
         )}
+        <OrderDetailsModal
+          open={selectedOrderId !== null}
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+        />
       </Container>
     </Box>
   );

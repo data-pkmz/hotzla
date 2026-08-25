@@ -1,4 +1,5 @@
 import type { Product } from 'shared-types';
+import { apiFetch } from '../api';
 
 interface CatalogResponse {
   success: boolean;
@@ -7,7 +8,7 @@ interface CatalogResponse {
 }
 
 export const getProducts = async (): Promise<Product[]> => {
-  const response = await fetch('/api/products');
+  const response = await apiFetch('/api/products');
 
   if (!response.ok) {
     throw new Error('Failed to load catalog');
