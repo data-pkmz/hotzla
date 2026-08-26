@@ -43,6 +43,7 @@ export interface CartItem {
   id: string;
   cartId: string;
   productId: string;
+  quantity: number;
   uploadedFilePath?: string;
   computedPrice: number;
   selectedAttributes: Record<string, string | number | boolean>;
