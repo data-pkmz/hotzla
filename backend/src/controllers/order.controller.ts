@@ -42,33 +42,25 @@ export class OrderController {
         });
       }
 
-      const { customer, budgetOfficer, notes } =
-        validationResult.data;
+      const { customer, budgetOfficer, notes } = validationResult.data;
 
       const user = await getCurrentUser(req);
 
-      const newOrder = await OrderService.createOrderFromCart(
-        user.id,
-        {
-          budgetOfficerName: budgetOfficer.fullName,
-          budgetOfficerEmail: budgetOfficer.militaryEmail,
-          unit: customer.unit,
-          notes,
-        }
-      );
+      const newOrder = await OrderService.createOrderFromCart(user.id, {
+        budgetOfficerName: budgetOfficer.fullName,
+        budgetOfficerEmail: budgetOfficer.militaryEmail,
+        unit: customer.unit,
+        notes,
+      });
 
       return res.status(201).json({
         message: 'ההזמנה נוצרה בהצלחה במערכת',
         order: newOrder,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error(
-        'Error during checkout process:',
-        errorMessage
-      );
+      logger.error('Error during checkout process:', errorMessage);
 
       return res.status(500).json({
         error: errorMessage,
@@ -103,13 +95,9 @@ export class OrderController {
         data: result.orders,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error(
-        'Error getting user orders:',
-        errorMessage
-      );
+      logger.error('Error getting user orders:', errorMessage);
 
       return res.status(500).json({
         error: errorMessage,
@@ -126,26 +114,19 @@ export class OrderController {
     try {
       const user = await getCurrentUser(req);
 
-      const order = await OrderService.getOrderById(
-        req.params.id,
-        {
-          id: user.id,
-          role: user.role,
-        }
-      );
+      const order = await OrderService.getOrderById(req.params.id, {
+        id: user.id,
+        role: user.role,
+      });
 
       return res.status(200).json({
         success: true,
         data: order,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error(
-        'Error getting order details:',
-        errorMessage
-      );
+      logger.error('Error getting order details:', errorMessage);
 
       return res.status(500).json({
         error: errorMessage,

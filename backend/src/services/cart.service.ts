@@ -1,6 +1,6 @@
-import { prisma } from '../config/db.js';
+import { prisma } from '../config/db';
 import { Status, Prisma } from '@prisma/client';
-import { PricingEngineService } from './pricing-engine.service.js';
+import { PricingEngineService } from './pricing-engine.service';
 
 import type { AddToCartInput, UpdateCartItemInput } from 'shared-types';
 

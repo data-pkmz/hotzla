@@ -5,7 +5,6 @@ import { testDbConnection } from './config/db';
 import logger from './utils/logger';
 import authRoutes from './routes/auth.routes';
 import pricingRoutes from './routes/pricing.routes';
-import orderRoutes from './routes/order.routes';
 import { authMiddleware } from './middlewares/auth.middleware';
 
 // 1. Import Catalog Routes

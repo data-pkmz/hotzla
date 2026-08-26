@@ -18,6 +18,11 @@ import {
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import AttachFileOutlinedIcon from '@mui/icons-material/AttachFileOutlined';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 
 import type { OrderDetails } from 'shared-types';
 
@@ -80,12 +85,14 @@ export default function OrderDetailsPage() {
           name: order.requester.fullName ?? 'מזמין',
           role: 'מזמין',
           email: order.requester.militaryEmail,
+          phone: order.requester.phone,
         },
         {
           id: 'budget-officer',
           name: order.budgetOfficerName,
           role: 'קצין תקציב',
-          email: order.budgetOfficerEmail,
+          email: null,
+          phone: null,
         },
         ...(order.approvedByManager
           ? [
@@ -94,6 +101,7 @@ export default function OrderDetailsPage() {
                 name: order.approvedByManager.fullName ?? 'מנהל',
                 role: 'מנהל',
                 email: order.approvedByManager.militaryEmail,
+                phone: order.approvedByManager.phone,
               },
             ]
           : []),
@@ -104,6 +112,7 @@ export default function OrderDetailsPage() {
                 name: order.worker.fullName ?? 'עובד דפוס',
                 role: 'עובד דפוס',
                 email: order.worker.militaryEmail,
+                phone: order.worker.phone,
               },
             ]
           : []),
@@ -224,10 +233,19 @@ export default function OrderDetailsPage() {
                     borderRadius: 3,
                   }}
                 >
-                  <Typography variant="h6" fontWeight={700}>
-                    מפרט טכני
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <Inventory2OutlinedIcon color="primary" />
 
+                    <Typography variant="h6" fontWeight={700}>
+                      מפרט טכני
+                    </Typography>
+                  </Box>
                   <Divider sx={{ my: 2.5 }} />
 
                   <Stack spacing={2.5} divider={<Divider flexItem />}>
@@ -338,9 +356,19 @@ export default function OrderDetailsPage() {
                     borderRadius: 3,
                   }}
                 >
-                  <Typography variant="h6" fontWeight={700}>
-                    קבצי מקור
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <AttachFileOutlinedIcon color="primary" />
+
+                    <Typography variant="h6" fontWeight={700}>
+                      קבצי מקור
+                    </Typography>
+                  </Box>
 
                   <Divider sx={{ my: 1.5 }} />
 
@@ -399,9 +427,19 @@ export default function OrderDetailsPage() {
                     borderRadius: 3,
                   }}
                 >
-                  <Typography variant="h6" fontWeight={700}>
-                    אנשי קשר
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <PeopleOutlineIcon color="primary" />
+
+                    <Typography variant="h6" fontWeight={700}>
+                      אנשי קשר
+                    </Typography>
+                  </Box>
 
                   <Divider sx={{ my: 1.5 }} />
 
@@ -449,6 +487,27 @@ export default function OrderDetailsPage() {
                             </Link>
                           </Box>
                         )}
+                        {contact.phone && (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.75,
+                              mt: 0.5,
+                            }}
+                          >
+                            <PhoneOutlinedIcon
+                              sx={{
+                                fontSize: 16,
+                                color: 'text.secondary',
+                              }}
+                            />
+
+                            <Link href={`tel:${contact.phone}`} underline="hover" variant="body2">
+                              {contact.phone}
+                            </Link>
+                          </Box>
+                        )}
                       </Box>
                     ))}
                   </Stack>
@@ -462,9 +521,19 @@ export default function OrderDetailsPage() {
                     borderRadius: 3,
                   }}
                 >
-                  <Typography variant="h6" fontWeight={700}>
-                    ציר זמן
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <HistoryOutlinedIcon color="primary" />
+
+                    <Typography variant="h6" fontWeight={700}>
+                      ציר זמן
+                    </Typography>
+                  </Box>
 
                   <Divider sx={{ my: 2.5 }} />
 
