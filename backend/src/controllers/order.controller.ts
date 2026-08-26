@@ -133,4 +133,81 @@ export class OrderController {
       });
     }
   }
+
+  /**
+   * GET /api/orders/my-orders
+   *
+   * Returns orders according to the current user's access rules.
+   */
+  static async getMyOrders(req: Request, res: Response) {
+    try {
+      const user = await getCurrentUser(req);
+
+      const result = await OrderService.getOrders(
+        {
+          id: user.id,
+          role: user.role,
+        },
+        {
+          page: 1,
+          limit: 100,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+        }
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: result.orders,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      logger.error(
+        'Error getting user orders:',
+        errorMessage
+      );
+
+      return res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
+  /**
+   * GET /api/orders/:id
+   *
+   * Returns one order after applying role-based access validation.
+   */
+  static async getOrderById(req: Request, res: Response) {
+    try {
+      const user = await getCurrentUser(req);
+
+      const order = await OrderService.getOrderById(
+        req.params.id,
+        {
+          id: user.id,
+          role: user.role,
+        }
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      logger.error(
+        'Error getting order details:',
+        errorMessage
+      );
+
+      return res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
 }

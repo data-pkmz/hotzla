@@ -1,5 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
+
 import {
+  Alert,
   Box,
+  CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -19,6 +23,7 @@ import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import type { OrderStatus } from 'shared-types';
 
 import StatusBadge from '../StatusBadge';
+import { getOrderById } from '../../services/api/orders.service';
 
 interface OrderDetailsModalProps {
   open: boolean;
@@ -26,249 +31,78 @@ interface OrderDetailsModalProps {
   onClose: () => void;
 }
 
-interface OrderAttribute {
-  name: string;
-  value: string;
+interface OrderUser {
+  id: string;
+  fullName?: string | null;
+  militaryEmail?: string | null;
+  unit?: string | null;
+  phone?: string | null;
+}
+
+interface AttributeDefinition {
+  id: string;
+  attributeName: string;
+}
+
+interface AttributeOption {
+  id: string;
+  optionLabel: string;
+  optionValue: string;
+}
+
+interface OrderItemAttribute {
+  id: string;
+  valueText: string;
+  attributeDefinition: AttributeDefinition;
+  selectedOption?: AttributeOption | null;
 }
 
 interface OrderItem {
   id: string;
-  productName: string;
-  quantity: number;
-  totalPrice: number;
-  attributes: OrderAttribute[];
-  fileName?: string;
-}
+  quantity: number | string;
+  uploadedFilePath: string;
+  computedUnitPrice: number | string;
+  computedTotalPrice: number | string;
 
-interface OrderContact {
-  name: string;
-  role: string;
-  email?: string;
+  product: {
+    id: string;
+    name: string;
+  };
+
+  itemAttributeEntries: OrderItemAttribute[];
 }
 
 interface OrderStatusHistoryEntry {
   id: string;
-  status: OrderStatus;
+  fromStatus?: OrderStatus | null;
+  toStatus: OrderStatus;
   changedAt: string;
-  note?: string;
+  note?: string | null;
+
+  changedByUser?: {
+    id: string;
+    fullName?: string | null;
+    role?: string;
+  } | null;
 }
 
 interface OrderDetails {
   id: string;
   orderNumber: string;
   createdAt: string;
-  totalPrice: number;
+  totalPrice: number | string;
   status: OrderStatus;
-  items: OrderItem[];
-  contacts: OrderContact[];
-  statusHistory: OrderStatusHistoryEntry[];
+
+  budgetOfficerName: string;
+  budgetOfficerEmail: string;
+
+  requester: OrderUser;
+  approvedByManager?: OrderUser | null;
+  worker?: OrderUser | null;
+
+  itemEntries: OrderItem[];
+  orderStatus: OrderStatusHistoryEntry[];
 }
-
-const mockOrderDetails: Record<string, OrderDetails> = {
-  '60000000-0000-0000-0000-000000000001': {
-    id: '60000000-0000-0000-0000-000000000001',
-    orderNumber: 'ORD-1001',
-    createdAt: '2026-08-20T09:00:00.000Z',
-    totalPrice: 315,
-    status: 'PENDING_BUDGET',
-
-    items: [
-      {
-        id: '70000000-0000-0000-0000-000000000001',
-        productName: 'מחברות',
-        quantity: 5,
-        totalPrice: 315,
-        attributes: [
-          {
-            name: 'גודל',
-            value: 'A4',
-          },
-        ],
-        fileName: 'notebook-design.pdf',
-      },
-    ],
-
-    contacts: [
-      {
-        name: 'משתמש מבקש',
-        role: 'מזמין',
-        email: 'requester@example.com',
-      },
-      {
-        name: 'מנהל מערכת',
-        role: 'מנהל',
-        email: 'manager@example.com',
-      },
-    ],
-
-    statusHistory: [
-      {
-        id: 'status-1001-1',
-        status: 'PENDING_BUDGET',
-        changedAt: '2026-08-20T09:00:00.000Z',
-        note: 'ההזמנה נוצרה ונשלחה לאישור תקציבי.',
-      },
-    ],
-  },
-
-  '60000000-0000-0000-0000-000000000002': {
-    id: '60000000-0000-0000-0000-000000000002',
-    orderNumber: 'ORD-1002',
-    createdAt: '2026-08-14T08:00:00.000Z',
-    totalPrice: 220,
-    status: 'IN_PRINTING',
-
-    items: [
-      {
-        id: '70000000-0000-0000-0000-000000000002',
-        productName: 'כרטיסי ביקור',
-        quantity: 2,
-        totalPrice: 100,
-        attributes: [],
-        fileName: 'business-card.pdf',
-      },
-      {
-        id: '70000000-0000-0000-0000-000000000003',
-        productName: 'מחברות',
-        quantity: 2,
-        totalPrice: 120,
-        attributes: [
-          {
-            name: 'גודל',
-            value: 'A5',
-          },
-        ],
-        fileName: 'notebook-cover.png',
-      },
-    ],
-
-    contacts: [
-      {
-        name: 'משתמש מבקש',
-        role: 'מזמין',
-        email: 'requester@example.com',
-      },
-      {
-        name: 'מנהל מערכת',
-        role: 'מנהל',
-        email: 'manager@example.com',
-      },
-      {
-        name: 'עובד דפוס',
-        role: 'עובד דפוס',
-        email: 'worker@example.com',
-      },
-    ],
-
-    statusHistory: [
-      {
-        id: 'status-1002-1',
-        status: 'PENDING_BUDGET',
-        changedAt: '2026-08-14T08:00:00.000Z',
-      },
-      {
-        id: 'status-1002-2',
-        status: 'BUDGET_APPROVED',
-        changedAt: '2026-08-14T12:00:00.000Z',
-      },
-      {
-        id: 'status-1002-3',
-        status: 'APPROVED_FOR_PRODUCTION',
-        changedAt: '2026-08-15T10:30:00.000Z',
-      },
-      {
-        id: 'status-1002-4',
-        status: 'IN_PRINTING',
-        changedAt: '2026-08-16T07:30:00.000Z',
-        note: 'ההזמנה הועברה להדפסה.',
-      },
-    ],
-  },
-
-  '60000000-0000-0000-0000-000000000003': {
-    id: '60000000-0000-0000-0000-000000000003',
-    orderNumber: 'ORD-1003',
-    createdAt: '2026-08-05T08:30:00.000Z',
-    totalPrice: 195,
-    status: 'COMPLETED',
-
-    items: [
-      {
-        id: '70000000-0000-0000-0000-000000000004',
-        productName: 'נייר מכתבים',
-        quantity: 3,
-        totalPrice: 120,
-        attributes: [],
-        fileName: 'letterhead.pdf',
-      },
-      {
-        id: '70000000-0000-0000-0000-000000000005',
-        productName: 'מחברות',
-        quantity: 1,
-        totalPrice: 75,
-        attributes: [
-          {
-            name: 'גודל',
-            value: 'A4',
-          },
-        ],
-        fileName: 'notebook.pdf',
-      },
-    ],
-
-    contacts: [
-      {
-        name: 'משתמש מבקש',
-        role: 'מזמין',
-        email: 'requester@example.com',
-      },
-      {
-        name: 'מנהל מערכת',
-        role: 'מנהל',
-        email: 'manager@example.com',
-      },
-      {
-        name: 'עובד דפוס',
-        role: 'עובד דפוס',
-        email: 'worker@example.com',
-      },
-    ],
-
-    statusHistory: [
-      {
-        id: 'status-1003-1',
-        status: 'PENDING_BUDGET',
-        changedAt: '2026-08-05T08:30:00.000Z',
-      },
-      {
-        id: 'status-1003-2',
-        status: 'BUDGET_APPROVED',
-        changedAt: '2026-08-05T13:00:00.000Z',
-      },
-      {
-        id: 'status-1003-3',
-        status: 'APPROVED_FOR_PRODUCTION',
-        changedAt: '2026-08-06T11:00:00.000Z',
-      },
-      {
-        id: 'status-1003-4',
-        status: 'IN_PRINTING',
-        changedAt: '2026-08-07T07:30:00.000Z',
-      },
-      {
-        id: 'status-1003-5',
-        status: 'READY_FOR_PICKUP',
-        changedAt: '2026-08-09T12:00:00.000Z',
-      },
-      {
-        id: 'status-1003-6',
-        status: 'COMPLETED',
-        changedAt: '2026-08-10T14:30:00.000Z',
-        note: 'ההזמנה נאספה והושלמה.',
-      },
-    ],
-  },
-};
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat('he-IL', {
@@ -280,16 +114,69 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-function formatPrice(price: number) {
+function formatPrice(price: number | string) {
   return new Intl.NumberFormat('he-IL', {
     style: 'currency',
     currency: 'ILS',
     maximumFractionDigits: 2,
-  }).format(price);
+  }).format(Number(price));
+}
+
+function getFileName(filePath: string) {
+  return filePath.split(/[\\/]/).pop() ?? filePath;
 }
 
 export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetailsModalProps) {
-  const order = orderId ? mockOrderDetails[orderId] : undefined;
+  const {
+    data: order,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<OrderDetails>({
+    queryKey: ['order-details', orderId],
+    queryFn: () => getOrderById(orderId!) as Promise<OrderDetails>,
+    enabled: open && orderId !== null,
+  });
+
+  const contacts = order
+    ? [
+        {
+          id: `requester-${order.requester.id}`,
+          name: order.requester.fullName ?? 'מזמין',
+          role: 'מזמין',
+          email: order.requester.militaryEmail,
+        },
+        {
+          id: 'budget-officer',
+          name: order.budgetOfficerName,
+          role: 'קצין תקציב',
+          email: order.budgetOfficerEmail,
+        },
+        ...(order.approvedByManager
+          ? [
+              {
+                id: `manager-${order.approvedByManager.id}`,
+                name: order.approvedByManager.fullName ?? 'מנהל',
+                role: 'מנהל',
+                email: order.approvedByManager.militaryEmail,
+              },
+            ]
+          : []),
+        ...(order.worker
+          ? [
+              {
+                id: `worker-${order.worker.id}`,
+                name: order.worker.fullName ?? 'עובד דפוס',
+                role: 'עובד דפוס',
+                email: order.worker.militaryEmail,
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  const uploadedItems =
+    order?.itemEntries.filter((item) => item.uploadedFilePath.trim() !== '') ?? [];
 
   return (
     <Dialog
@@ -304,11 +191,29 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
         },
       }}
     >
-      {!order ? (
+      {isLoading && (
         <DialogContent>
-          <Typography textAlign="center">לא נמצאו פרטי הזמנה.</Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              py: 8,
+            }}
+          >
+            <CircularProgress />
+          </Box>
         </DialogContent>
-      ) : (
+      )}
+
+      {isError && (
+        <DialogContent>
+          <Alert severity="error">
+            {error instanceof Error ? error.message : 'אירעה שגיאה בטעינת פרטי ההזמנה'}
+          </Alert>
+        </DialogContent>
+      )}
+
+      {!isLoading && !isError && order && (
         <>
           {/* Header */}
           <DialogTitle
@@ -351,13 +256,7 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                 </Typography>
               </Box>
 
-              <IconButton
-                onClick={onClose}
-                aria-label="סגירת פרטי הזמנה"
-                sx={{
-                  mt: -0.5,
-                }}
-              >
+              <IconButton onClick={onClose} aria-label="סגירת פרטי הזמנה" sx={{ mt: -0.5 }}>
                 <CloseIcon />
               </IconButton>
             </Box>
@@ -386,9 +285,9 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                 alignItems: 'start',
               }}
             >
-              {/* Main order information */}
+              {/* Main column */}
               <Stack spacing={3}>
-                {/* Specifications */}
+                {/* Technical specifications */}
                 <Paper
                   variant="outlined"
                   sx={{
@@ -399,20 +298,14 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                     borderRadius: 3,
                   }}
                 >
-                  <Typography
-                    variant="h6"
-                    fontWeight={700}
-                    sx={{
-                      mb: 2.5,
-                    }}
-                  >
+                  <Typography variant="h6" fontWeight={700}>
                     מפרט טכני
                   </Typography>
 
                   <Divider sx={{ my: 2.5 }} />
 
                   <Stack spacing={2.5} divider={<Divider flexItem />}>
-                    {order.items.map((item) => (
+                    {order.itemEntries.map((item) => (
                       <Box key={item.id}>
                         <Box
                           sx={{
@@ -425,18 +318,20 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                         >
                           <Box>
                             <Typography variant="subtitle1" fontWeight={700}>
-                              {item.productName}
+                              {item.product.name}
                             </Typography>
 
                             <Typography variant="body2" color="text.secondary">
-                              כמות: {item.quantity}
+                              כמות: {Number(item.quantity)}
                             </Typography>
                           </Box>
 
-                          <Typography fontWeight={700}>{formatPrice(item.totalPrice)}</Typography>
+                          <Typography fontWeight={700}>
+                            {formatPrice(item.computedTotalPrice)}
+                          </Typography>
                         </Box>
 
-                        {item.attributes.length > 0 && (
+                        {item.itemAttributeEntries.length > 0 && (
                           <Box
                             sx={{
                               display: 'grid',
@@ -447,23 +342,25 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                               gap: 1.5,
                             }}
                           >
-                            {item.attributes.map((attribute) => (
+                            {item.itemAttributeEntries.map((attribute) => (
                               <Box
-                                key={`${item.id}-${attribute.name}`}
+                                key={attribute.id}
                                 sx={{
                                   p: 1.5,
                                   bgcolor: 'rgba(25, 118, 210, 0.05)',
-                                  border: '.5px solid',
+                                  border: '0.5px solid',
                                   borderColor: 'rgb(211, 211, 211)',
                                   borderRadius: 1.5,
                                 }}
                               >
                                 <Typography variant="caption" color="text.secondary">
-                                  {attribute.name}
+                                  {attribute.attributeDefinition.attributeName}
                                 </Typography>
 
                                 <Typography variant="body2" fontWeight={600}>
-                                  {attribute.value}
+                                  {attribute.selectedOption?.optionLabel ||
+                                    attribute.valueText ||
+                                    '-'}
                                 </Typography>
                               </Box>
                             ))}
@@ -501,67 +398,54 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                     borderRadius: 3,
                   }}
                 >
-                  <Typography
-                    variant="h6"
-                    fontWeight={700}
-                    sx={{
-                      mb: 2,
-                    }}
-                  >
+                  <Typography variant="h6" fontWeight={700}>
                     קבצי מקור
                   </Typography>
 
                   <Divider sx={{ my: 1.5 }} />
 
-                  <Stack spacing={1.5} divider={<Divider flexItem />}>
-                    {order.items
-                      .filter((item) => item.fileName)
-                      .map((item) => (
-                        <Box
-                          key={`${item.id}-file`}
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            p: 1.5,
-                            bgcolor: 'rgba(25, 118, 210, 0.1)',
-                            border: '1.5px solid',
-                            borderColor: 'rgb(192, 192, 192)',
-                            borderRadius: 1,
-                            gap: 2,
-                            py: 1.5,
-                          }}
-                        >
-                          <Box>
-                            <Typography variant="body2" fontWeight={600}>
-                              {item.fileName}
-                            </Typography>
+                  {uploadedItems.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      לא צורפו קבצי מקור להזמנה זו.
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1.5}>
+                      {uploadedItems.map((item) => {
+                        const fileName = getFileName(item.uploadedFilePath);
 
-                            <Typography variant="caption" color="text.secondary">
-                              {item.productName}
-                            </Typography>
+                        return (
+                          <Box
+                            key={`${item.id}-file`}
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              p: 1.5,
+                              bgcolor: 'rgba(25, 118, 210, 0.05)',
+                              border: '1.5px solid',
+                              borderColor: 'rgb(192, 192, 192)',
+                              borderRadius: 1,
+                              gap: 2,
+                            }}
+                          >
+                            <Box>
+                              <Typography variant="body2" fontWeight={600}>
+                                {fileName}
+                              </Typography>
+
+                              <Typography variant="caption" color="text.secondary">
+                                {item.product.name}
+                              </Typography>
+                            </Box>
+
+                            <IconButton size="small" aria-label={`הורדת ${fileName}`} disabled>
+                              <DownloadOutlinedIcon />
+                            </IconButton>
                           </Box>
-
-                          <IconButton size="small" aria-label={`הורדת ${item.fileName}`} disabled>
-                            <DownloadOutlinedIcon />
-                          </IconButton>
-                        </Box>
-                      ))}
-                  </Stack>
-
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{
-                      display: 'block',
-                      p: 1.5,
-                      bgcolor: 'rgba(25, 118, 210, 0.1)',
-                      borderRadius: 1,
-                      mt: 2,
-                    }}
-                  >
-                    הורדת קבצים תחובר כאשר שירות ההזמנות יהיה זמין.
-                  </Typography>
+                        );
+                      })}
+                    </Stack>
+                  )}
                 </Paper>
               </Stack>
 
@@ -575,19 +459,15 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                     borderRadius: 3,
                   }}
                 >
-                  <Typography
-                    variant="h6"
-                    fontWeight={700}
-                    sx={{
-                      mb: 2,
-                    }}
-                  >
+                  <Typography variant="h6" fontWeight={700}>
                     אנשי קשר
                   </Typography>
 
+                  <Divider sx={{ my: 1.5 }} />
+
                   <Stack spacing={2} divider={<Divider flexItem />}>
-                    {order.contacts.map((contact) => (
-                      <Box key={`${contact.role}-${contact.name}`}>
+                    {contacts.map((contact) => (
+                      <Box key={contact.id}>
                         <Box
                           sx={{
                             display: 'flex',
@@ -601,13 +481,7 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                           <Typography fontWeight={700}>{contact.name}</Typography>
                         </Box>
 
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            mb: 0.5,
-                          }}
-                        >
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                           {contact.role}
                         </Typography>
 
@@ -640,7 +514,7 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                   </Stack>
                 </Paper>
 
-                {/* Status timeline */}
+                {/* Status history */}
                 <Paper
                   variant="outlined"
                   sx={{
@@ -648,96 +522,105 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                     borderRadius: 3,
                   }}
                 >
-                  <Typography
-                    variant="h6"
-                    fontWeight={700}
-                    sx={{
-                      mb: 2.5,
-                    }}
-                  >
+                  <Typography variant="h6" fontWeight={700}>
                     ציר זמן
                   </Typography>
 
-                  <Stack spacing={0}>
-                    {order.statusHistory.map((entry, index) => {
-                      const isLast = index === order.statusHistory.length - 1;
+                  <Divider sx={{ my: 2.5 }} />
 
-                      return (
-                        <Box
-                          key={entry.id}
-                          sx={{
-                            display: 'grid',
-                            gridTemplateColumns: '20px 1fr',
-                            gap: 1.5,
-                            minHeight: isLast ? 'auto' : 92,
-                          }}
-                        >
-                          {/* Timeline line */}
+                  {order.orderStatus.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      אין היסטוריית סטטוסים להצגה.
+                    </Typography>
+                  ) : (
+                    <Stack spacing={0}>
+                      {order.orderStatus.map((entry, index) => {
+                        const isLast = index === order.orderStatus.length - 1;
+
+                        return (
                           <Box
+                            key={entry.id}
                             sx={{
-                              position: 'relative',
-                              display: 'flex',
-                              justifyContent: 'center',
+                              display: 'grid',
+                              gridTemplateColumns: '20px 1fr',
+                              gap: 1.5,
+                              minHeight: isLast ? 'auto' : 92,
                             }}
                           >
+                            {/* Timeline line */}
                             <Box
                               sx={{
-                                width: 10,
-                                height: 10,
-                                mt: 0.8,
-                                borderRadius: '50%',
-                                bgcolor: isLast ? 'primary.main' : 'grey.400',
-                                zIndex: 1,
-                              }}
-                            />
-
-                            {!isLast && (
-                              <Box
-                                sx={{
-                                  position: 'absolute',
-                                  top: 14,
-                                  bottom: 0,
-                                  width: 2,
-                                  bgcolor: 'divider',
-                                }}
-                              />
-                            )}
-                          </Box>
-
-                          <Box
-                            sx={{
-                              pb: isLast ? 0 : 2,
-                            }}
-                          >
-                            <StatusBadge status={entry.status} />
-
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                display: 'block',
-                                mt: 0.75,
+                                position: 'relative',
+                                display: 'flex',
+                                justifyContent: 'center',
                               }}
                             >
-                              {formatDate(entry.changedAt)}
-                            </Typography>
+                              <Box
+                                sx={{
+                                  width: 10,
+                                  height: 10,
+                                  mt: 0.8,
+                                  borderRadius: '50%',
+                                  bgcolor: isLast ? 'primary.main' : 'grey.400',
+                                  zIndex: 1,
+                                }}
+                              />
 
-                            {entry.note && (
+                              {!isLast && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 14,
+                                    bottom: 0,
+                                    width: 2,
+                                    bgcolor: 'divider',
+                                  }}
+                                />
+                              )}
+                            </Box>
+
+                            <Box
+                              sx={{
+                                pb: isLast ? 0 : 2,
+                              }}
+                            >
+                              <StatusBadge status={entry.toStatus} />
+
                               <Typography
-                                variant="body2"
+                                variant="caption"
                                 color="text.secondary"
                                 sx={{
-                                  mt: 0.5,
+                                  display: 'block',
+                                  mt: 0.75,
                                 }}
                               >
-                                {entry.note}
+                                {formatDate(entry.changedAt)}
                               </Typography>
-                            )}
+
+                              {entry.changedByUser?.fullName && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{
+                                    display: 'block',
+                                    mt: 0.25,
+                                  }}
+                                >
+                                  עודכן על ידי {entry.changedByUser.fullName}
+                                </Typography>
+                              )}
+
+                              {entry.note && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                  {entry.note}
+                                </Typography>
+                              )}
+                            </Box>
                           </Box>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
+                        );
+                      })}
+                    </Stack>
+                  )}
                 </Paper>
               </Stack>
             </Box>
