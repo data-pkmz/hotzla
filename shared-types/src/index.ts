@@ -6,13 +6,17 @@ export type {
   ProductType,
   Product,
   ProductAttributeDefinition,
-  AttributeDisplayStyle,
   PricingRule,
   ProductAttributeOption,
   ProductDetails,
 } from './product.types.js';
 
-export { AttributeType, PricingImpactType, PriceModifierType } from './attribute.types.js';
+export {
+  AttributeType,
+  PricingImpactType,
+  PriceModifierType,
+  AttributeDisplayStyle,
+} from './attribute.types.js';
 
 export type {
   ProductAttributeOptionDto,
@@ -144,4 +148,5 @@ export interface EmailLog {
   processedStatus: EmailProcessedStatus;
   createdAt: Date | string;
 }
-export * from './cart.types';
+export * from './cart.types.js';
+export * from './order.types.js';
