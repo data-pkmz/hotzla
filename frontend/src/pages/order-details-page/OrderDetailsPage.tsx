@@ -1,12 +1,12 @@
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import {
   Alert,
   Box,
+  Breadcrumbs,
   CircularProgress,
-  Dialog,
-  DialogContent,
-  DialogTitle,
+  Container,
   Divider,
   IconButton,
   Link,
@@ -15,96 +15,21 @@ import {
   Typography,
 } from '@mui/material';
 
-import CloseIcon from '@mui/icons-material/Close';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
-import type { OrderStatus } from 'shared-types';
+import type { OrderDetails } from 'shared-types';
 
-import StatusBadge from '../StatusBadge';
+import StatusBadge from '../../components/StatusBadge';
 import { getOrderById } from '../../services/api/orders.service';
 
-interface OrderDetailsModalProps {
-  open: boolean;
-  orderId: string | null;
-  onClose: () => void;
+interface OrderDetailsLocationState {
+  from?: string;
+  fromLabel?: string;
 }
 
-interface OrderUser {
-  id: string;
-  fullName?: string | null;
-  militaryEmail?: string | null;
-  unit?: string | null;
-  phone?: string | null;
-}
-
-interface AttributeDefinition {
-  id: string;
-  attributeName: string;
-}
-
-interface AttributeOption {
-  id: string;
-  optionLabel: string;
-  optionValue: string;
-}
-
-interface OrderItemAttribute {
-  id: string;
-  valueText: string;
-  attributeDefinition: AttributeDefinition;
-  selectedOption?: AttributeOption | null;
-}
-
-interface OrderItem {
-  id: string;
-  quantity: number | string;
-  uploadedFilePath: string;
-  computedUnitPrice: number | string;
-  computedTotalPrice: number | string;
-
-  product: {
-    id: string;
-    name: string;
-  };
-
-  itemAttributeEntries: OrderItemAttribute[];
-}
-
-interface OrderStatusHistoryEntry {
-  id: string;
-  fromStatus?: OrderStatus | null;
-  toStatus: OrderStatus;
-  changedAt: string;
-  note?: string | null;
-
-  changedByUser?: {
-    id: string;
-    fullName?: string | null;
-    role?: string;
-  } | null;
-}
-
-interface OrderDetails {
-  id: string;
-  orderNumber: string;
-  createdAt: string;
-  totalPrice: number | string;
-  status: OrderStatus;
-
-  budgetOfficerName: string;
-  budgetOfficerEmail: string;
-
-  requester: OrderUser;
-  approvedByManager?: OrderUser | null;
-  worker?: OrderUser | null;
-
-  itemEntries: OrderItem[];
-  orderStatus: OrderStatusHistoryEntry[];
-}
-
-function formatDate(date: string) {
+function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat('he-IL', {
     day: '2-digit',
     month: '2-digit',
@@ -126,7 +51,17 @@ function getFileName(filePath: string) {
   return filePath.split(/[\\/]/).pop() ?? filePath;
 }
 
-export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetailsModalProps) {
+export default function OrderDetailsPage() {
+  const { orderId } = useParams<{ orderId: string }>();
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const locationState = location.state as OrderDetailsLocationState | null;
+
+  const backPath = locationState?.from ?? '/my-orders';
+  const backLabel = locationState?.fromLabel ?? 'ההזמנות שלי';
+
   const {
     data: order,
     isLoading,
@@ -134,8 +69,8 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
     error,
   } = useQuery<OrderDetails>({
     queryKey: ['order-details', orderId],
-    queryFn: () => getOrderById(orderId!) as Promise<OrderDetails>,
-    enabled: open && orderId !== null,
+    queryFn: () => getOrderById(orderId!),
+    enabled: Boolean(orderId),
   });
 
   const contacts = order
@@ -179,101 +114,91 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
     order?.itemEntries.filter((item) => item.uploadedFilePath.trim() !== '') ?? [];
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="lg"
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          maxHeight: '90vh',
+    <Box
+      sx={{
+        minHeight: '100%',
+        bgcolor: 'background.default',
+        py: {
+          xs: 3,
+          md: 5,
         },
       }}
     >
-      {isLoading && (
-        <DialogContent>
+      <Container maxWidth="xl">
+        {/* Navigation */}
+        <Breadcrumbs
+          separator="›"
+          sx={{
+            mb: 3,
+            direction: 'ltr',
+          }}
+        >
+          <Link
+            component="button"
+            type="button"
+            color="inherit"
+            onClick={() => navigate(backPath)}
+            sx={{
+              cursor: 'pointer',
+              font: 'inherit',
+              textDecoration: 'underline',
+            }}
+          >
+            {backLabel}
+          </Link>
+
+          <Typography color="#3a36ab">
+            {order ? `הזמנה #${order.orderNumber}` : 'פרטי הזמנה'}
+          </Typography>
+        </Breadcrumbs>
+
+        {isLoading && (
           <Box
             sx={{
               display: 'flex',
               justifyContent: 'center',
-              py: 8,
+              py: 10,
             }}
           >
             <CircularProgress />
           </Box>
-        </DialogContent>
-      )}
+        )}
 
-      {isError && (
-        <DialogContent>
+        {isError && (
           <Alert severity="error">
             {error instanceof Error ? error.message : 'אירעה שגיאה בטעינת פרטי ההזמנה'}
           </Alert>
-        </DialogContent>
-      )}
+        )}
 
-      {!isLoading && !isError && order && (
-        <>
-          {/* Header */}
-          <DialogTitle
-            sx={{
-              px: {
-                xs: 2.5,
-                md: 4,
-              },
-              py: 3,
-              direction: 'ltr',
-            }}
-          >
+        {!isLoading && !isError && !order && <Alert severity="warning">לא נמצאו פרטי הזמנה.</Alert>}
+
+        {!isLoading && !isError && order && (
+          <>
+            {/* Page header */}
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'flex-start',
                 justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
                 gap: 2,
+                mb: 3,
+                direction: 'ltr',
               }}
             >
               <Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 2,
-                    mb: 0.5,
-                  }}
-                >
-                  <Typography variant="h5" component="h2" fontWeight={700}>
-                    הזמנה #{order.orderNumber}
-                  </Typography>
-
-                  <StatusBadge status={order.status} />
-                </Box>
+                <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+                  פרטי הזמנה #{order.orderNumber}
+                </Typography>
 
                 <Typography variant="body2" color="text.secondary">
                   נפתחה בתאריך {formatDate(order.createdAt)}
                 </Typography>
               </Box>
 
-              <IconButton onClick={onClose} aria-label="סגירת פרטי הזמנה" sx={{ mt: -0.5 }}>
-                <CloseIcon />
-              </IconButton>
+              <StatusBadge status={order.status} />
             </Box>
-          </DialogTitle>
 
-          <Divider />
-
-          <DialogContent
-            sx={{
-              p: {
-                xs: 2.5,
-                md: 4,
-              },
-              bgcolor: 'background.default',
-              direction: 'ltr',
-            }}
-          >
             <Box
               sx={{
                 display: 'grid',
@@ -283,6 +208,7 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                 },
                 gap: 3,
                 alignItems: 'start',
+                direction: 'ltr',
               }}
             >
               {/* Main column */}
@@ -320,10 +246,6 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                             <Typography variant="subtitle1" fontWeight={700}>
                               {item.product.name}
                             </Typography>
-
-                            <Typography variant="body2" color="text.secondary">
-                              כמות: {Number(item.quantity)}
-                            </Typography>
                           </Box>
 
                           <Typography fontWeight={700}>
@@ -331,41 +253,57 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                           </Typography>
                         </Box>
 
-                        {item.itemAttributeEntries.length > 0 && (
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: {
+                              xs: '1fr',
+                              sm: 'repeat(2, minmax(0, 1fr))',
+                            },
+                            gap: 1.5,
+                          }}
+                        >
+                          {/* Quantity */}
                           <Box
                             sx={{
-                              display: 'grid',
-                              gridTemplateColumns: {
-                                xs: '1fr',
-                                sm: 'repeat(2, minmax(0, 1fr))',
-                              },
-                              gap: 1.5,
+                              p: 1.5,
+                              bgcolor: 'rgba(25, 118, 210, 0.05)',
+                              border: '0.5px solid',
+                              borderColor: 'rgb(211, 211, 211)',
+                              borderRadius: 1.5,
                             }}
                           >
-                            {item.itemAttributeEntries.map((attribute) => (
-                              <Box
-                                key={attribute.id}
-                                sx={{
-                                  p: 1.5,
-                                  bgcolor: 'rgba(25, 118, 210, 0.05)',
-                                  border: '0.5px solid',
-                                  borderColor: 'rgb(211, 211, 211)',
-                                  borderRadius: 1.5,
-                                }}
-                              >
-                                <Typography variant="caption" color="text.secondary">
-                                  {attribute.attributeDefinition.attributeName}
-                                </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              כמות
+                            </Typography>
 
-                                <Typography variant="body2" fontWeight={600}>
-                                  {attribute.selectedOption?.optionLabel ||
-                                    attribute.valueText ||
-                                    '-'}
-                                </Typography>
-                              </Box>
-                            ))}
+                            <Typography variant="subtitle1" fontWeight={700}>
+                              {Number(item.quantity)}
+                            </Typography>
                           </Box>
-                        )}
+                          {item.itemAttributeEntries.map((attribute) => (
+                            <Box
+                              key={attribute.id}
+                              sx={{
+                                p: 1.5,
+                                bgcolor: 'rgba(25, 118, 210, 0.05)',
+                                border: '0.5px solid',
+                                borderColor: 'rgb(211, 211, 211)',
+                                borderRadius: 1.5,
+                              }}
+                            >
+                              <Typography variant="caption" color="text.secondary">
+                                {attribute.attributeDefinition.attributeName}
+                              </Typography>
+
+                              <Typography variant="subtitle1" fontWeight={700}>
+                                {attribute.selectedOption?.optionLabel ||
+                                  attribute.valueText ||
+                                  '-'}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
                       </Box>
                     ))}
                   </Stack>
@@ -547,7 +485,6 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                               minHeight: isLast ? 'auto' : 92,
                             }}
                           >
-                            {/* Timeline line */}
                             <Box
                               sx={{
                                 position: 'relative',
@@ -624,9 +561,9 @@ export default function OrderDetailsModal({ open, orderId, onClose }: OrderDetai
                 </Paper>
               </Stack>
             </Box>
-          </DialogContent>
-        </>
-      )}
-    </Dialog>
+          </>
+        )}
+      </Container>
+    </Box>
   );
 }

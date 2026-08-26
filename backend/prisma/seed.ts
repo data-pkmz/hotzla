@@ -23,6 +23,21 @@ async function main() {
     },
   });
 
+  const requesterTwo = await prisma.user.upsert({
+    where: {
+      adUsername: 'requester2',
+    },
+    update: {},
+    create: {
+      fullName: 'משתמש מבקש נוסף',
+      militaryEmail: 'requester2@example.com',
+      adUsername: 'requester2',
+      unit: 'יחידת בדיקות',
+      phone: '050-4444444',
+      role: 'REQUESTER',
+    },
+  });
+
   const manager = await prisma.user.upsert({
     where: {
       adUsername: 'manager',
@@ -448,6 +463,24 @@ async function main() {
     },
   });
 
+  const requesterTwoOrder = await prisma.order.upsert({
+    where: {
+      orderNumber: 'ORD-2001',
+    },
+    update: {},
+    create: {
+      id: '60000000-0000-0000-0000-000000000004',
+      orderNumber: 'ORD-2001',
+      requesterId: requesterTwo.id,
+      unit: requesterTwo.unit ?? 'יחידת בדיקות',
+      status: 'READY_FOR_PICKUP',
+      budgetOfficerName: 'קצין תקציבים נוסף',
+      budgetOfficerEmail: 'budget2@example.com',
+      totalPrice: 100,
+      createdAt: new Date('2026-08-22T10:00:00.000Z'),
+    },
+  });
+
   const pendingNotebookItem = await prisma.orderItem.upsert({
     where: {
       id: '70000000-0000-0000-0000-000000000001',
@@ -461,6 +494,22 @@ async function main() {
       uploadedFilePath: '',
       computedUnitPrice: 60,
       computedTotalPrice: 315,
+    },
+  });
+
+  await prisma.orderItem.upsert({
+    where: {
+      id: '70000000-0000-0000-0000-000000000006',
+    },
+    update: {},
+    create: {
+      id: '70000000-0000-0000-0000-000000000006',
+      orderId: requesterTwoOrder.id,
+      productId: businessCards.id,
+      quantity: 2,
+      uploadedFilePath: '',
+      computedUnitPrice: 50,
+      computedTotalPrice: 100,
     },
   });
 
@@ -606,6 +655,23 @@ async function main() {
       changedBySource: 'EMAIL_BUDGET_OFFICER',
       changedAt: new Date('2026-08-14T12:00:00.000Z'),
       note: 'האישור התקציבי התקבל.',
+    },
+  });
+
+  await prisma.orderStatusHistory.upsert({
+    where: {
+      id: '90000000-0000-0000-0000-000000000030',
+    },
+    update: {},
+    create: {
+      id: '90000000-0000-0000-0000-000000000030',
+      orderId: requesterTwoOrder.id,
+      fromStatus: 'IN_PRINTING',
+      toStatus: 'READY_FOR_PICKUP',
+      changedByUserId: worker.id,
+      changedBySource: 'WORKER_UI',
+      changedAt: new Date('2026-08-23T12:00:00.000Z'),
+      note: 'ההזמנה מוכנה לאיסוף.',
     },
   });
 

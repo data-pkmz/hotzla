@@ -2,6 +2,8 @@ import { create } from 'zustand';
 
 export type UserRole = 'REQUESTER' | 'MANAGER' | 'WORKER';
 
+export type MockUserKey = 'REQUESTER_ONE' | 'REQUESTER_TWO' | 'MANAGER' | 'WORKER';
+
 export interface User {
   id: string;
   name: string;
@@ -11,14 +13,23 @@ export interface User {
   unit?: string;
 }
 
-export const MOCK_USERS: Record<UserRole, User> = {
-  REQUESTER: {
+export const MOCK_USERS: Record<MockUserKey, User> = {
+  REQUESTER_ONE: {
     id: 'usr-1',
     name: 'משתמש מבקש',
     email: 'requester@example.com',
     adUsername: 'requester',
     role: 'REQUESTER',
     unit: 'יחידת פיתוח',
+  },
+
+  REQUESTER_TWO: {
+    id: 'usr-4',
+    name: 'משתמש מבקש נוסף',
+    email: 'requester2@example.com',
+    adUsername: 'requester2',
+    role: 'REQUESTER',
+    unit: 'יחידת בדיקות',
   },
 
   MANAGER: {
@@ -42,20 +53,14 @@ export const MOCK_USERS: Record<UserRole, User> = {
 
 interface AuthState {
   currentUser: User;
-  setRole: (role: UserRole) => void;
-  setUserRole: (role: UserRole) => void;
+  setUser: (userKey: MockUserKey) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  currentUser: MOCK_USERS.REQUESTER,
+  currentUser: MOCK_USERS.REQUESTER_ONE,
 
-  setRole: (role: UserRole) =>
+  setUser: (userKey: MockUserKey) =>
     set({
-      currentUser: MOCK_USERS[role],
-    }),
-
-  setUserRole: (role: UserRole) =>
-    set({
-      currentUser: MOCK_USERS[role],
+      currentUser: MOCK_USERS[userKey],
     }),
 }));

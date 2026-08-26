@@ -1,47 +1,24 @@
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
-import { Box, Container, Divider, Paper, Typography } from '@mui/material';
-
-import StatusBadge from '../../components/StatusBadge';
-import type { OrderStatus } from 'shared-types';
+import { Alert, Box, CircularProgress, Container, Divider, Paper, Typography } from '@mui/material';
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
+import type { OrderStatus } from 'shared-types';
 
-import OrderDetailsModal from '../../components/orders/OrderDetailsModal';
+import StatusBadge from '../../components/StatusBadge';
+import { getMyOrders } from '../../services/api/orders.service';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface MyOrder {
   id: string;
   orderNumber: string;
-  createdAt: string;
-  totalPrice: number;
+  createdAt: Date | string;
+  totalPrice: number | string;
   status: OrderStatus;
 }
 
-const mockOrders: MyOrder[] = [
-  {
-    id: '60000000-0000-0000-0000-000000000001',
-    orderNumber: 'ORD-1001',
-    createdAt: '2026-08-20T09:00:00.000Z',
-    totalPrice: 315,
-    status: 'PENDING_BUDGET',
-  },
-  {
-    id: '60000000-0000-0000-0000-000000000002',
-    orderNumber: 'ORD-1002',
-    createdAt: '2026-08-14T08:00:00.000Z',
-    totalPrice: 220,
-    status: 'IN_PRINTING',
-  },
-  {
-    id: '60000000-0000-0000-0000-000000000003',
-    orderNumber: 'ORD-1003',
-    createdAt: '2026-08-05T08:30:00.000Z',
-    totalPrice: 195,
-    status: 'COMPLETED',
-  },
-];
-
-function formatDate(date: string) {
+function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat('he-IL', {
     day: '2-digit',
     month: '2-digit',
@@ -58,14 +35,27 @@ function formatPrice(price: number | string) {
 }
 
 export default function MyOrdersPage() {
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const orders = mockOrders;
+  const navigate = useNavigate();
+
+  const currentUser = useAuthStore((state) => state.currentUser);
+
+  const {
+    data: orders = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery<MyOrder[]>({
+    queryKey: ['my-orders', currentUser.adUsername],
+    queryFn: getMyOrders,
+  });
 
   const handleOrderClick = (orderId: string) => {
-    setSelectedOrderId(orderId);
-
-    // Later:
-    // Open OrderDetailsModel here.
+    navigate(`/orders/${orderId}`, {
+      state: {
+        from: '/my-orders',
+        fromLabel: 'ההזמנות שלי',
+      },
+    });
   };
 
   return (
@@ -89,8 +79,28 @@ export default function MyOrdersPage() {
           <Typography color="text.secondary">צפייה ומעקב אחר ההזמנות שלך.</Typography>
         </Box>
 
+        {/* Loading */}
+        {isLoading && (
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              py: 8,
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
+
+        {/* API error */}
+        {isError && (
+          <Alert severity="error">
+            {error instanceof Error ? error.message : 'אירעה שגיאה בטעינת ההזמנות'}
+          </Alert>
+        )}
+
         {/* No orders */}
-        {orders.length === 0 && (
+        {!isLoading && !isError && orders.length === 0 && (
           <Box
             sx={{
               py: 8,
@@ -108,7 +118,7 @@ export default function MyOrdersPage() {
         )}
 
         {/* Orders list */}
-        {orders.length > 0 && (
+        {!isLoading && !isError && orders.length > 0 && (
           <Paper
             variant="outlined"
             sx={{
@@ -151,60 +161,93 @@ export default function MyOrdersPage() {
               <Box />
             </Box>
 
-            {orders.map((order, index) => {
-              return (
-                <Box key={order.id}>
-                  <Box
-                    component="button"
-                    type="button"
-                    onClick={() => handleOrderClick(order.id)}
-                    sx={{
-                      width: '100%',
-                      border: 0,
-                      bgcolor:
-                        selectedOrderId === order.id ? 'action.selected' : 'background.paper',
-                      cursor: 'pointer',
-                      textAlign: 'inherit',
-                      px: 3,
-                      py: 2.5,
-                      direction: 'ltr',
-                      display: 'grid',
+            {orders.map((order, index) => (
+              <Box key={order.id}>
+                <Box
+                  component="button"
+                  type="button"
+                  onClick={() => handleOrderClick(order.id)}
+                  sx={{
+                    width: '100%',
+                    border: 0,
+                    bgcolor: 'background.paper',
+                    cursor: 'pointer',
+                    textAlign: 'inherit',
+                    px: 3,
+                    py: 2.5,
+                    direction: 'ltr',
+                    display: 'grid',
 
-                      gridTemplateColumns: {
-                        xs: '1fr auto',
-                        md: '1.3fr 1fr 1fr 1.3fr 40px',
+                    gridTemplateColumns: {
+                      xs: '1fr auto',
+                      md: '1.3fr 1fr 1fr 1.3fr 40px',
+                    },
+
+                    gridTemplateAreas: {
+                      xs: `
+                        "order arrow"
+                        "details arrow"
+                      `,
+                      md: '"order date price status arrow"',
+                    },
+
+                    alignItems: 'center',
+
+                    gap: {
+                      xs: 1.5,
+                      md: 2,
+                    },
+
+                    transition: 'background-color 0.15s ease',
+
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+
+                    '&:focus-visible': {
+                      outline: '2px solid',
+                      outlineColor: 'primary.main',
+                      outlineOffset: '-2px',
+                    },
+                  }}
+                >
+                  {/* Order number */}
+                  <Box sx={{ gridArea: 'order' }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        display: {
+                          xs: 'block',
+                          md: 'none',
+                        },
+                      }}
+                    >
+                      מספר הזמנה
+                    </Typography>
+
+                    <Typography fontWeight={700}>{order.orderNumber}</Typography>
+                  </Box>
+
+                  {/* Date */}
+                  <Box
+                    sx={{
+                      gridArea: {
+                        xs: 'details',
+                        md: 'date',
                       },
 
-                      gridTemplateAreas: {
-                        xs: `
-                          "order arrow"
-                          "details arrow"
-                        `,
-                        md: '"order date price status arrow"',
+                      display: {
+                        xs: 'flex',
+                        md: 'block',
                       },
 
                       alignItems: 'center',
-
-                      gap: {
-                        xs: 1.5,
-                        md: 2,
-                      },
-
-                      transition: 'background-color 0.15s ease',
-
-                      '&:hover': {
-                        bgcolor: 'action.hover',
-                      },
-
-                      '&:focus-visible': {
-                        outline: '2px solid',
-                        outlineColor: 'primary.main',
-                        outlineOffset: '-2px',
-                      },
+                      flexWrap: 'wrap',
+                      gap: 2,
                     }}
                   >
-                    {/* Order number */}
-                    <Box sx={{ gridArea: 'order' }}>
+                    <Box>
                       <Typography
                         variant="body2"
                         color="text.secondary"
@@ -215,129 +258,88 @@ export default function MyOrdersPage() {
                           },
                         }}
                       >
-                        מספר הזמנה
+                        תאריך
                       </Typography>
 
-                      <Typography fontWeight={700}>{order.orderNumber}</Typography>
+                      <Typography variant="body2">{formatDate(order.createdAt)}</Typography>
                     </Box>
 
-                    {/* Date */}
+                    {/* Mobile price */}
                     <Box
                       sx={{
-                        gridArea: {
-                          xs: 'details',
-                          md: 'date',
-                        },
-
                         display: {
-                          xs: 'flex',
-                          md: 'block',
+                          xs: 'block',
+                          md: 'none',
                         },
-
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: 2,
                       }}
                     >
-                      <Box>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{
-                            display: {
-                              xs: 'block',
-                              md: 'none',
-                            },
-                          }}
-                        >
-                          תאריך
-                        </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        סכום
+                      </Typography>
 
-                        <Typography variant="body2">{formatDate(order.createdAt)}</Typography>
-                      </Box>
-
-                      {/* Mobile price */}
-                      <Box
-                        sx={{
-                          display: {
-                            xs: 'block',
-                            md: 'none',
-                          },
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          סכום
-                        </Typography>
-
-                        <Typography variant="body2" fontWeight={600}>
-                          {formatPrice(order.totalPrice)}
-                        </Typography>
-                      </Box>
-
-                      {/* Mobile status */}
-                      <Box
-                        sx={{
-                          display: {
-                            xs: 'block',
-                            md: 'none',
-                          },
-                        }}
-                      >
-                        <StatusBadge status={order.status} />
-                      </Box>
+                      <Typography variant="body2" fontWeight={600}>
+                        {formatPrice(order.totalPrice)}
+                      </Typography>
                     </Box>
 
-                    {/* Desktop price */}
-                    <Typography
-                      sx={{
-                        gridArea: 'price',
-
-                        display: {
-                          xs: 'none',
-                          md: 'block',
-                        },
-
-                        fontWeight: 600,
-                      }}
-                    >
-                      {formatPrice(order.totalPrice)}
-                    </Typography>
-
-                    {/* Desktop status */}
+                    {/* Mobile status */}
                     <Box
                       sx={{
-                        gridArea: 'status',
-
                         display: {
-                          xs: 'none',
-                          md: 'block',
+                          xs: 'block',
+                          md: 'none',
                         },
                       }}
                     >
                       <StatusBadge status={order.status} />
                     </Box>
-
-                    {/* Arrow */}
-                    <ArrowBackIcon
-                      sx={{
-                        gridArea: 'arrow',
-                        color: 'primary.main',
-                        justifySelf: 'end',
-                      }}
-                    />
                   </Box>
 
-                  {index !== orders.length - 1 && <Divider />}
+                  {/* Desktop price */}
+                  <Typography
+                    sx={{
+                      gridArea: 'price',
+
+                      display: {
+                        xs: 'none',
+                        md: 'block',
+                      },
+
+                      fontWeight: 600,
+                    }}
+                  >
+                    {formatPrice(order.totalPrice)}
+                  </Typography>
+
+                  {/* Desktop status */}
+                  <Box
+                    sx={{
+                      gridArea: 'status',
+
+                      display: {
+                        xs: 'none',
+                        md: 'block',
+                      },
+                    }}
+                  >
+                    <StatusBadge status={order.status} />
+                  </Box>
+
+                  {/* Arrow */}
+                  <ArrowBackIcon
+                    sx={{
+                      gridArea: 'arrow',
+                      color: 'primary.main',
+                      justifySelf: 'end',
+                    }}
+                  />
                 </Box>
-              );
-            })}
+
+                {index !== orders.length - 1 && <Divider />}
+              </Box>
+            ))}
           </Paper>
         )}
-        <OrderDetailsModal
-          open={selectedOrderId !== null}
-          orderId={selectedOrderId}
-          onClose={() => setSelectedOrderId(null)}
-        />
       </Container>
     </Box>
   );
