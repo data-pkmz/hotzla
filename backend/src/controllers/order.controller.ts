@@ -161,13 +161,9 @@ export class OrderController {
         data: result.orders,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error(
-        'Error getting user orders:',
-        errorMessage
-      );
+      logger.error('Error getting user orders:', errorMessage);
 
       return res.status(500).json({
         error: errorMessage,
@@ -184,26 +180,19 @@ export class OrderController {
     try {
       const user = await getCurrentUser(req);
 
-      const order = await OrderService.getOrderById(
-        req.params.id,
-        {
-          id: user.id,
-          role: user.role,
-        }
-      );
+      const order = await OrderService.getOrderById(req.params.id, {
+        id: user.id,
+        role: user.role,
+      });
 
       return res.status(200).json({
         success: true,
         data: order,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error(
-        'Error getting order details:',
-        errorMessage
-      );
+      logger.error('Error getting order details:', errorMessage);
 
       return res.status(500).json({
         error: errorMessage,
