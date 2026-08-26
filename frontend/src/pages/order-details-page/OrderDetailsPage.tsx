@@ -253,6 +253,8 @@ export default function OrderDetailsPage() {
                           </Typography>
                         </Box>
 
+                        <Divider sx={{ my: 1.5 }} />
+
                         <Box
                           sx={{
                             display: 'grid',
