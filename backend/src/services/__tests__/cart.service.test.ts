@@ -1,12 +1,12 @@
 /// <reference types="jest" />
 import { Status } from '@prisma/client';
-import { prisma } from '../../config/db.js';
-import { CartService } from '../cart.service.js';
-import { PricingEngineService } from '../pricing-engine.service.js';
+import { prisma } from '../../config/db';
+import { CartService } from '../cart.service';
+import { PricingEngineService } from '../pricing-engine.service';
 import type { AddToCartInput } from 'shared-types';
 
 // 1. Mocking Prisma and our internal services
-jest.mock('../../config/db.js', () => ({
+jest.mock('../../config/db', () => ({
   prisma: {
     cart: {
       findFirst: jest.fn(),
@@ -22,7 +22,7 @@ jest.mock('../../config/db.js', () => ({
   },
 }));
 
-jest.mock('../pricing-engine.service.js', () => ({
+jest.mock('../pricing-engine.service', () => ({
   PricingEngineService: {
     calculatePrice: jest.fn(),
   },

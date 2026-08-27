@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, Typography, Button, Divider, Box } from '@mui/material';
 import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 
@@ -32,7 +31,7 @@ export default function CartSummaryCard({
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="body1">סה״כ ביניים</Typography>
-        <Typography variant="body1">₪{totalPrice.toFixed(2)}</Typography>
+        <Typography variant="body1">₪{Number(totalPrice).toFixed(2)}</Typography>
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -51,7 +50,7 @@ export default function CartSummaryCard({
           סה״כ לתשלום
         </Typography>
         <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          ₪{totalPrice.toFixed(2)}
+          ₪{Number(totalPrice).toFixed(2)}
         </Typography>
       </Box>
 

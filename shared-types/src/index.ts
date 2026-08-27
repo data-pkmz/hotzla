@@ -41,6 +41,7 @@ export interface Cart {
   createdAt: Date | string;
   updatedAt: Date | string;
   items?: CartItem[];
+  cartItemEntries?: CartItem[];
 }
 
 export interface CartItem {

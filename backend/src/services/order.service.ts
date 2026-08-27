@@ -1,8 +1,8 @@
 import { ChangeSource, OrderStatus, Prisma, Role, Status } from '@prisma/client';
-import { prisma } from '../config/db.js';
-import { OrderNumberGenerator } from '../utils/order-number-generator.js';
-import { PricingEngineService } from './pricing-engine.service.js';
-import { AuditLogService } from './audit-log.service.js';
+import { prisma } from '../config/db';
+import { OrderNumberGenerator } from '../utils/order-number-generator';
+import { PricingEngineService } from './pricing-engine.service';
+import { AuditLogService } from './audit-log.service';
 import type {
   CreateOrderInput,
   Order,

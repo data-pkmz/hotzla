@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '../config/db.js';
+import { prisma as defaultPrisma } from '../config/db';
 
 export type DbClient = Prisma.TransactionClient | PrismaClient;
 

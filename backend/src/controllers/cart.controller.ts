@@ -22,8 +22,8 @@ export class CartController {
       const cart = await CartService.getActiveCart(userId);
       return res.status(200).json({ message: 'Cart retrieved successfully', cart });
     } catch (error) {
+      logger.error('Error fetching active cart:', { error });
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error fetching active cart:', errorMessage);
       return res.status(500).json({ error: errorMessage });
     }
   }
@@ -51,6 +51,20 @@ export class CartController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`Error removing item ${req.params.id}:`, errorMessage);
+      return res.status(500).json({ error: errorMessage });
+    }
+  }
+
+  // PATCH /api/cart/items/:id - Update an item (e.g., quantity)
+  static async updateItem(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const itemData = req.body;
+      const updatedItem = await CartService.updateItem(id, itemData);
+      return res.status(200).json({ message: 'Item updated successfully', item: updatedItem });
+    } catch (error) {
+      logger.error(`Error updating item ${req.params.id}:`, { error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return res.status(500).json({ error: errorMessage });
     }
   }

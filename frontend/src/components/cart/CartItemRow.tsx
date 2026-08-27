@@ -1,10 +1,8 @@
-import React from 'react';
 import { Box, Card, Typography, IconButton, Divider } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 
 import type { CartItem } from 'shared-types';
+import QuantityControl from './QuantityControl';
 
 interface CartItemRowProps {
   item: CartItem;
@@ -21,16 +19,6 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
   const attributesText = Object.entries(item.selectedAttributes || {})
     .map(([key, value]) => `${key}: ${value}`)
     .join(' | ');
-
-  const handleDecrease = () => {
-    if (item.quantity > 1) {
-      onUpdateQuantity(item.id, item.quantity - 1);
-    }
-  };
-
-  const handleIncrease = () => {
-    onUpdateQuantity(item.id, item.quantity + 1);
-  };
 
   return (
     <Card
@@ -64,31 +52,15 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
           {productName}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {attributesText || 'ללא מאפיינים מיוחדים'}
+          {attributesText || 'ללא תכונות מיוחדות'}
         </Typography>
       </Box>
 
       {/* 3. Quantity Controls */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-          p: 0.5,
-        }}
-      >
-        <IconButton size="small" onClick={handleIncrease}>
-          <AddIcon fontSize="small" />
-        </IconButton>
-
-        <Typography sx={{ mx: 2, minWidth: 20, textAlign: 'center' }}>{item.quantity}</Typography>
-
-        <IconButton size="small" onClick={handleDecrease} disabled={item.quantity <= 1}>
-          <RemoveIcon fontSize="small" />
-        </IconButton>
-      </Box>
+      <QuantityControl
+        quantity={Number(item.quantity)}
+        onUpdate={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
+      />
 
       {/* 4. Price & Remove */}
       <Box
@@ -101,12 +73,19 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-          ₪{item.computedPrice.toFixed(2)}
+          ₪{Number(item.computedPrice).toFixed(2)}
         </Typography>
 
         <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
 
-        <IconButton color="error" onClick={() => onRemove(item.id)}>
+        <IconButton
+          color="error"
+          onClick={() => onRemove(item.id)}
+          sx={{
+            bgcolor: 'error.lighter',
+            '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' },
+          }}
+        >
           <DeleteOutlineIcon />
         </IconButton>
       </Box>
