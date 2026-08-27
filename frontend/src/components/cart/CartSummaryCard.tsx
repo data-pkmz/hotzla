@@ -14,6 +14,7 @@ export default function CartSummaryCard({
 }: CartSummaryCardProps) {
   return (
     <Card
+      dir="rtl"
       variant="outlined"
       sx={{
         p: 3,
@@ -23,7 +24,7 @@ export default function CartSummaryCard({
         bgcolor: 'surfaceBright',
       }}
     >
-      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'start' }}>
         סיכום הזמנה {/* "Order Summary" */}
       </Typography>
 

@@ -88,6 +88,7 @@ export default function CartPage() {
 
   return (
     <Box
+      dir="rtl"
       sx={{
         minHeight: '100%',
         bgcolor: 'background.default',
@@ -96,7 +97,7 @@ export default function CartPage() {
       }}
     >
       <Container maxWidth="xl">
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4, textAlign: 'left' }}>
           עגלת הקניות שלי
         </Typography>
 

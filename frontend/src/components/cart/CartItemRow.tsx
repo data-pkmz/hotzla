@@ -22,6 +22,7 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
 
   return (
     <Card
+      dir="rtl"
       variant="outlined"
       sx={{
         display: 'flex',
@@ -48,10 +49,10 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
 
       {/* 2. Product Info */}
       <Box sx={{ flex: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'start' }}>
           {productName}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'start' }}>
           {attributesText || 'ללא תכונות מיוחדות'}
         </Typography>
       </Box>
