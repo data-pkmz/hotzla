@@ -9,6 +9,7 @@ import type { OrderStatus } from 'shared-types';
 import StatusBadge from '../../components/StatusBadge';
 import { getMyOrders } from '../../services/api/orders.service';
 import { useAuthStore } from '../../store/useAuthStore';
+import { formatDate, formatPrice } from '../../utils/formatting';
 
 interface MyOrder {
   id: string;
@@ -16,22 +17,6 @@ interface MyOrder {
   createdAt: Date | string;
   totalPrice: number | string;
   status: OrderStatus;
-}
-
-function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat('he-IL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(date));
-}
-
-function formatPrice(price: number | string) {
-  return new Intl.NumberFormat('he-IL', {
-    style: 'currency',
-    currency: 'ILS',
-    maximumFractionDigits: 2,
-  }).format(Number(price));
 }
 
 export default function MyOrdersPage() {

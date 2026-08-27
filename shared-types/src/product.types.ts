@@ -17,8 +17,6 @@ export interface Product {
   createdAt: Date | string;
 }
 
-// Attribute Definitions
-export type { AttributeType, PriceModifierType };
 export type PricingRule = PricingImpactType;
 
 export interface ProductAttributeDefinition {
