@@ -35,7 +35,7 @@ export default function CartPage() {
       // The backend expects selectedAttributes even for quantity updates
       // The frontend mock used { [key]: value }, but shared-types uses SelectedAttributeInput[].
       // For now we pass empty array or properly mapped array if needed.
-      return updateCartItem(id, { quantity: newQuantity, selectedAttributes: [] });
+      return updateCartItem(id, { quantity: newQuantity });
     },
     onSuccess: () => {
       // Tell React Query to refetch the cart so the prices update automatically!

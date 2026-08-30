@@ -41,7 +41,7 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
   // 2. Mutations
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ id, newQuantity }: { id: string; newQuantity: number }) => {
-      return updateCartItem(id, { quantity: newQuantity, selectedAttributes: [] });
+      return updateCartItem(id, { quantity: newQuantity });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeCart'] });
@@ -131,6 +131,8 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
                     <QuantityControl
                       size="small"
                       quantity={Number(item.quantity)}
+                      minQuantity={item.product?.minQuantity ?? 1}
+                      maxQuantity={item.product?.maxQuantity ?? null}
                       onUpdate={(newQuantity) => handleUpdateQuantity(item.id, newQuantity)}
                     />
 

@@ -16,8 +16,45 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
   const productImage = item.product?.imageUrl || 'https://via.placeholder.com/80';
 
   // Format the selected attributes into a readable string
-  const attributesText = Object.entries(item.selectedAttributes || {})
-    .map(([key, value]) => `${key}: ${value}`)
+  const attributesText = (item.selectedAttributes ?? [])
+    .map((selectedAttribute) => {
+      const definition = item.product?.attributeDefinitionEntries?.find(
+        (attribute) => attribute.id === selectedAttribute.attributeDefinitionId
+      );
+
+      if (!definition) {
+        return null;
+      }
+
+      if (selectedAttribute.selectedOptionIds?.length) {
+        const selectedLabels = selectedAttribute.selectedOptionIds
+          .map((optionId) => {
+            const option = definition.attributeOptionEntries?.find(
+              (attributeOption) => attributeOption.id === optionId
+            );
+
+            return option?.optionLabel;
+          })
+          .filter((label): label is string => Boolean(label));
+
+        if (selectedLabels.length === 0) {
+          return null;
+        }
+
+        return `${definition.attributeName}: ${selectedLabels.join(', ')}`;
+      }
+
+      if (
+        selectedAttribute.value !== undefined &&
+        selectedAttribute.value !== null &&
+        selectedAttribute.value !== ''
+      ) {
+        return `${definition.attributeName}: ${String(selectedAttribute.value)}`;
+      }
+
+      return null;
+    })
+    .filter((text): text is string => Boolean(text))
     .join(' | ');
 
   return (
@@ -60,6 +97,8 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
       {/* 3. Quantity Controls */}
       <QuantityControl
         quantity={Number(item.quantity)}
+        minQuantity={item.product?.minQuantity ?? 1}
+        maxQuantity={item.product?.maxQuantity ?? null}
         onUpdate={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
       />
 
