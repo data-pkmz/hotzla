@@ -18,12 +18,13 @@ export interface Product {
   productType: ProductType;
   basePrice: number;
   isActive: boolean;
+  minQuantity: number;
+  maxQuantity: number | null;
   createdBy: string | null;
   createdAt: Date | string;
+  attributeDefinitionEntries?: ProductAttributeDefinition[];
 }
 
-// Attribute Definitions
-export type { AttributeType, PriceModifierType };
 export type PricingRule = PricingImpactType;
 
 export interface ProductAttributeDefinition {
@@ -39,6 +40,7 @@ export interface ProductAttributeDefinition {
   minValue: number | null;
   maxValue: number | null;
   options?: ProductAttributeOption[];
+  attributeOptionEntries?: ProductAttributeOption[];
 }
 
 export interface ProductAttributeOption {

@@ -76,7 +76,10 @@ async function main() {
     where: {
       id: '00000000-0000-0000-0000-000000000001',
     },
-    update: {},
+    update: {
+      minQuantity: 2,
+      maxQuantity: 5,
+    },
     create: {
       id: '00000000-0000-0000-0000-000000000001',
       name: 'כרטיסי ביקור',
@@ -87,6 +90,8 @@ async function main() {
       basePrice: 50,
       isActive: true,
       createdBy: manager.id,
+      minQuantity: 2,
+      maxQuantity: 5,
     },
   });
 
@@ -105,6 +110,8 @@ async function main() {
       basePrice: 40,
       isActive: true,
       createdBy: manager.id,
+      minQuantity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -123,6 +130,8 @@ async function main() {
       basePrice: 60,
       isActive: true,
       createdBy: manager.id,
+      minQuantity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -141,6 +150,8 @@ async function main() {
       basePrice: 150,
       isActive: true,
       createdBy: manager.id,
+      minQuantity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -158,6 +169,8 @@ async function main() {
       basePrice: 0,
       isActive: true,
       createdBy: manager.id,
+      minQuantity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -428,6 +441,125 @@ async function main() {
       isRequired: false,
       displayOrder: 6,
       pricingRule: 'NONE',
+    },
+  });
+
+  // ============================================================
+  // Cart
+  // ============================================================
+  //
+  // Active development cart for requester.
+  //
+  // Business cards:
+  // quantity 2
+  // minQuantity 2
+  // maxQuantity 5
+  // 2 * 50 = 100
+  //
+  // Letterhead:
+  // quantity 3
+  // 3 * 40 = 120
+  //
+  // Cart total: 220
+  // ============================================================
+
+  const activeCart = await prisma.cart.upsert({
+    where: {
+      id: '50000000-0000-0000-0000-000000000001',
+    },
+    update: {
+      userId: requester.id,
+      status: 'ACTIVE',
+      isDeleted: false,
+      updatedAt: new Date(),
+    },
+    create: {
+      id: '50000000-0000-0000-0000-000000000001',
+      userId: requester.id,
+      status: 'ACTIVE',
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.cartItem.upsert({
+    where: {
+      id: '51000000-0000-0000-0000-000000000001',
+    },
+    update: {
+      cartId: activeCart.id,
+      productId: businessCards.id,
+      quantity: 2,
+      computedPrice: 100,
+      selectedAttributes: [],
+      uploadedFilePath: '',
+      isDeleted: false,
+    },
+    create: {
+      id: '51000000-0000-0000-0000-000000000001',
+      cartId: activeCart.id,
+      productId: businessCards.id,
+      quantity: 2,
+      computedPrice: 100,
+      selectedAttributes: [],
+      uploadedFilePath: '',
+    },
+  });
+
+  await prisma.cartItem.upsert({
+    where: {
+      id: '51000000-0000-0000-0000-000000000002',
+    },
+    update: {
+      cartId: activeCart.id,
+      productId: letterhead.id,
+      quantity: 3,
+      computedPrice: 120,
+      selectedAttributes: [],
+      uploadedFilePath: '',
+      isDeleted: false,
+    },
+    create: {
+      id: '51000000-0000-0000-0000-000000000002',
+      cartId: activeCart.id,
+      productId: letterhead.id,
+      quantity: 3,
+      computedPrice: 120,
+      selectedAttributes: [],
+      uploadedFilePath: '',
+    },
+  });
+
+  await prisma.cartItem.upsert({
+    where: {
+      id: '51000000-0000-0000-0000-000000000003',
+    },
+    update: {
+      cartId: activeCart.id,
+      productId: notebooks.id,
+      quantity: 2,
+      computedPrice: 135,
+      selectedAttributes: [
+        {
+          attributeDefinitionId: notebookSize.id,
+          selectedOptionIds: [notebookA4.id],
+        },
+      ],
+      uploadedFilePath: '',
+      isDeleted: false,
+    },
+    create: {
+      id: '51000000-0000-0000-0000-000000000003',
+      cartId: activeCart.id,
+      productId: notebooks.id,
+      quantity: 2,
+      computedPrice: 135,
+      selectedAttributes: [
+        {
+          attributeDefinitionId: notebookSize.id,
+          selectedOptionIds: [notebookA4.id],
+        },
+      ],
+      uploadedFilePath: '',
     },
   });
 

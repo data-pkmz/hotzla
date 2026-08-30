@@ -136,6 +136,8 @@ model Product {
   createdByUser User?        @relation(fields: [createdBy], references: [id])
   createdAt     DateTime     @default(now()) @map("created_at")
   isDeleted     Boolean      @default(false) @map("is_deleted")
+  minQuantity   Int          @default(1) @map("min_quantity")
+  maxQuantity   Int?         @map("max_quantity")
   attributeDefinitionEntries ProductAttributeDefinition[]
   cartItemEntries CartItem[]
   orderItemEntries OrderItem[]

@@ -12,6 +12,8 @@ interface AttributeFormValue {
 
 interface AttributeFormProps {
   attributeDefinitions: ProductAttributeDefinition[];
+  minQuantity: number;
+  maxQuantity: number | null;
   onChange?: (value: AttributeFormValue, isValid: boolean) => void;
 }
 
@@ -37,9 +39,14 @@ const getAttributeGridSpan = (attribute: ProductAttributeDefinition): number => 
   return 6;
 };
 
-export default function AttributeForm({ attributeDefinitions, onChange }: AttributeFormProps) {
+export default function AttributeForm({
+  attributeDefinitions,
+  minQuantity,
+  maxQuantity,
+  onChange,
+}: AttributeFormProps) {
   const [formState, setFormState] = useState<AttributeFormState>({
-    quantity: 1,
+    quantity: minQuantity,
     selectedAttributes: [],
     validation: {},
   });
@@ -49,9 +56,39 @@ export default function AttributeForm({ attributeDefinitions, onChange }: Attrib
     [attributeDefinitions]
   );
 
-  const formIsValid = useMemo(() => {
-    const quantityIsValid = Number.isInteger(formState.quantity) && formState.quantity > 0;
+  const quantityIsValid = useMemo(() => {
+    if (!Number.isInteger(formState.quantity)) {
+      return false;
+    }
 
+    if (formState.quantity < minQuantity) {
+      return false;
+    }
+
+    if (maxQuantity !== null && formState.quantity > maxQuantity) {
+      return false;
+    }
+
+    return true;
+  }, [formState.quantity, minQuantity, maxQuantity]);
+
+  const quantityErrorMessage = useMemo(() => {
+    if (!Number.isInteger(formState.quantity)) {
+      return 'הכמות חייבת להיות מספר שלם';
+    }
+
+    if (formState.quantity < minQuantity) {
+      return `הכמות המינימלית למוצר זה היא ${minQuantity}`;
+    }
+
+    if (maxQuantity !== null && formState.quantity > maxQuantity) {
+      return `הכמות המקסימלית למוצר זה היא ${maxQuantity}`;
+    }
+
+    return undefined;
+  }, [formState.quantity, minQuantity, maxQuantity]);
+
+  const formIsValid = useMemo(() => {
     const attributesAreValid = sortedAttributes.every((attribute) => {
       if (!attribute.isRequired) {
         return formState.validation[attribute.id] !== false;
@@ -61,7 +98,7 @@ export default function AttributeForm({ attributeDefinitions, onChange }: Attrib
     });
 
     return quantityIsValid && attributesAreValid;
-  }, [formState.quantity, formState.validation, sortedAttributes]);
+  }, [quantityIsValid, formState.validation, sortedAttributes]);
 
   useEffect(() => {
     onChange?.(
@@ -96,7 +133,6 @@ export default function AttributeForm({ attributeDefinitions, onChange }: Attrib
         updatedAttributes = [...current.selectedAttributes, changedAttribute];
       } else {
         updatedAttributes = [...current.selectedAttributes];
-
         updatedAttributes[existingIndex] = changedAttribute;
       }
 
@@ -148,15 +184,12 @@ export default function AttributeForm({ attributeDefinitions, onChange }: Attrib
           size="small"
           value={formState.quantity}
           inputProps={{
-            min: 1,
+            min: minQuantity,
+            max: maxQuantity ?? undefined,
             step: 1,
           }}
-          error={!Number.isInteger(formState.quantity) || formState.quantity <= 0}
-          helperText={
-            !Number.isInteger(formState.quantity) || formState.quantity <= 0
-              ? 'הכמות חייבת להיות מספר שלם וחיובי'
-              : undefined
-          }
+          error={!quantityIsValid}
+          helperText={quantityErrorMessage}
           onChange={handleQuantityChange}
           sx={{
             direction: 'ltr',

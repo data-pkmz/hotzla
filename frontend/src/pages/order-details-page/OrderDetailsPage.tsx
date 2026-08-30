@@ -28,28 +28,11 @@ import type { OrderDetails } from 'shared-types';
 
 import StatusBadge from '../../components/StatusBadge';
 import { getOrderById } from '../../services/api/orders.service';
+import { formatDate, formatPrice } from '../../utils/formatting';
 
 interface OrderDetailsLocationState {
   from?: string;
   fromLabel?: string;
-}
-
-function formatDate(date: Date | string) {
-  return new Intl.DateTimeFormat('he-IL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
-}
-
-function formatPrice(price: number | string) {
-  return new Intl.NumberFormat('he-IL', {
-    style: 'currency',
-    currency: 'ILS',
-    maximumFractionDigits: 2,
-  }).format(Number(price));
 }
 
 function getFileName(filePath: string) {

@@ -10,5 +10,6 @@ router.use(authMiddleware);
 router.get('/', CartController.getActiveCart);
 router.post('/items', CartController.addItem);
 router.delete('/items/:id', CartController.removeItem);
+router.patch('/items/:id', CartController.updateItem);
 
 export default router;

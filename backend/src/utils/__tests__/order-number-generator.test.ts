@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { OrderNumberGenerator, type DbClient } from '../order-number-generator.js';
+import { OrderNumberGenerator, type DbClient } from '../order-number-generator';
 
 describe('OrderNumberGenerator', () => {
   it('should generate 2026-0001 when no previous orders exist for the year', async () => {
