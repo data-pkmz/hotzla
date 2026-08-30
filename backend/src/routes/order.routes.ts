@@ -8,5 +8,7 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post('/checkout', OrderController.checkout);
+router.get('/my-orders', OrderController.getMyOrders);
+router.get('/:id', OrderController.getOrderById);
 
 export default router;

@@ -233,6 +233,7 @@ model OrderItem {
   order                Order          @relation(fields: [orderId], references: [id])
   productId            String         @map("product_id") @db.Uuid
   product              Product        @relation(fields: [productId], references: [id])
+  quantity             Decimal
   uploadedFilePath     String         @map("uploaded_file_path")
   computedUnitPrice    Decimal        @map("computed_unit_price")
   computedTotalPrice   Decimal        @map("computed_total_price")
