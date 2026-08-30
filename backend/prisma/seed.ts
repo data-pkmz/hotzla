@@ -87,6 +87,8 @@ async function main() {
       basePrice: 50,
       isActive: true,
       createdBy: manager.id,
+      minQuatity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -105,6 +107,8 @@ async function main() {
       basePrice: 40,
       isActive: true,
       createdBy: manager.id,
+      minQuatity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -123,6 +127,8 @@ async function main() {
       basePrice: 60,
       isActive: true,
       createdBy: manager.id,
+      minQuatity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -141,6 +147,8 @@ async function main() {
       basePrice: 150,
       isActive: true,
       createdBy: manager.id,
+      minQuatity: 1,
+      maxQuantity: 100,
     },
   });
 
@@ -158,6 +166,8 @@ async function main() {
       basePrice: 0,
       isActive: true,
       createdBy: manager.id,
+      minQuatity: 1,
+      maxQuantity: 100,
     },
   });
 

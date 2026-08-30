@@ -215,6 +215,8 @@ erDiagram
         uuid created_by FK
         timestamp created_at
         boolean is_deleted
+        numeric min_qunatity
+        numeric max_quantity
     }
 
     PRODUCT_ATTRIBUTE_DEFINITIONS {
@@ -289,6 +291,7 @@ erDiagram
         numeric computed_unit_price
         numeric computed_total_price
         boolean is_deleted
+        numeric quantity
     }
 
     ORDER_ITEM_ATTRIBUTE_VALUES {

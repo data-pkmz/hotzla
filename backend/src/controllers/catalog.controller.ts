@@ -1,33 +1,10 @@
 import { Request, Response } from 'express';
 import { CatalogService } from '../services/catalog.service';
-
-// Demo product interface (to be replaced by Prisma/ORM later)
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  isActive: boolean;
-  attributes?: Record<string, unknown>;
-}
-
-// Temporary mock data for testing
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'חוברת כרוכה A4',
-    category: 'booklets',
-    isActive: true,
-    attributes: { paperWeight: '135g' },
-  },
-  {
-    id: '2',
-    name: 'פוסטר 70x100',
-    category: 'posters',
-    isActive: true,
-    attributes: { finish: 'glossy' },
-  },
-  { id: '3', name: 'מוצר ישן שנמחק', category: 'posters', isActive: false },
-];
+import {
+  createProductSchema,
+  updateProductSchema,
+  productIdSchema,
+} from '../validations/catalog.validation';
 
 /**
  * GET /api/products
@@ -125,31 +102,25 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, category, attributes } = req.body;
+    const validatedData = createProductSchema.parse(req.body);
 
-    if (!name || !category) {
-      res.status(400).json({ success: false, message: 'Product name and category are required' });
-      return;
-    }
-
-    const newProduct: Product = {
-      id: String(Date.now()),
-      name,
-      category,
-      attributes: (attributes as Record<string, unknown>) || {},
-      isActive: true,
-    };
-
-    mockProducts.push(newProduct);
+    const newProduct = await CatalogService.createProduct(validatedData);
 
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
-      data: newProduct,
+      data: {
+        ...newProduct,
+        basePrice: newProduct.basePrice.toNumber(),
+      },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to create product',
+    });
   }
 };
 
@@ -159,28 +130,26 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
  */
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const productIndex = mockProducts.findIndex((p) => p.id === id && p.isActive);
+    const { id } = productIdSchema.parse(req.params);
+    const validatedData = updateProductSchema.parse(req.body);
 
-    if (productIndex === -1) {
-      res.status(404).json({ success: false, message: 'Product to update was not found' });
-      return;
-    }
-
-    // Update fields provided in request body
-    mockProducts[productIndex] = {
-      ...mockProducts[productIndex],
-      ...req.body,
-    };
+    const updatedProduct = await CatalogService.updateProduct(id, validatedData);
 
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
-      data: mockProducts[productIndex],
+      data: {
+        ...updatedProduct,
+        basePrice: updatedProduct.basePrice.toNumber(),
+      },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to update product',
+    });
   }
 };
 
@@ -190,23 +159,20 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
  */
 export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const product = mockProducts.find((p) => p.id === id && p.isActive);
+    const { id } = productIdSchema.parse(req.params);
 
-    if (!product) {
-      res.status(404).json({ success: false, message: 'Product to delete was not found' });
-      return;
-    }
-
-    // Perform soft delete
-    product.isActive = false;
+    await CatalogService.softDeleteProduct(id);
 
     res.status(200).json({
       success: true,
-      message: 'Product removed successfully (Soft Delete)',
+      message: 'Product removed successfully',
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to delete product',
+    });
   }
 };

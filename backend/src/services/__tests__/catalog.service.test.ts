@@ -16,6 +16,8 @@ const products: Product[] = [
     createdBy: null,
     createdAt: new Date(),
     isDeleted: false,
+    minQuantity: 1,
+    maxQuantity: null,
   },
 ];
 
@@ -147,6 +149,8 @@ describe('getProductById', () => {
         productType: 'FIXED' as const,
         basePrice: 50,
         createdBy: 'user-1',
+        minQuantity: 1,
+        maxQuantity: null,
       };
 
       const createdProduct = products[0];
@@ -177,6 +181,8 @@ describe('getProductById', () => {
         category: 'Stationery',
         productType: 'DYNAMIC' as const,
         basePrice: 25,
+        minQuantity: 1,
+        maxQuantity: null,
       };
 
       jest.mocked(prisma.product.create).mockResolvedValue(products[0]);
@@ -206,6 +212,8 @@ describe('getProductById', () => {
           category: 'Stationery',
           productType: 'FIXED',
           basePrice: 20,
+          minQuantity: 1,
+          maxQuantity: null,
         })
       ).rejects.toThrow('שגיאת מסד נתונים');
     });

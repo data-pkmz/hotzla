@@ -13,6 +13,8 @@ export interface Product {
   productType: ProductType;
   basePrice: number;
   isActive: boolean;
+  minQuantity: number;
+  maxQuantity: number | null;
   createdBy: string | null;
   createdAt: Date | string;
 }
