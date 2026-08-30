@@ -1,11 +1,11 @@
 /// <reference types="jest" />
 import { OrderStatus, Role, Status, ChangeSource } from '@prisma/client';
-import { prisma } from '../../config/db.js';
-import { OrderService } from '../order.service.js';
-import { PricingEngineService } from '../pricing-engine.service.js';
-import { OrderNumberGenerator } from '../../utils/order-number-generator.js';
+import { prisma } from '../../config/db';
+import { OrderService } from '../order.service';
+import { PricingEngineService } from '../pricing-engine.service';
+import { OrderNumberGenerator } from '../../utils/order-number-generator';
 
-jest.mock('../../config/db.js', () => ({
+jest.mock('../../config/db', () => ({
   prisma: {
     $transaction: jest.fn((callback) => callback(prisma)),
     user: {
@@ -27,13 +27,13 @@ jest.mock('../../config/db.js', () => ({
   },
 }));
 
-jest.mock('../pricing-engine.service.js', () => ({
+jest.mock('../pricing-engine.service', () => ({
   PricingEngineService: {
     calculatePrice: jest.fn(),
   },
 }));
 
-jest.mock('../../utils/order-number-generator.js', () => ({
+jest.mock('../../utils/order-number-generator', () => ({
   OrderNumberGenerator: {
     generateNextOrderNumber: jest.fn(),
   },

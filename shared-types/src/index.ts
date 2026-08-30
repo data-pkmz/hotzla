@@ -41,12 +41,14 @@ export interface Cart {
   createdAt: Date | string;
   updatedAt: Date | string;
   items?: CartItem[];
+  cartItemEntries?: CartItem[];
 }
 
 export interface CartItem {
   id: string;
   cartId: string;
   productId: string;
+  quantity: number;
   uploadedFilePath?: string;
   computedPrice: number;
   selectedAttributes: Record<string, string | number | boolean>;
