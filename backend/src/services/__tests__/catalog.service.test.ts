@@ -43,6 +43,7 @@ jest.mock('../../config/db', () => ({
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      findUnique: jest.fn(),
     },
     productAttributeDefinition: {
       create: jest.fn(),
@@ -107,6 +108,8 @@ describe('getProductById', () => {
   it('returns an active and non-deleted product', async () => {
     const product = products[0];
 
+    jest.mocked(prisma.product.findUnique).mockResolvedValue(products[0]);
+
     jest.mocked(prisma.product.findFirst).mockResolvedValue(product);
 
     const result = await CatalogService.getProductById('product-1');
@@ -170,6 +173,8 @@ describe('getProductById', () => {
           basePrice: input.basePrice,
           isActive: true,
           createdBy: input.createdBy,
+          minQuantity: 1,
+          maxQuantity: null,
         },
       });
     });
@@ -198,6 +203,8 @@ describe('getProductById', () => {
           basePrice: input.basePrice,
           isActive: true,
           createdBy: undefined,
+          minQuantity: 1,
+          maxQuantity: null,
         },
       });
     });

@@ -17,6 +17,7 @@ export interface Product {
   maxQuantity: number | null;
   createdBy: string | null;
   createdAt: Date | string;
+  attributeDefinitionEntries?: ProductAttributeDefinition[];
 }
 
 export type PricingRule = PricingImpactType;
@@ -34,6 +35,7 @@ export interface ProductAttributeDefinition {
   minValue: number | null;
   maxValue: number | null;
   options?: ProductAttributeOption[];
+  attributeOptionEntries?: ProductAttributeOption[];
 }
 
 export interface ProductAttributeOption {

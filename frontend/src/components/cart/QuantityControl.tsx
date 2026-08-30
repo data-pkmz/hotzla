@@ -5,32 +5,37 @@ import RemoveIcon from '@mui/icons-material/Remove';
 
 interface QuantityControlProps {
   quantity: number;
+  minQuantity?: number;
+  maxQuantity?: number | null;
   onUpdate: (newQuantity: number) => void;
   size?: 'small' | 'medium';
 }
 
 export default function QuantityControl({
   quantity,
+  minQuantity = 1,
+  maxQuantity = null,
   onUpdate,
   size = 'medium',
 }: QuantityControlProps) {
   const [prevQuantity, setPrevQuantity] = useState<number>(quantity);
   const [localQty, setLocalQty] = useState<string>(String(quantity));
 
-  // Pattern: Adjusting state while rendering (to sync with external prop changes)
   if (quantity !== prevQuantity) {
     setPrevQuantity(quantity);
     setLocalQty(String(quantity));
   }
 
   const handleDecrease = () => {
-    if (quantity > 1) {
+    if (quantity > minQuantity) {
       onUpdate(quantity - 1);
     }
   };
 
   const handleIncrease = () => {
-    onUpdate(quantity + 1);
+    if (maxQuantity === null || quantity < maxQuantity) {
+      onUpdate(quantity + 1);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,13 +43,20 @@ export default function QuantityControl({
   };
 
   const submitQuantity = () => {
-    const parsed = parseInt(localQty, 10);
-    if (!isNaN(parsed) && parsed > 0) {
-      if (parsed !== quantity) {
-        onUpdate(parsed);
-      }
-    } else {
-      setLocalQty(String(quantity)); // Revert if invalid
+    const parsed = Number(localQty);
+
+    const isValid =
+      Number.isInteger(parsed) &&
+      parsed >= minQuantity &&
+      (maxQuantity === null || parsed <= maxQuantity);
+
+    if (!isValid) {
+      setLocalQty(String(quantity));
+      return;
+    }
+
+    if (parsed !== quantity) {
+      onUpdate(parsed);
     }
   };
 
@@ -67,7 +79,12 @@ export default function QuantityControl({
         p: isSmall ? 0.25 : 0.5,
       }}
     >
-      <IconButton size="small" onClick={handleIncrease} sx={{ p: isSmall ? 0.5 : 1 }}>
+      <IconButton
+        size="small"
+        onClick={handleIncrease}
+        disabled={maxQuantity !== null && quantity >= maxQuantity}
+        sx={{ p: isSmall ? 0.5 : 1 }}
+      >
         <AddIcon fontSize={isSmall ? 'inherit' : 'small'} />
       </IconButton>
 
@@ -78,13 +95,15 @@ export default function QuantityControl({
         onKeyDown={handleKeyDown}
         inputProps={{
           type: 'number',
+          min: minQuantity,
+          max: maxQuantity ?? undefined,
+          step: 1,
           style: {
             textAlign: 'center',
-            width: isSmall ? '50px' : '70px', // Enlarged width for 9999+ numbers
+            width: isSmall ? '50px' : '70px',
             padding: 0,
             fontSize: isSmall ? '0.875rem' : '1rem',
           },
-          min: 1,
         }}
         sx={{ mx: isSmall ? 0.5 : 1 }}
       />
@@ -92,7 +111,7 @@ export default function QuantityControl({
       <IconButton
         size="small"
         onClick={handleDecrease}
-        disabled={quantity <= 1}
+        disabled={quantity <= minQuantity}
         sx={{ p: isSmall ? 0.5 : 1 }}
       >
         <RemoveIcon fontSize={isSmall ? 'inherit' : 'small'} />

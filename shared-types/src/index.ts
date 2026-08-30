@@ -1,5 +1,3 @@
-import type { Product } from './product.types.js';
-
 export type { UserRole, User } from './user.types.js';
 
 export type {
@@ -31,29 +29,13 @@ export type {
   PriceResult,
 } from './pricing.types.js';
 
-// Cart structures
-export type CartStatus = 'ACTIVE' | 'CONVERTED' | 'ABANDONED';
-
-export interface Cart {
-  id: string;
-  userId: string;
-  status: CartStatus;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-  items?: CartItem[];
-  cartItemEntries?: CartItem[];
-}
-
-export interface CartItem {
-  id: string;
-  cartId: string;
-  productId: string;
-  quantity: number;
-  uploadedFilePath?: string;
-  computedPrice: number;
-  selectedAttributes: Record<string, string | number | boolean>;
-  product?: Product;
-}
+export type {
+  CartStatus,
+  Cart,
+  CartItem,
+  AddToCartInput,
+  UpdateCartItemInput,
+} from './cart.types.js';
 
 // Order Status History
 export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'WORKER_UI';
