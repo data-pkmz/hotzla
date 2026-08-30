@@ -21,6 +21,9 @@ export class CartService {
           where: {
             isDeleted: false,
           },
+          orderBy: {
+            id: 'asc',
+          },
           include: {
             product: true,
           },
@@ -42,6 +45,9 @@ export class CartService {
         cartItemEntries: {
           where: {
             isDeleted: false,
+          },
+          orderBy: {
+            id: 'asc',
           },
           include: {
             product: true,
@@ -152,19 +158,17 @@ export class CartService {
   }
 
   /**
-   * Clear the active cart after a successful order
-   * by marking it as converted.
+   * Clears the active cart by soft-deleting all its items.
    */
   static async clearCart(userId: string) {
-    return prisma.cart.updateMany({
+    const activeCart = await this.getActiveCart(userId);
+    return prisma.cartItem.updateMany({
       where: {
-        userId,
-        status: Status.ACTIVE,
+        cartId: activeCart.id,
         isDeleted: false,
       },
       data: {
-        status: Status.CONVERTED,
-        updatedAt: new Date(),
+        isDeleted: true,
       },
     });
   }

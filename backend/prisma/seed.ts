@@ -1,5 +1,6 @@
 import logger from '../src/utils/logger';
 import { prisma } from '../src/config/db';
+import { OrderStatus, Status, ChangeSource } from '@prisma/client';
 
 async function main() {
   logger.info('Starting database seed...');
@@ -416,6 +417,125 @@ async function main() {
     },
   });
 
+  // --------------------
+  // DPS-028: Test Cart for 'requester'
+  // --------------------
+  let activeCart = await prisma.cart.findFirst({
+    where: { userId: requester.id, status: Status.ACTIVE },
+  });
+
+  if (!activeCart) {
+    activeCart = await prisma.cart.create({
+      data: {
+        userId: requester.id,
+        status: Status.ACTIVE,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  // Clear old items just in case
+  await prisma.cartItem.deleteMany({
+    where: { cartId: activeCart.id },
+  });
+
+  await prisma.cartItem.createMany({
+    data: [
+      {
+        cartId: activeCart.id,
+        productId: businessCards.id,
+        quantity: 2,
+        computedPrice: 100,
+        selectedAttributes: {},
+        uploadedFilePath: '',
+      },
+      {
+        cartId: activeCart.id,
+        productId: letterhead.id,
+        quantity: 5,
+        computedPrice: 200,
+        selectedAttributes: {},
+        uploadedFilePath: '',
+      },
+      {
+        cartId: activeCart.id,
+        productId: notebooks.id,
+        quantity: 1,
+        computedPrice: 50,
+        selectedAttributes: {},
+        uploadedFilePath: '',
+      },
+    ],
+  });
+
+  // --------------------
+  // DPS-034: Test Order History for 'requester'
+  // --------------------
+  const testOrder = await prisma.order.upsert({
+    where: { orderNumber: '2026-9999' },
+    update: {
+      status: OrderStatus.APPROVED_FOR_PRODUCTION,
+    },
+    create: {
+      orderNumber: '2026-9999',
+      requesterId: requester.id,
+      unit: requester.unit || 'טייסת 101',
+      budgetOfficerName: 'רס״ן כהן',
+      budgetOfficerEmail: 'budget@example.com',
+      totalPrice: 200,
+      status: OrderStatus.APPROVED_FOR_PRODUCTION,
+      itemEntries: {
+        create: [
+          {
+            productId: businessCards.id,
+            computedUnitPrice: 100,
+            computedTotalPrice: 200,
+            uploadedFilePath: '',
+          },
+        ],
+      },
+    },
+  });
+
+  // Clear existing history for this order to re-seed cleanly
+  await prisma.orderStatusHistory.deleteMany({
+    where: { orderId: testOrder.id },
+  });
+
+  const now = new Date();
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const oneDayAgo = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+
+  await prisma.orderStatusHistory.createMany({
+    data: [
+      {
+        orderId: testOrder.id,
+        toStatus: OrderStatus.PENDING_BUDGET,
+        changedByUserId: requester.id,
+        changedBySource: ChangeSource.SYSTEM,
+        note: 'הזמנה נוצרה ממערכת ההזמנות',
+        changedAt: twoDaysAgo,
+      },
+      {
+        orderId: testOrder.id,
+        fromStatus: OrderStatus.PENDING_BUDGET,
+        toStatus: OrderStatus.BUDGET_APPROVED,
+        changedBySource: ChangeSource.EMAIL_BUDGET_OFFICER,
+        note: 'אושר תקציב באמצעות קישור במייל ע"י קצין תקציבים',
+        changedAt: oneDayAgo,
+      },
+      {
+        orderId: testOrder.id,
+        fromStatus: OrderStatus.BUDGET_APPROVED,
+        toStatus: OrderStatus.APPROVED_FOR_PRODUCTION,
+        changedByUserId: manager.id,
+        changedBySource: ChangeSource.MANAGER_UI,
+        note: 'אושר ע"י מנהל בית דפוס - הועבר לביצוע',
+        changedAt: now,
+      },
+    ],
+  });
+
   logger.info('Seeded development data', {
     users: {
       requester: requester.adUsername,
@@ -434,6 +554,11 @@ async function main() {
       copiesAttributeId: copiesAttribute.id,
       paperTypeAttributeId: paperTypeAttribute.id,
       bindingAttributeId: bindingAttribute.id,
+    },
+    testData: {
+      cartItems: 3,
+      orderNumber: testOrder.orderNumber,
+      orderHistoryEvents: 3,
     },
   });
 }

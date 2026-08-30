@@ -14,9 +14,8 @@ import ShoppingCartCheckoutIcon from '@mui/icons-material/ShoppingCartCheckout';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { getActiveCart, removeCartItem } from '../../services/api/cart.service';
+import { getActiveCart, clearActiveCart } from '../../services/api/cart.service';
 import { useCartStore } from '../../store/useCartStore';
-import type { CartItem } from 'shared-types';
 
 export default function CartRecoveryBanner() {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export default function CartRecoveryBanner() {
   // Mutation to clear the cart
   const clearCartMutation = useMutation({
     mutationFn: async () => {
-      await Promise.all(items.map((item: CartItem) => removeCartItem(item.id)));
+      await clearActiveCart();
     },
     onSuccess: () => {
       dismissRecoveryBanner(); // Dismiss it so it doesn't blink if cache updates slowly
