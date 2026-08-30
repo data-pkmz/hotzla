@@ -174,16 +174,16 @@ export class OrderService {
         },
       });
 
-      await tx.orderStatusHistory.create({
-        data: {
+      await AuditLogService.logStatusChange(
+        {
           orderId: newOrder.id,
-          fromStatus: null,
           toStatus: OrderStatus.PENDING_BUDGET,
           changedByUserId: userId,
           changedBySource: ChangeSource.SYSTEM,
-          note: input.notes?.trim() || 'הזמנה נוצרה ונשלחה לאישור תקציבי',
+          note: input.notes?.trim() || 'הזמנה נוצרה ממערכת ההזמנות',
         },
-      });
+        tx
+      );
 
       await tx.cart.update({
         where: {
