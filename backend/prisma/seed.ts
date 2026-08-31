@@ -562,20 +562,6 @@ async function main() {
       uploadedFilePath: '',
       isDeleted: false,
     },
-    create: {
-      id: '51000000-0000-0000-0000-000000000003',
-      cartId: activeCart.id,
-      productId: notebooks.id,
-      quantity: 2,
-      computedPrice: 135,
-      selectedAttributes: [
-        {
-          attributeDefinitionId: notebookSize.id,
-          selectedOptionIds: [notebookA4.id],
-        },
-      ],
-      uploadedFilePath: '',
-    },
   });
 
   // Cart for requesterTwo (pricingTestProduct)
