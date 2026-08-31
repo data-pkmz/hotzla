@@ -89,3 +89,13 @@ export const checkoutCart = async (input: CreateOrderInput): Promise<Order> => {
   const result: CheckoutResponse = await response.json();
   return result.order;
 };
+
+export const clearActiveCart = async (): Promise<void> => {
+  const response = await apiFetch('/api/cart/items', {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to clear cart');
+  }
+};

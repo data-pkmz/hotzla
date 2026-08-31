@@ -17,6 +17,7 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import CategoryFilter from '../../components/DynamicAttributeInput/CategoryFilter';
 import ProductCard from '../../components/catalog/ProductCard';
+import CartRecoveryBanner from '../../components/cart/CartRecoveryBanner';
 import { getProducts } from '../../services/api/catalog.service';
 
 export default function CatalogPage() {
@@ -84,6 +85,8 @@ export default function CatalogPage() {
       }}
     >
       <Container maxWidth="xl">
+        <CartRecoveryBanner />
+
         <Box
           sx={{
             display: 'flex',

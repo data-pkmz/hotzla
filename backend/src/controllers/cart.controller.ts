@@ -68,4 +68,17 @@ export class CartController {
       return res.status(500).json({ error: errorMessage });
     }
   }
+
+  // DELETE /api/cart/items - Clear all items from active cart
+  static async clearCart(req: Request, res: Response) {
+    try {
+      const userId = await getUserId(req);
+      await CartService.clearCart(userId);
+      return res.status(200).json({ message: 'Cart cleared successfully' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error clearing cart:', errorMessage);
+      return res.status(500).json({ error: errorMessage });
+    }
+  }
 }
