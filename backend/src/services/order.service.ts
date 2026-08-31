@@ -3,6 +3,8 @@ import { prisma } from '../config/db';
 import { OrderNumberGenerator } from '../utils/order-number-generator';
 import { PricingEngineService } from './pricing-engine.service';
 import { AuditLogService } from './audit-log.service';
+import { EmailService } from './email.service';
+import logger from '../utils/logger';
 import type {
   CreateOrderInput,
   Order,
@@ -43,7 +45,7 @@ export class OrderService {
       throw new Error('כתובת מייל קצין תקציב אינה תקינה');
     }
 
-    return prisma.$transaction(async (tx) => {
+    const newOrder = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findFirst({
         where: {
           id: userId,
@@ -203,6 +205,32 @@ export class OrderService {
 
       return newOrder;
     });
+
+    if (!newOrder.requester.militaryEmail) {
+      logger.error('Requester email is missing', {
+        orderId: newOrder.id,
+        orderNumber: newOrder.orderNumber,
+        requesterId: newOrder.requester.id,
+      });
+    } else {
+      try {
+        await EmailService.sendOrderConfirmation({
+          orderId: newOrder.id,
+          orderNumber: newOrder.orderNumber,
+          requesterEmail: newOrder.requester.militaryEmail,
+          trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
+        });
+      } catch (error) {
+        logger.error('Failed to send order confirmation email', {
+          orderId: newOrder.id,
+          orderNumber: newOrder.orderNumber,
+          requesterEmail: newOrder.requester.militaryEmail,
+          error,
+        });
+      }
+    }
+
+    return newOrder;
   }
 
   /**

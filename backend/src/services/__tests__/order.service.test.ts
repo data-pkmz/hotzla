@@ -4,6 +4,7 @@ import { prisma } from '../../config/db';
 import { OrderService } from '../order.service';
 import { PricingEngineService } from '../pricing-engine.service';
 import { OrderNumberGenerator } from '../../utils/order-number-generator';
+import { EmailService } from '../email.service';
 
 jest.mock('../../config/db', () => ({
   prisma: {
@@ -39,6 +40,12 @@ jest.mock('../../utils/order-number-generator', () => ({
   },
 }));
 
+jest.mock('../email.service', () => ({
+  EmailService: {
+    sendOrderConfirmation: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('OrderService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,6 +53,7 @@ describe('OrderService', () => {
 
   describe('createOrderFromCart', () => {
     const validUserId = 'user-123';
+
     const validInput = {
       budgetOfficerName: 'רסן ישראל ישראלי',
       budgetOfficerEmail: 'budget.officer@idf.il',
@@ -57,6 +65,7 @@ describe('OrderService', () => {
       const mockUser = {
         id: validUserId,
         fullName: 'ישראל ישראלי',
+        militaryEmail: 'requester@idf.il',
         unit: 'מודיעין',
         isDeleted: false,
       };
@@ -97,16 +106,32 @@ describe('OrderService', () => {
         budgetOfficerName: validInput.budgetOfficerName,
         budgetOfficerEmail: validInput.budgetOfficerEmail,
         totalPrice: 150,
+        requester: {
+          id: validUserId,
+          fullName: mockUser.fullName,
+          militaryEmail: mockUser.militaryEmail,
+          unit: mockUser.unit,
+          phone: null,
+        },
+        itemEntries: [],
       };
 
       (prisma.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
+
       (prisma.cart.findFirst as jest.Mock).mockResolvedValue(mockCart);
+
       (PricingEngineService.calculatePrice as jest.Mock).mockResolvedValue(mockPriceResult);
+
       (OrderNumberGenerator.generateNextOrderNumber as jest.Mock).mockResolvedValue(
         mockOrderNumber
       );
+
       (prisma.order.create as jest.Mock).mockResolvedValue(mockCreatedOrder);
-      (prisma.orderStatusHistory.create as jest.Mock).mockResolvedValue({ id: 'history-1' });
+
+      (prisma.orderStatusHistory.create as jest.Mock).mockResolvedValue({
+        id: 'history-1',
+      });
+
       (prisma.cart.update as jest.Mock).mockResolvedValue({
         ...mockCart,
         status: Status.CONVERTED,
@@ -115,22 +140,35 @@ describe('OrderService', () => {
       const result = await OrderService.createOrderFromCart(validUserId, validInput);
 
       expect(prisma.user.findFirst).toHaveBeenCalledWith({
-        where: { id: validUserId, isDeleted: false },
+        where: {
+          id: validUserId,
+          isDeleted: false,
+        },
       });
+
       expect(prisma.cart.findFirst).toHaveBeenCalledWith({
-        where: { userId: validUserId, status: Status.ACTIVE, isDeleted: false },
+        where: {
+          userId: validUserId,
+          status: Status.ACTIVE,
+          isDeleted: false,
+        },
         include: {
           cartItemEntries: {
-            where: { isDeleted: false },
+            where: {
+              isDeleted: false,
+            },
           },
         },
       });
+
       expect(PricingEngineService.calculatePrice).toHaveBeenCalledWith({
         productId: 'prod-1',
         quantity: 10,
         selectedAttributes: mockCart.cartItemEntries[0].selectedAttributes,
       });
+
       expect(OrderNumberGenerator.generateNextOrderNumber).toHaveBeenCalled();
+
       expect(prisma.order.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -142,6 +180,7 @@ describe('OrderService', () => {
           }),
         })
       );
+
       expect(prisma.orderStatusHistory.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           orderId: mockCreatedOrder.id,
@@ -150,12 +189,25 @@ describe('OrderService', () => {
           changedBySource: ChangeSource.SYSTEM,
         }),
       });
+
       expect(prisma.cart.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: mockCart.id },
-          data: expect.objectContaining({ status: Status.CONVERTED }),
+          where: {
+            id: mockCart.id,
+          },
+          data: expect.objectContaining({
+            status: Status.CONVERTED,
+          }),
         })
       );
+
+      expect(EmailService.sendOrderConfirmation).toHaveBeenCalledWith({
+        orderId: mockCreatedOrder.id,
+        orderNumber: mockCreatedOrder.orderNumber,
+        requesterEmail: mockUser.militaryEmail,
+        trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
+      });
+
       expect(result).toEqual(mockCreatedOrder);
     });
 
@@ -186,7 +238,10 @@ describe('OrderService', () => {
     });
 
     it('should throw error if active cart is empty', async () => {
-      (prisma.user.findFirst as jest.Mock).mockResolvedValue({ id: validUserId });
+      (prisma.user.findFirst as jest.Mock).mockResolvedValue({
+        id: validUserId,
+      });
+
       (prisma.cart.findFirst as jest.Mock).mockResolvedValue({
         id: 'cart-1',
         cartItemEntries: [],
@@ -205,6 +260,7 @@ describe('OrderService', () => {
         requesterId: 'user-1',
         orderNumber: '2026-0001',
       };
+
       (prisma.order.findFirst as jest.Mock).mockResolvedValue(mockOrder);
 
       const result = await OrderService.getOrderById('order-1', {
@@ -221,10 +277,14 @@ describe('OrderService', () => {
         requesterId: 'user-2',
         orderNumber: '2026-0001',
       };
+
       (prisma.order.findFirst as jest.Mock).mockResolvedValue(mockOrder);
 
       await expect(
-        OrderService.getOrderById('order-1', { id: 'user-1', role: Role.REQUESTER })
+        OrderService.getOrderById('order-1', {
+          id: 'user-1',
+          role: Role.REQUESTER,
+        })
       ).rejects.toThrow('אין לך הרשאה לצפות בהזמנה זו');
     });
 
@@ -234,6 +294,7 @@ describe('OrderService', () => {
         requesterId: 'user-2',
         orderNumber: '2026-0001',
       };
+
       (prisma.order.findFirst as jest.Mock).mockResolvedValue(mockOrder);
 
       const result = await OrderService.getOrderById('order-1', {
@@ -248,39 +309,70 @@ describe('OrderService', () => {
       (prisma.order.findFirst as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        OrderService.getOrderById('order-999', { id: 'user-1', role: Role.REQUESTER })
+        OrderService.getOrderById('order-999', {
+          id: 'user-1',
+          role: Role.REQUESTER,
+        })
       ).rejects.toThrow('ההזמנה לא נמצאה');
     });
   });
 
   describe('getOrders', () => {
     it('should filter by requesterId for REQUESTER role', async () => {
-      const mockOrders = [{ id: 'order-1', orderNumber: '2026-0001' }];
+      const mockOrders = [
+        {
+          id: 'order-1',
+          orderNumber: '2026-0001',
+        },
+      ];
+
       (prisma.order.findMany as jest.Mock).mockResolvedValue(mockOrders);
       (prisma.order.count as jest.Mock).mockResolvedValue(1);
 
       const result = await OrderService.getOrders(
-        { id: 'user-1', role: Role.REQUESTER },
-        { page: 1, limit: 10 }
+        {
+          id: 'user-1',
+          role: Role.REQUESTER,
+        },
+        {
+          page: 1,
+          limit: 10,
+        }
       );
 
       expect(prisma.order.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ requesterId: 'user-1', isDeleted: false }),
+          where: expect.objectContaining({
+            requesterId: 'user-1',
+            isDeleted: false,
+          }),
         })
       );
+
       expect(result.orders).toEqual(mockOrders);
       expect(result.total).toBe(1);
     });
 
     it('should allow manager to query all orders with search', async () => {
-      const mockOrders = [{ id: 'order-1', orderNumber: '2026-0001' }];
+      const mockOrders = [
+        {
+          id: 'order-1',
+          orderNumber: '2026-0001',
+        },
+      ];
+
       (prisma.order.findMany as jest.Mock).mockResolvedValue(mockOrders);
       (prisma.order.count as jest.Mock).mockResolvedValue(1);
 
       const result = await OrderService.getOrders(
-        { id: 'manager-1', role: Role.MANAGER },
-        { search: '2026', status: OrderStatus.PENDING_BUDGET }
+        {
+          id: 'manager-1',
+          role: Role.MANAGER,
+        },
+        {
+          search: '2026',
+          status: OrderStatus.PENDING_BUDGET,
+        }
       );
 
       expect(prisma.order.findMany).toHaveBeenCalledWith(
@@ -292,6 +384,7 @@ describe('OrderService', () => {
           }),
         })
       );
+
       expect(result.total).toBe(1);
     });
   });

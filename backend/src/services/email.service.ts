@@ -33,7 +33,37 @@ export class EmailService {
             pass: process.env.SMTP_PASSWORD,
           }
         : undefined,
+    /*
+     * FOR TESTING ONLY REMOVE BEFORE PRODUCTION
+     */
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
+
+  static async verifyConnection(): Promise<void> {
+    try {
+      logger.info('SMTP configuration', {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: process.env.SMTP_SECURE,
+        user: process.env.SMTP_USER,
+        from: process.env.SMTP_FROM,
+        passwordSet: Boolean(process.env.SMTP_PASSWORD),
+      });
+
+      await this.transporter.verify();
+
+      logger.info('SMTP connection verified successfully');
+    } catch (error) {
+      logger.error('SMTP verification failed', {
+        message: error instanceof Error ? error.message : String(error),
+        error,
+      });
+
+      throw error;
+    }
+  }
 
   /**
    * Sends a budget approval request to the budget officer.
@@ -44,11 +74,11 @@ export class EmailService {
     const orderItemsHtml = this.renderOrderItems(data.items);
 
     const html = this.renderTemplate(template, {
-      orderNumber: data.orderNumber,
-      requesterName: data.requesterName,
+      orderNumber: this.escapeHtml(data.orderNumber),
+      requesterName: this.escapeHtml(data.requesterName),
       orderItems: orderItemsHtml,
       totalPrice: this.formatPrice(data.totalPrice),
-      approvalUrl: data.approvalUrl,
+      approvalUrl: this.escapeHtml(data.approvalUrl),
     });
 
     const subject =
@@ -70,8 +100,8 @@ export class EmailService {
     const template = await this.loadTemplate('order-confirmation.html');
 
     const html = this.renderTemplate(template, {
-      orderNumber: data.orderNumber,
-      trackingUrl: data.trackingUrl,
+      orderNumber: this.escapeHtml(data.orderNumber),
+      trackingUrl: this.escapeHtml(data.trackingUrl),
     });
 
     const subject = `אישור קבלת הזמנה מספר ${data.orderNumber}`;
@@ -92,9 +122,9 @@ export class EmailService {
     const template = await this.loadTemplate('ready-for-pickup.html');
 
     const html = this.renderTemplate(template, {
-      orderNumber: data.orderNumber,
-      pickupInstructions: data.pickupInstructions,
-      trackingUrl: data.trackingUrl,
+      orderNumber: this.escapeHtml(data.orderNumber),
+      pickupInstructions: this.escapeHtml(data.pickupInstructions),
+      trackingUrl: this.escapeHtml(data.trackingUrl),
     });
 
     const subject = `הזמנה מספר ${data.orderNumber} מוכנה לאיסוף`;
