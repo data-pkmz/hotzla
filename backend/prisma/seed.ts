@@ -560,6 +560,7 @@ async function main() {
         },
       ],
       uploadedFilePath: '',
+      isDeleted: false,
     },
   });
 
