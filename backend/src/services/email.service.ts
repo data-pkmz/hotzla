@@ -37,7 +37,7 @@ export class EmailService {
      * FOR TESTING ONLY REMOVE BEFORE PRODUCTION
      */
     tls: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
     },
   });
 
