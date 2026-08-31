@@ -31,6 +31,18 @@ export class PricingEngineService {
     }
 
     /**
+     * Product quantity must respect the configured
+     * minimum and maximum quantity limits.
+     */
+    if (quantity < product.minQuantity) {
+      throw new Error(`הכמות המינימלית למוצר זה היא ${product.minQuantity}`);
+    }
+
+    if (product.maxQuantity !== null && quantity > product.maxQuantity) {
+      throw new Error(`הכמות המקסימלית למוצר זה היא ${product.maxQuantity}`);
+    }
+
+    /**
      * Base price may be 0, but not negative.
      */
     if (product.basePrice.isNegative()) {

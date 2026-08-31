@@ -123,6 +123,7 @@ export class OrderService {
         orderItemsCreateData.push({
           product: { connect: { id: item.productId } },
           uploadedFilePath: item.uploadedFilePath || '',
+          quantity: item.quantity,
           computedUnitPrice,
           computedTotalPrice,
           itemAttributeEntries:

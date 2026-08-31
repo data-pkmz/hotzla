@@ -25,14 +25,50 @@ interface CartItemRowProps {
 
 export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
   // Safe defaults in case product data is missing
-  const productName = item.product?.name || 'מוצר ללא שם';
+  const productName = item.product?.name || 'מוצר לא ידוע';
   const productImage = item.product?.imageUrl || 'https://via.placeholder.com/80';
 
   // Format the selected attributes into a readable string
-  const attributesText = Object.entries(item.selectedAttributes || {})
-    .map(([key, value]) => `${key}: ${value}`)
+  const attributesText = (item.selectedAttributes ?? [])
+    .map((selectedAttribute) => {
+      const definition = item.product?.attributeDefinitionEntries?.find(
+        (attribute) => attribute.id === selectedAttribute.attributeDefinitionId
+      );
+
+      if (!definition) {
+        return null;
+      }
+
+      if (selectedAttribute.selectedOptionIds?.length) {
+        const selectedLabels = selectedAttribute.selectedOptionIds
+          .map((optionId) => {
+            const option = definition.attributeOptionEntries?.find(
+              (attributeOption) => attributeOption.id === optionId
+            );
+
+            return option?.optionLabel;
+          })
+          .filter((label): label is string => Boolean(label));
+
+        if (selectedLabels.length === 0) {
+          return null;
+        }
+
+        return `${definition.attributeName}: ${selectedLabels.join(', ')}`;
+      }
+
+      if (
+        selectedAttribute.value !== undefined &&
+        selectedAttribute.value !== null &&
+        selectedAttribute.value !== ''
+      ) {
+        return `${definition.attributeName}: ${String(selectedAttribute.value)}`;
+      }
+
+      return null;
+    })
+    .filter((text): text is string => Boolean(text))
     .join(' | ');
 
   return (
@@ -76,6 +112,8 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
         {/* 3. Quantity Controls */}
         <QuantityControl
           quantity={Number(item.quantity)}
+          minQuantity={item.product?.minQuantity ?? 1}
+          maxQuantity={item.product?.maxQuantity ?? null}
           onUpdate={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
         />
 
@@ -114,10 +152,10 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
         dir="rtl"
         disableScrollLock={true}
       >
-        <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'start' }}>הסרת פריט</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'start' }}>מחיקת פריט</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ textAlign: 'start' }}>
-            האם אתה בטוח שברצונך להסיר את "{productName}" מהעגלה?
+            האם אתה בטוח שברצונך למחוק את הפריט "{productName}" מהעגלה?
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -132,7 +170,7 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
             color="error"
             variant="contained"
           >
-            הסר פריט
+            מחק
           </Button>
         </DialogActions>
       </Dialog>

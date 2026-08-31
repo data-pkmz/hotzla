@@ -1,5 +1,5 @@
 import type { Product } from './product.types.js';
-import type { User } from './user.types.js';
+import type { User, UserRole } from './user.types.js';
 
 export type OrderStatus =
   | 'PENDING_BUDGET'
@@ -24,6 +24,7 @@ export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
+  quantity: number;
   uploadedFilePath?: string;
   computedUnitPrice: number;
   computedTotalPrice: number;
@@ -96,4 +97,73 @@ export interface OrderListResponse {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface OrderDetailsUser {
+  id: string;
+  fullName?: string | null;
+  militaryEmail?: string | null;
+  unit?: string | null;
+  phone?: string | null;
+}
+
+export interface OrderDetailsAttribute {
+  id: string;
+  valueText: string;
+  attributeDefinition: {
+    id: string;
+    attributeName: string;
+  };
+  selectedOption?: {
+    id: string;
+    optionLabel: string;
+    optionValue: string;
+  } | null;
+}
+
+export interface OrderDetailsItem {
+  id: string;
+  quantity: number | string;
+  uploadedFilePath: string;
+  computedUnitPrice: number | string;
+  computedTotalPrice: number | string;
+
+  product: {
+    id: string;
+    name: string;
+  };
+
+  itemAttributeEntries: OrderDetailsAttribute[];
+}
+
+export interface OrderDetailsStatusHistory {
+  id: string;
+  fromStatus?: OrderStatus | null;
+  toStatus: OrderStatus;
+  changedAt: Date | string;
+  note?: string | null;
+
+  changedByUser?: {
+    id: string;
+    fullName?: string | null;
+    role?: UserRole;
+  } | null;
+}
+
+export interface OrderDetails {
+  id: string;
+  orderNumber: string;
+  createdAt: Date | string;
+  totalPrice: number | string;
+  status: OrderStatus;
+
+  budgetOfficerName: string;
+  budgetOfficerEmail: string;
+
+  requester: OrderDetailsUser;
+  approvedByManager?: OrderDetailsUser | null;
+  worker?: OrderDetailsUser | null;
+
+  itemEntries: OrderDetailsItem[];
+  orderStatus: OrderDetailsStatusHistory[];
 }

@@ -25,7 +25,22 @@ export class CartService {
             id: 'asc',
           },
           include: {
-            product: true,
+            product: {
+              include: {
+                attributeDefinitionEntries: {
+                  where: {
+                    isDeleted: false,
+                  },
+                  include: {
+                    attributeOptionEntries: {
+                      where: {
+                        isDeleted: false,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -112,10 +127,16 @@ export class CartService {
       throw new Error('Cart item not found');
     }
 
+    const quantity = input.quantity ?? Number(existingItem.quantity);
+
+    const selectedAttributes =
+      input.selectedAttributes ??
+      (existingItem.selectedAttributes as unknown as UpdateCartItemInput['selectedAttributes']);
+
     const priceResult = await PricingEngineService.calculatePrice({
       productId: existingItem.productId,
-      quantity: input.quantity,
-      selectedAttributes: input.selectedAttributes,
+      quantity,
+      selectedAttributes: selectedAttributes ?? [],
     });
 
     return prisma.cartItem.update({
@@ -124,9 +145,7 @@ export class CartService {
       },
       data: {
         quantity: input.quantity,
-
-        selectedAttributes: input.selectedAttributes as unknown as Prisma.InputJsonValue,
-
+        selectedAttributes: selectedAttributes as unknown as Prisma.InputJsonValue,
         computedPrice: priceResult.totalPrice,
       },
     });

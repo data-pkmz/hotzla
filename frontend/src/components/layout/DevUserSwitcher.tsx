@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Chip, Menu, MenuItem, Typography } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import { useAuthStore, type UserRole, MOCK_USERS } from '../../store/useAuthStore';
+import { useAuthStore, type MockUserKey, MOCK_USERS } from '../../store/useAuthStore';
 
 export const DevUserSwitcher: React.FC = () => {
-  const { currentUser, setRole } = useAuthStore();
+  const { currentUser, setUser } = useAuthStore();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   // בודק אם מופעל Mock Auth (ב-Vite)
@@ -16,9 +16,9 @@ export const DevUserSwitcher: React.FC = () => {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleClose = (role?: UserRole) => {
-    if (role) {
-      setRole(role);
+  const handleClose = (userKey?: MockUserKey) => {
+    if (userKey) {
+      setUser(userKey);
     }
     setAnchorEl(null);
   };
@@ -39,15 +39,19 @@ export const DevUserSwitcher: React.FC = () => {
             החלף זהות משתמש (Dev Only)
           </Typography>
         </Box>
-        {(Object.keys(MOCK_USERS) as UserRole[]).map((role) => (
-          <MenuItem
-            key={role}
-            selected={currentUser.role === role}
-            onClick={() => handleClose(role)}
-          >
-            {MOCK_USERS[role].name} ({role})
-          </MenuItem>
-        ))}
+        {(Object.keys(MOCK_USERS) as MockUserKey[]).map((userKey) => {
+          const user = MOCK_USERS[userKey];
+
+          return (
+            <MenuItem
+              key={userKey}
+              selected={currentUser.adUsername === user.adUsername}
+              onClick={() => handleClose(userKey)}
+            >
+              {user.name} ({user.role})
+            </MenuItem>
+          );
+        })}
       </Menu>
     </Box>
   );

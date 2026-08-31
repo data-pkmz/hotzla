@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Drawer,
   Box,
@@ -48,7 +48,7 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
   // 2. Mutations
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ id, newQuantity }: { id: string; newQuantity: number }) => {
-      return updateCartItem(id, { quantity: newQuantity, selectedAttributes: [] });
+      return updateCartItem(id, { quantity: newQuantity });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activeCart'] });
@@ -111,7 +111,7 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
                 <CircularProgress />
               </Box>
             ) : items.length === 0 ? (
-              <Typography color="text.secondary" dir="rtl" sx={{ textAlign: 'center', mt: 5 }}>
+              <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 5 }}>
                 העגלה שלך ריקה
               </Typography>
             ) : (
@@ -141,6 +141,8 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
                       <QuantityControl
                         size="small"
                         quantity={Number(item.quantity)}
+                        minQuantity={item.product?.minQuantity ?? 1}
+                        maxQuantity={item.product?.maxQuantity ?? null}
                         onUpdate={(newQuantity) => handleUpdateQuantity(item.id, newQuantity)}
                       />
 
@@ -195,17 +197,16 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
         </Box>
       </Drawer>
 
-      {/* Confirmation Dialog */}
       <Dialog
-        open={!!itemToDeleteId}
+        open={Boolean(itemToDeleteId)}
         onClose={() => setItemToDeleteId(null)}
         dir="rtl"
         disableScrollLock={true}
       >
-        <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'start' }}>הסרת פריט</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'start' }}>מחיקת פריט</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ textAlign: 'start' }}>
-            האם אתה בטוח שברצונך להסיר פריט זה מהעגלה?
+            האם אתה בטוח שברצונך למחוק את הפריט מהעגלה?
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -214,15 +215,13 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
           </Button>
           <Button
             onClick={() => {
-              if (itemToDeleteId) {
-                handleRemove(itemToDeleteId);
-              }
+              if (itemToDeleteId) handleRemove(itemToDeleteId);
               setItemToDeleteId(null);
             }}
             color="error"
             variant="contained"
           >
-            הסר פריט
+            מחק
           </Button>
         </DialogActions>
       </Dialog>

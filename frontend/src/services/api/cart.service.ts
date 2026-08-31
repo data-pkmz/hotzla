@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import type {
   Cart,
   CartItem,
@@ -23,7 +24,7 @@ interface CheckoutResponse {
 }
 
 export const getActiveCart = async (): Promise<Cart> => {
-  const response = await fetch('/api/cart');
+  const response = await apiFetch('/api/cart');
 
   if (!response.ok) {
     throw new Error('Failed to load active cart');
@@ -34,7 +35,7 @@ export const getActiveCart = async (): Promise<Cart> => {
 };
 
 export const addItemToCart = async (input: AddToCartInput): Promise<CartItem> => {
-  const response = await fetch('/api/cart/items', {
+  const response = await apiFetch('/api/cart/items', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
@@ -49,7 +50,7 @@ export const addItemToCart = async (input: AddToCartInput): Promise<CartItem> =>
 };
 
 export const updateCartItem = async (id: string, input: UpdateCartItemInput): Promise<CartItem> => {
-  const response = await fetch(`/api/cart/items/${id}`, {
+  const response = await apiFetch(`/api/cart/items/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
@@ -64,7 +65,7 @@ export const updateCartItem = async (id: string, input: UpdateCartItemInput): Pr
 };
 
 export const removeCartItem = async (id: string): Promise<void> => {
-  const response = await fetch(`/api/cart/items/${id}`, {
+  const response = await apiFetch(`/api/cart/items/${id}`, {
     method: 'DELETE',
   });
 
@@ -74,7 +75,7 @@ export const removeCartItem = async (id: string): Promise<void> => {
 };
 
 export const checkoutCart = async (input: CreateOrderInput): Promise<Order> => {
-  const response = await fetch('/api/cart/checkout', {
+  const response = await apiFetch('/api/cart/checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
