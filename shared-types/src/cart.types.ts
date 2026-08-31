@@ -1,5 +1,5 @@
-import type { Product } from './product.types';
 import type { SelectedAttributeInput } from './pricing.types';
+import { Product } from './product.types';
 
 export type CartStatus = 'ACTIVE' | 'CONVERTED' | 'ABANDONED';
 
