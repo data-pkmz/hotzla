@@ -91,7 +91,7 @@ export const checkoutCart = async (input: CreateOrderInput): Promise<Order> => {
 };
 
 export const clearActiveCart = async (): Promise<void> => {
-  const response = await fetch('/api/cart/items', {
+  const response = await apiFetch('/api/cart/items', {
     method: 'DELETE',
   });
 

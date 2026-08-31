@@ -560,6 +560,90 @@ async function main() {
         },
       ],
       uploadedFilePath: '',
+      isDeleted: false,
+    },
+    create: {
+      id: '51000000-0000-0000-0000-000000000003',
+      cartId: activeCart.id,
+      productId: notebooks.id,
+      quantity: 2,
+      computedPrice: 135,
+      selectedAttributes: [
+        {
+          attributeDefinitionId: notebookSize.id,
+          selectedOptionIds: [notebookA4.id],
+        },
+      ],
+      uploadedFilePath: '',
+    },
+  });
+
+  // Cart for requesterTwo (pricingTestProduct)
+  const activeCartTwo = await prisma.cart.upsert({
+    where: {
+      id: '50000000-0000-0000-0000-000000000002',
+    },
+    update: {
+      userId: requesterTwo.id,
+      status: 'ACTIVE',
+      isDeleted: false,
+      updatedAt: new Date(),
+    },
+    create: {
+      id: '50000000-0000-0000-0000-000000000002',
+      userId: requesterTwo.id,
+      status: 'ACTIVE',
+      updatedAt: new Date(),
+    },
+  });
+
+  await prisma.cartItem.upsert({
+    where: {
+      id: '51000000-0000-0000-0000-000000000004',
+    },
+    update: {
+      cartId: activeCartTwo.id,
+      productId: pricingTestProduct.id,
+      quantity: 1,
+      computedPrice: 8,
+      selectedAttributes: [
+        {
+          attributeDefinitionId: copiesAttribute.id,
+          value: 50,
+        },
+        {
+          attributeDefinitionId: paperTypeAttribute.id,
+          selectedOptionIds: ['20000000-0000-0000-0000-000000000010'],
+        },
+        {
+          attributeDefinitionId: bindingAttribute.id,
+          selectedOptionIds: ['20000000-0000-0000-0000-000000000013'],
+        },
+      ],
+      uploadedFilePath: '',
+      isDeleted: false,
+    },
+    create: {
+      id: '51000000-0000-0000-0000-000000000004',
+      cartId: activeCartTwo.id,
+      productId: pricingTestProduct.id,
+      quantity: 1,
+      computedPrice: 8,
+      selectedAttributes: [
+        {
+          attributeDefinitionId: copiesAttribute.id,
+          value: 50,
+        },
+        {
+          attributeDefinitionId: paperTypeAttribute.id,
+          selectedOptionIds: ['20000000-0000-0000-0000-000000000010'],
+        },
+        {
+          attributeDefinitionId: bindingAttribute.id,
+          selectedOptionIds: ['20000000-0000-0000-0000-000000000013'],
+        },
+      ],
+      uploadedFilePath: '',
     },
   });
 
