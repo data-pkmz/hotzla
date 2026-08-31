@@ -3,37 +3,72 @@ import { z } from 'zod';
 /**
  * Validation for creating a product.
  */
-export const createProductSchema = z.object({
-  name: z.string().trim().min(1, 'Product name is required'),
-  description: z.string().trim().min(1, 'Product description is required'),
-  category: z.string().trim().min(1, 'Product category is required'),
-  productType: z.enum(['FIXED', 'DYNAMIC']),
-  basePrice: z.number().nonnegative('Base price cannot be negative'),
-  createdBy: z.string().uuid().optional(),
-});
+export const createProductSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Product name is required'),
+    description: z.string().trim().min(1, 'Product description is required'),
+    category: z.string().trim().min(1, 'Product category is required'),
+    productType: z.enum(['FIXED', 'DYNAMIC']),
+    basePrice: z.number().nonnegative('Base price cannot be negative'),
 
+    minQuantity: z
+      .number()
+      .int('Minimum quantity must be a whole number')
+      .positive('Minimum quantity must be greater than zero'),
+
+    maxQuantity: z
+      .number()
+      .int('Maximum quantity must be a whole number')
+      .positive('Maximum quantity must be greater than zero')
+      .nullable()
+      .optional(),
+
+    createdBy: z.string().uuid().optional(),
+  })
+  .refine((data) => data.maxQuantity == null || data.maxQuantity >= data.minQuantity, {
+    message: 'Maximum quantity cannot be less than minimum quantity',
+    path: ['maxQuantity'],
+  });
 /**
  * Validation for updating a product.
  *
  * All fields are optional because PUT requests may update
  * individual product properties.
  */
-export const updateProductSchema = z.object({
-  name: z.string().trim().min(1, 'Product name cannot be empty').optional(),
-  description: z.string().trim().min(1, 'Product description cannot be empty').optional(),
-  category: z.string().trim().min(1, 'Product category cannot be empty').optional(),
-  productType: z.enum(['FIXED', 'DYNAMIC']).optional(),
-  basePrice: z.number().nonnegative('Base price cannot be negative').optional(),
+export const updateProductSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Product name cannot be empty').optional(),
+    description: z.string().trim().min(1, 'Product description cannot be empty').optional(),
+    category: z.string().trim().min(1, 'Product category cannot be empty').optional(),
+    productType: z.enum(['FIXED', 'DYNAMIC']).optional(),
+    basePrice: z.number().nonnegative('Base price cannot be negative').optional(),
 
-  /**
-   * isActive controls whether the product is currently
-   * available in the catalogue.
-   *
-   * This is different from isDeleted, which is handled
-   * by the DELETE endpoint.
-   */
-  isActive: z.boolean().optional(),
-});
+    minQuantity: z
+      .number()
+      .int('Minimum quantity must be a whole number')
+      .positive('Minimum quantity must be greater than zero')
+      .optional(),
+
+    maxQuantity: z
+      .number()
+      .int('Maximum quantity must be a whole number')
+      .positive('Maximum quantity must be greater than zero')
+      .nullable()
+      .optional(),
+
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.minQuantity === undefined ||
+      data.maxQuantity === undefined ||
+      data.maxQuantity === null ||
+      data.maxQuantity >= data.minQuantity,
+    {
+      message: 'Maximum quantity cannot be less than minimum quantity',
+      path: ['maxQuantity'],
+    }
+  );
 
 /**
  * Validation for the product ID in routes such as:

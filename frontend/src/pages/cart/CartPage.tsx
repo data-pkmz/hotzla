@@ -35,7 +35,7 @@ export default function CartPage() {
       // The backend expects selectedAttributes even for quantity updates
       // The frontend mock used { [key]: value }, but shared-types uses SelectedAttributeInput[].
       // For now we pass empty array or properly mapped array if needed.
-      return updateCartItem(id, { quantity: newQuantity, selectedAttributes: [] });
+      return updateCartItem(id, { quantity: newQuantity });
     },
     onSuccess: () => {
       // Tell React Query to refetch the cart so the prices update automatically!
@@ -80,7 +80,9 @@ export default function CartPage() {
     return (
       <Box sx={{ mt: 10 }}>
         <Container>
-          <Alert severity="error">שגיאת התחברות לשרת. נא לוודא שה-Docker פועל!</Alert>
+          <Alert severity="error" dir="rtl" sx={{ textAlign: 'left' }}>
+            שגיאת התחברות לשרת. נא לוודא שה-Docker פועל!
+          </Alert>
         </Container>
       </Box>
     );
@@ -102,7 +104,11 @@ export default function CartPage() {
         </Typography>
 
         {items.length === 0 ? (
-          <Alert severity="info" sx={{ fontSize: '1.1rem' }}>
+          <Alert
+            severity="info"
+            dir="rtl"
+            sx={{ fontSize: '1.1rem', textAlign: 'left', '& .MuiAlert-message': { width: '100%' } }}
+          >
             העגלה שלך ריקה. חזור לקטלוג כדי להוסיף מוצרים!
           </Alert>
         ) : (

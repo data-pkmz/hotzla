@@ -5,6 +5,8 @@ import type { PriceResult, SelectedAttributeInput } from 'shared-types';
 interface UsePriceCalculatorParams {
   productId?: string;
   quantity: number;
+  minQuantity?: number;
+  maxQuantity?: number | null;
   selectedAttributes: SelectedAttributeInput[];
   enabled?: boolean;
 }
@@ -18,6 +20,8 @@ interface PricingResponse {
 export default function usePriceCalculator({
   productId,
   quantity,
+  minQuantity = 1,
+  maxQuantity = null,
   selectedAttributes,
   enabled = true,
 }: UsePriceCalculatorParams) {
@@ -27,7 +31,12 @@ export default function usePriceCalculator({
 
   const [error, setError] = useState<string | null>(null);
 
-  const canCalculate = Boolean(productId) && enabled && Number.isInteger(quantity) && quantity > 0;
+  const canCalculate =
+    Boolean(productId) &&
+    enabled &&
+    Number.isInteger(quantity) &&
+    quantity >= minQuantity &&
+    (maxQuantity === null || quantity <= maxQuantity);
 
   useEffect(() => {
     if (!canCalculate || !productId) {
