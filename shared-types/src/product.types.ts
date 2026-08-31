@@ -13,12 +13,13 @@ export interface Product {
   productType: ProductType;
   basePrice: number;
   isActive: boolean;
+  minQuantity: number;
+  maxQuantity: number | null;
   createdBy: string | null;
   createdAt: Date | string;
+  attributeDefinitionEntries?: ProductAttributeDefinition[];
 }
 
-// Attribute Definitions
-export type { AttributeType, PriceModifierType };
 export type PricingRule = PricingImpactType;
 
 export interface ProductAttributeDefinition {
@@ -26,6 +27,7 @@ export interface ProductAttributeDefinition {
   productId: string;
   attributeName: string;
   attributeType: AttributeType;
+  displayStyle: AttributeDisplayStyle;
   isRequired: boolean;
   displayOrder: number;
   pricingRule: PricingRule;
@@ -38,6 +40,7 @@ export interface ProductAttributeDefinition {
   allowedFileTypes?: FileTypeMode | null;
   allowMultipleFiles?: boolean;
   options?: ProductAttributeOption[];
+  attributeOptionEntries?: ProductAttributeOption[];
 }
 
 export interface ProductAttributeOption {
@@ -49,4 +52,18 @@ export interface ProductAttributeOption {
   priceModifierType: PriceModifierType;
   isPerUnit: boolean;
   displayOrder: number;
+}
+
+export type AttributeDisplayStyle =
+  | 'DROPDOWN'
+  | 'CARDS'
+  | 'NUMBER_INPUT'
+  | 'CHECKBOX'
+  | 'SWITCH'
+  | 'SINGLE_LINE'
+  | 'MULTI_LINE'
+  | 'FILE_DROPZONE';
+
+export interface ProductDetails extends Product {
+  attributes: ProductAttributeDefinition[];
 }

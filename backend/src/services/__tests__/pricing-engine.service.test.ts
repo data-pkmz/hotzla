@@ -1,11 +1,18 @@
-import { AttributeType, Prisma, PricingRule, PriceModifierType, ProductType } from '@prisma/client';
+import {
+  AttributeType,
+  Prisma,
+  PricingRule,
+  PriceModifierType,
+  ProductType,
+  AttributeDisplayStyle,
+} from '@prisma/client';
 
 import type { Product, ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 
-import { prisma } from '../../config/db.js';
-import { PricingEngineService } from '../pricing-engine-service.js';
+import { prisma } from '../../config/db';
+import { PricingEngineService } from '../pricing-engine.service';
 
-jest.mock('../../config/db.js', () => ({
+jest.mock('../../config/db', () => ({
   prisma: {
     product: {
       findFirst: jest.fn(),
@@ -31,6 +38,8 @@ const product: Product = {
   imageUrl: '/images/test-product.jpg',
   productType: ProductType.DYNAMIC,
   basePrice: new Prisma.Decimal(0),
+  minQuantity: 1,
+  maxQuantity: null,
   isActive: true,
   createdBy: null,
   createdAt: new Date(),
@@ -42,6 +51,7 @@ const numberAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'כמות עותקים',
   attributeType: AttributeType.NUMBER,
+  displayStyle: AttributeDisplayStyle.NUMBER_INPUT,
   isRequired: true,
   displayOrder: 1,
   pricingRule: PricingRule.PER_UNIT_MULTIPLIER,
@@ -61,6 +71,7 @@ const paperAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'סוג נייר',
   attributeType: AttributeType.SELECT,
+  displayStyle: AttributeDisplayStyle.CARDS,
   isRequired: true,
   displayOrder: 2,
   pricingRule: PricingRule.FLAT_ADD_PER_OPTION,
@@ -80,6 +91,7 @@ const bindingAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'כריכה',
   attributeType: AttributeType.SELECT,
+  displayStyle: AttributeDisplayStyle.DROPDOWN,
   isRequired: false,
   displayOrder: 3,
   pricingRule: PricingRule.FLAT_ADD_PER_OPTION,
@@ -99,6 +111,7 @@ const booleanAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'כריכת ספירלה',
   attributeType: AttributeType.BOOLEAN,
+  displayStyle: AttributeDisplayStyle.CHECKBOX,
   isRequired: false,
   displayOrder: 4,
   pricingRule: PricingRule.FLAT_ADD_PER_OPTION,
@@ -118,6 +131,7 @@ const textAttribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'הערות מיוחדות',
   attributeType: AttributeType.TEXT,
+  displayStyle: AttributeDisplayStyle.MULTI_LINE,
   isRequired: false,
   displayOrder: 5,
   pricingRule: PricingRule.NONE,
@@ -197,6 +211,93 @@ describe('PricingEngineService', () => {
           quantity: 1.5,
         })
       ).rejects.toThrow('הכמות חייבת להיות מספר שלם וחיובי');
+    });
+
+    it('rejects quantity below the product minimum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 9,
+        })
+      ).rejects.toThrow('הכמות המינימלית למוצר זה היא 10');
+    });
+
+    it('allows quantity equal to the product minimum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 10,
+        })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          quantity: 10,
+        })
+      );
+    });
+
+    it('allows quantity equal to the product maximum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 100,
+        })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          quantity: 100,
+        })
+      );
+    });
+
+    it('rejects quantity above the product maximum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 101,
+        })
+      ).rejects.toThrow('הכמות המקסימלית למוצר זה היא 100');
+    });
+
+    it('allows quantities above the minimum when there is no maximum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: null,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 1000,
+        })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          quantity: 1000,
+        })
+      );
     });
   });
 
@@ -302,6 +403,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-copies',
           attributeName: 'כמות עותקים',
           selectedValue: '100',
           contribution: 120,
@@ -423,6 +525,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-paper',
           attributeName: 'סוג נייר',
           selectedValue: 'כרומו',
           contribution: 20,
@@ -454,6 +557,7 @@ describe('PricingEngineService', () => {
 
       expect(result.breakdown).toEqual([
         {
+          attributeDefinitionId: 'attribute-binding',
           attributeName: 'כריכה',
           selectedValue: 'ספירלה',
           contribution: 8,
@@ -593,7 +697,7 @@ describe('PricingEngineService', () => {
       });
 
       expect(result.totalAdditionalPrice).toBe(0);
-      expect(result.breakdown[0].contribution).toBe(0);
+      expect(result.breakdown).toEqual([]);
     });
 
     it('rejects a non-boolean value', async () => {
@@ -634,13 +738,7 @@ describe('PricingEngineService', () => {
       });
 
       expect(result.totalAdditionalPrice).toBe(0);
-      expect(result.breakdown).toEqual([
-        {
-          attributeName: 'הערות מיוחדות',
-          selectedValue: 'נא להדפיס בצבע',
-          contribution: 0,
-        },
-      ]);
+      expect(result.breakdown).toEqual([]);
     });
   });
 

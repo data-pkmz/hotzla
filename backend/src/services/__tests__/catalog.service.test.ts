@@ -16,6 +16,8 @@ const products: Product[] = [
     createdBy: null,
     createdAt: new Date(),
     isDeleted: false,
+    minQuantity: 1,
+    maxQuantity: null,
   },
 ];
 
@@ -24,6 +26,7 @@ const attribute: ProductAttributeDefinition = {
   productId: 'product-1',
   attributeName: 'Paper Type',
   attributeType: 'SELECT',
+  displayStyle: 'CARDS',
   isRequired: true,
   displayOrder: 1,
   pricingRule: 'NONE',
@@ -45,6 +48,7 @@ jest.mock('../../config/db', () => ({
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      findUnique: jest.fn(),
     },
     productAttributeDefinition: {
       create: jest.fn(),
@@ -109,6 +113,8 @@ describe('getProductById', () => {
   it('returns an active and non-deleted product', async () => {
     const product = products[0];
 
+    jest.mocked(prisma.product.findUnique).mockResolvedValue(products[0]);
+
     jest.mocked(prisma.product.findFirst).mockResolvedValue(product);
 
     const result = await CatalogService.getProductById('product-1');
@@ -163,6 +169,8 @@ describe('getProductById', () => {
         productType: 'FIXED' as const,
         basePrice: 50,
         createdBy: 'user-1',
+        minQuantity: 1,
+        maxQuantity: null,
       };
 
       const createdProduct = products[0];
@@ -182,6 +190,8 @@ describe('getProductById', () => {
           basePrice: input.basePrice,
           isActive: true,
           createdBy: input.createdBy,
+          minQuantity: 1,
+          maxQuantity: null,
         },
       });
     });
@@ -193,6 +203,8 @@ describe('getProductById', () => {
         category: 'Stationery',
         productType: 'DYNAMIC' as const,
         basePrice: 25,
+        minQuantity: 1,
+        maxQuantity: null,
       };
 
       jest.mocked(prisma.product.create).mockResolvedValue(products[0]);
@@ -208,6 +220,8 @@ describe('getProductById', () => {
           basePrice: input.basePrice,
           isActive: true,
           createdBy: undefined,
+          minQuantity: 1,
+          maxQuantity: null,
         },
       });
     });
@@ -222,6 +236,8 @@ describe('getProductById', () => {
           category: 'Stationery',
           productType: 'FIXED',
           basePrice: 20,
+          minQuantity: 1,
+          maxQuantity: null,
         })
       ).rejects.toThrow('שגיאת מסד נתונים');
     });
@@ -389,6 +405,7 @@ describe('getProductById', () => {
       const data = {
         attributeName: 'Paper Type',
         attributeType: 'SELECT' as const,
+        displayStyle: 'CARDS' as const,
         isRequired: true,
         displayOrder: 1,
         pricingRule: 'NONE' as const,
@@ -407,6 +424,7 @@ describe('getProductById', () => {
           productId: 'product-1',
           attributeName: data.attributeName,
           attributeType: data.attributeType,
+          displayStyle: data.displayStyle,
           isRequired: data.isRequired,
           displayOrder: data.displayOrder,
           pricingRule: data.pricingRule,
@@ -426,6 +444,7 @@ describe('getProductById', () => {
         CatalogService.createAttribute('product-1', {
           attributeName: 'Size',
           attributeType: 'NUMBER',
+          displayStyle: 'NUMBER_INPUT',
           isRequired: false,
           displayOrder: 1,
           pricingRule: 'NONE',

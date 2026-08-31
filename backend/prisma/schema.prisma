@@ -42,16 +42,19 @@ enum AttributeType {
   FILE_UPLOAD
 }
 
-enum SelectionMode {
+enum AttributeDisplayStyle {
   DROPDOWN
-  FLAT
-  MULTI
-}
+  CARDS
 
-enum FileTypeMode {
-  IMAGE
-  PDF
-  IMAGE_AND_PDF
+  NUMBER_INPUT
+
+  CHECKBOX
+  SWITCH
+
+  SINGLE_LINE
+  MULTI_LINE
+
+  FILE_DROPZONE
 }
 
 enum PricingRule {
@@ -133,6 +136,8 @@ model Product {
   createdByUser User?        @relation(fields: [createdBy], references: [id])
   createdAt     DateTime     @default(now()) @map("created_at")
   isDeleted     Boolean      @default(false) @map("is_deleted")
+  minQuantity   Int          @default(1) @map("min_quantity")
+  maxQuantity   Int?         @map("max_quantity")
   attributeDefinitionEntries ProductAttributeDefinition[]
   cartItemEntries CartItem[]
   orderItemEntries OrderItem[]
@@ -140,23 +145,19 @@ model Product {
 }
 
 model ProductAttributeDefinition {
-  id            String        @id @default(uuid()) @db.Uuid
-  productId     String        @map("product_id") @db.Uuid
-  product       Product       @relation(fields: [productId], references: [id])
-  attributeName String        @map("attribute_name")
-  attributeType AttributeType @map("attribute_type")
-  isRequired    Boolean       @map("is_required")
-  displayOrder  Int           @map("display_order")
-  pricingRule   PricingRule   @map("pricing_rule")
-  unitPrice     Decimal?      @map("unit_price")
-  minValue      Decimal?      @map("min_value")
-  maxValue      Decimal?      @map("max_value")
-  selectionMode SelectionMode? @map("selection_mode")
-  isMultipleSelection Boolean @default(false) @map("is_multiple_selection")
-  maxLength     Int?          @map("max_length")
-  allowedFileTypes FileTypeMode? @map("allowed_file_types")
-  allowMultipleFiles Boolean @default(false) @map("allow_multiple_files")
-  isDeleted     Boolean       @default(false) @map("is_deleted")
+  id            String                   @id @default(uuid()) @db.Uuid
+  productId     String                   @map("product_id") @db.Uuid
+  product       Product                  @relation(fields: [productId], references: [id])
+  attributeName String                   @map("attribute_name")
+  attributeType AttributeType            @map("attribute_type")
+  displayStyle  AttributeDisplayStyle    @map("display_style")
+  isRequired    Boolean                  @map("is_required")
+  displayOrder  Int                      @map("display_order")
+  pricingRule   PricingRule              @map("pricing_rule")
+  unitPrice     Decimal?                 @map("unit_price")
+  minValue      Decimal?                 @map("min_value")
+  maxValue      Decimal?                 @map("max_value")
+  isDeleted     Boolean                  @default(false) @map("is_deleted")
   attributeOptionEntries ProductAttributeOption[]
   orderAttributeEntries OrderItemAttributeValue[]
   @@map("product_attribute_definition")
@@ -195,6 +196,7 @@ model CartItem {
   cart                Cart           @relation(fields: [cartId], references: [id])
   productId           String         @map("product_id") @db.Uuid
   product             Product        @relation(fields: [productId], references: [id])
+  quantity            Decimal
   uploadedFilePath    String         @map("uploaded_file_path")
   computedPrice       Decimal        @map("computed_price")
   selectedAttributes  Json           @map("selected_attributes")
@@ -233,6 +235,7 @@ model OrderItem {
   order                Order          @relation(fields: [orderId], references: [id])
   productId            String         @map("product_id") @db.Uuid
   product              Product        @relation(fields: [productId], references: [id])
+  quantity             Decimal
   uploadedFilePath     String         @map("uploaded_file_path")
   computedUnitPrice    Decimal        @map("computed_unit_price")
   computedTotalPrice   Decimal        @map("computed_total_price")

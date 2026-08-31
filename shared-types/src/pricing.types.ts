@@ -6,6 +6,7 @@
 export interface SelectedAttributeInput {
   attributeDefinitionId: string;
   selectedOptionIds?: string[];
+  selectedOptionId?: string;
   value?: string | number | boolean;
 }
 
@@ -22,6 +23,7 @@ export interface CalculatePriceParams {
  * One attribute's contribution to the calculated price.
  */
 export interface PriceBreakdownLine {
+  attributeDefinitionId: string;
   attributeName: string;
   selectedValue: string;
   contribution: number;
@@ -31,6 +33,7 @@ export interface PriceBreakdownLine {
  * Final result returned by the pricing engine.
  */
 export interface PriceResult {
+  quantity: number;
   baseTotal: number;
   totalAdditionalPrice: number;
   totalPrice: number;

@@ -3,42 +3,72 @@ import { z } from 'zod';
 /**
  * Validation for creating a product.
  */
-export const createProductSchema = z.object({
-  name: z.string().trim().min(1, 'Product name is required'),
-  description: z.string().trim().min(1, 'Product description is required'),
-  category: z.string().trim().min(1, 'Product category is required'),
+export const createProductSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Product name is required'),
+    description: z.string().trim().min(1, 'Product description is required'),
+    category: z.string().trim().min(1, 'Product category is required'),
+    productType: z.enum(['FIXED', 'DYNAMIC']),
+    basePrice: z.number().nonnegative('Base price cannot be negative'),
 
-  productType: z.enum(['FIXED', 'DYNAMIC']),
+    minQuantity: z
+      .number()
+      .int('Minimum quantity must be a whole number')
+      .positive('Minimum quantity must be greater than zero'),
 
-  basePrice: z.number().nonnegative('Base price cannot be negative'),
+    maxQuantity: z
+      .number()
+      .int('Maximum quantity must be a whole number')
+      .positive('Maximum quantity must be greater than zero')
+      .nullable()
+      .optional(),
 
-  createdBy: z.string().uuid().optional(),
-});
-
+    createdBy: z.string().uuid().optional(),
+  })
+  .refine((data) => data.maxQuantity == null || data.maxQuantity >= data.minQuantity, {
+    message: 'Maximum quantity cannot be less than minimum quantity',
+    path: ['maxQuantity'],
+  });
 /**
  * Validation for updating a product.
  *
  * All fields are optional because PUT requests may update
  * individual product properties.
  */
-export const updateProductSchema = z.object({
-  name: z.string().trim().min(1, 'Product name cannot be empty').optional(),
-  description: z.string().trim().min(1, 'Product description cannot be empty').optional(),
-  category: z.string().trim().min(1, 'Product category cannot be empty').optional(),
+export const updateProductSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Product name cannot be empty').optional(),
+    description: z.string().trim().min(1, 'Product description cannot be empty').optional(),
+    category: z.string().trim().min(1, 'Product category cannot be empty').optional(),
+    productType: z.enum(['FIXED', 'DYNAMIC']).optional(),
+    basePrice: z.number().nonnegative('Base price cannot be negative').optional(),
 
-  productType: z.enum(['FIXED', 'DYNAMIC']).optional(),
+    minQuantity: z
+      .number()
+      .int('Minimum quantity must be a whole number')
+      .positive('Minimum quantity must be greater than zero')
+      .optional(),
 
-  basePrice: z.number().nonnegative('Base price cannot be negative').optional(),
+    maxQuantity: z
+      .number()
+      .int('Maximum quantity must be a whole number')
+      .positive('Maximum quantity must be greater than zero')
+      .nullable()
+      .optional(),
 
-  /**
-   * isActive controls whether the product is currently
-   * available in the catalogue.
-   *
-   * This is different from isDeleted, which is handled
-   * by the DELETE endpoint.
-   */
-  isActive: z.boolean().optional(),
-});
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      data.minQuantity === undefined ||
+      data.maxQuantity === undefined ||
+      data.maxQuantity === null ||
+      data.maxQuantity >= data.minQuantity,
+    {
+      message: 'Maximum quantity cannot be less than minimum quantity',
+      path: ['maxQuantity'],
+    }
+  );
 
 /**
  * Validation for the product ID in routes such as:
@@ -57,19 +87,13 @@ export const productIdSchema = z.object({
 export const createAttributeSchema = z
   .object({
     attributeName: z.string().trim().min(1, 'Attribute name is required'),
-
     attributeType: z.enum(['SELECT', 'NUMBER', 'BOOLEAN', 'TEXT', 'FILE_UPLOAD']),
-
+    displayStyle: z.enum(['DROPDOWN', 'CARDS', 'CHECKBOX', 'SWITCH', 'SINGLE_LINE', 'MULTI_LINE']),
     isRequired: z.boolean(),
-
     displayOrder: z.number().int().nonnegative('Display order cannot be negative'),
-
     pricingRule: z.enum(['NONE', 'PER_UNIT_MULTIPLIER', 'FLAT_ADD_PER_OPTION']),
-
     unitPrice: z.number().nonnegative('Unit price cannot be negative').optional(),
-
     minValue: z.number().optional(),
-
     maxValue: z.number().optional(),
   })
   .refine(
@@ -87,19 +111,12 @@ export const createAttributeSchema = z
 export const updateAttributeSchema = z
   .object({
     attributeName: z.string().trim().min(1, 'Attribute name cannot be empty').optional(),
-
     attributeType: z.enum(['SELECT', 'NUMBER', 'BOOLEAN', 'TEXT', 'FILE_UPLOAD']).optional(),
-
     isRequired: z.boolean().optional(),
-
     displayOrder: z.number().int().nonnegative('Display order cannot be negative').optional(),
-
     pricingRule: z.enum(['NONE', 'PER_UNIT_MULTIPLIER', 'FLAT_ADD_PER_OPTION']).optional(),
-
     unitPrice: z.number().nonnegative('Unit price cannot be negative').optional(),
-
     minValue: z.number().optional(),
-
     maxValue: z.number().optional(),
   })
   .refine(

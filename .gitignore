@@ -11,4 +11,6 @@ build/
 DPS_Detailed_Task_Breakdown.md
 DPS_Task_Breakdown.md
 logs/
-*.tsbuildinfo
+*.tsbuildinfo
+uploads/
+backend/inject-cart.ts

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -14,13 +15,16 @@ import {
 
 import SearchIcon from '@mui/icons-material/Search';
 
-import CategoryFilter from '../../components/catalog/CategoryFilter';
+import CategoryFilter from '../../components/DynamicAttributeInput/CategoryFilter';
 import ProductCard from '../../components/catalog/ProductCard';
+import CartRecoveryBanner from '../../components/cart/CartRecoveryBanner';
 import { getProducts } from '../../services/api/catalog.service';
 
 export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const selectedCategory = searchParams.get('category');
 
   const {
     data: products = [],
@@ -54,11 +58,26 @@ export default function CatalogPage() {
     });
   }, [products, searchTerm, selectedCategory]);
 
+  const handleCategoryChange = (category: string | null) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+
+      if (category) {
+        next.set('category', category);
+      } else {
+        next.delete('category');
+      }
+
+      return next;
+    });
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100%',
         bgcolor: 'background.paper',
+        direction: 'ltr',
         py: {
           xs: 3,
           md: 5,
@@ -66,6 +85,8 @@ export default function CatalogPage() {
       }}
     >
       <Container maxWidth="xl">
+        <CartRecoveryBanner />
+
         <Box
           sx={{
             display: 'flex',
@@ -121,7 +142,7 @@ export default function CatalogPage() {
             <CategoryFilter
               categories={categories}
               selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
+              onCategoryChange={handleCategoryChange}
             />
           </Box>
         )}

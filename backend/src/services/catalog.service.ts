@@ -4,6 +4,7 @@ import type { Product, ProductAttributeDefinition, ProductAttributeOption } from
 import type {
   ProductType,
   AttributeType,
+  AttributeDisplayStyle,
   PricingRule,
   CreateAttributeDto,
   UpdateAttributeDto,
@@ -14,6 +15,12 @@ import {
   UpdateAttributeSchema,
   UpdateDisplayOrderSchema,
 } from '../validations/attribute.validation';
+
+type ProductAttributeDefinitionWithOptions = Prisma.ProductAttributeDefinitionGetPayload<{
+  include: {
+    attributeOptionEntries: true;
+  };
+}>;
 
 export class CatalogService {
   // ============================================================
@@ -73,6 +80,8 @@ export class CatalogService {
     basePrice: number;
     isActive?: boolean;
     createdBy?: string;
+    minQuantity: number;
+    maxQuantity?: number | null;
   }): Promise<Product> {
     return prisma.product.create({
       data: {
@@ -83,6 +92,8 @@ export class CatalogService {
         basePrice: data.basePrice,
         isActive: data.isActive ?? true,
         createdBy: data.createdBy,
+        minQuantity: data.minQuantity,
+        maxQuantity: data.maxQuantity ?? null,
       },
     });
   }
@@ -206,8 +217,31 @@ export class CatalogService {
       category?: string;
       productType?: ProductType;
       basePrice?: number;
+      minQuantity?: number;
+      maxQuantity?: number | null;
     }
   ): Promise<Product> {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        minQuantity: true,
+        maxQuantity: true,
+      },
+    });
+
+    if (!existingProduct) {
+      throw new Error('Product not found');
+    }
+
+    const finalMinQuantity = data.minQuantity ?? existingProduct.minQuantity;
+
+    const finalMaxQuantity =
+      data.maxQuantity !== undefined ? data.maxQuantity : existingProduct.maxQuantity;
+
+    if (finalMaxQuantity !== null && finalMaxQuantity < finalMinQuantity) {
+      throw new Error('Maximum quantity cannot be less than minimum quantity');
+    }
+
     return prisma.product.update({
       where: {
         id,
@@ -281,6 +315,7 @@ export class CatalogService {
         productId,
         attributeName: dto.attributeName,
         attributeType: dto.attributeType,
+        displayStyle: dto.displayStyle,
         isRequired: dto.isRequired ?? false,
         displayOrder: dto.displayOrder ?? 0,
         pricingRule: dto.pricingRule ?? 'NONE',
@@ -314,6 +349,7 @@ export class CatalogService {
     data: {
       attributeName: string;
       attributeType: AttributeType;
+      displayStyle: AttributeDisplayStyle;
       isRequired: boolean;
       displayOrder: number;
       pricingRule: PricingRule;
@@ -327,6 +363,7 @@ export class CatalogService {
         productId,
         attributeName: data.attributeName,
         attributeType: data.attributeType,
+        displayStyle: data.displayStyle,
         isRequired: data.isRequired,
         displayOrder: data.displayOrder,
         pricingRule: data.pricingRule,
@@ -342,7 +379,7 @@ export class CatalogService {
    */
   public static async getAttributeDefinitions(
     productId: string
-  ): Promise<ProductAttributeDefinition[]> {
+  ): Promise<ProductAttributeDefinitionWithOptions[]> {
     return prisma.productAttributeDefinition.findMany({
       where: { productId, isDeleted: false },
       include: {
@@ -368,6 +405,7 @@ export class CatalogService {
 
     if (dto.attributeName !== undefined) dataToUpdate.attributeName = dto.attributeName;
     if (dto.attributeType !== undefined) dataToUpdate.attributeType = dto.attributeType;
+    if (dto.displayStyle !== undefined) dataToUpdate.displayStyle = dto.displayStyle;
     if (dto.isRequired !== undefined) dataToUpdate.isRequired = dto.isRequired;
     if (dto.displayOrder !== undefined) dataToUpdate.displayOrder = dto.displayOrder;
     if (dto.pricingRule !== undefined) dataToUpdate.pricingRule = dto.pricingRule;

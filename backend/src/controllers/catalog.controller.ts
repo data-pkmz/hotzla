@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
 import { CatalogService } from '../services/catalog.service';
+import {
+  createProductSchema,
+  updateProductSchema,
+  productIdSchema,
+} from '../validations/catalog.validation';
 
 /**
  * GET /api/products
@@ -36,20 +41,58 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
     const product = await CatalogService.getProductById(id);
 
     if (!product) {
-      res.status(404).json({ success: false, message: 'Product not found' });
+      res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
       return;
     }
 
+    const attributeDefinitions = await CatalogService.getAttributeDefinitions(id);
+
+    const attributes = attributeDefinitions.map((attribute) => ({
+      id: attribute.id,
+      productId: attribute.productId,
+      attributeName: attribute.attributeName,
+      attributeType: attribute.attributeType,
+      displayStyle: attribute.displayStyle,
+      isRequired: attribute.isRequired,
+      displayOrder: attribute.displayOrder,
+      pricingRule: attribute.pricingRule,
+      unitPrice: attribute.unitPrice?.toNumber() ?? null,
+      minValue: attribute.minValue?.toNumber() ?? null,
+      maxValue: attribute.maxValue?.toNumber() ?? null,
+      options: attribute.attributeOptionEntries.map((option) => ({
+        id: option.id,
+        attributeDefinitionId: option.attributeDefinitionId,
+        optionLabel: option.optionLabel,
+        optionValue: option.optionValue,
+        priceModifier: option.priceModifier.toNumber(),
+        priceModifierType: option.priceModifierType,
+        isPerUnit: option.isPerUnit,
+        displayOrder: option.displayOrder,
+      })),
+    }));
+
     res.status(200).json({
       success: true,
-      data: product,
+      data: {
+        ...product,
+        basePrice: product.basePrice.toNumber(),
+        attributes,
+      },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
@@ -59,23 +102,25 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, category, description = '', basePrice = 0, productType = 'DYNAMIC', isActive = true, definitions = [] } = req.body;
+    const validatedData = createProductSchema.parse(req.body);
 
-    if (!name || !category) {
-      res.status(400).json({ success: false, message: 'Product name and category are required' });
-      return;
-    }
-
-    const newProduct = await CatalogService.createProductWithDefinitions({ name, category, description, basePrice, productType, isActive, definitions });
+    const newProduct = await CatalogService.createProduct(validatedData);
 
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
-      data: newProduct,
+      data: {
+        ...newProduct,
+        basePrice: newProduct.basePrice.toNumber(),
+      },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to create product',
+    });
   }
 };
 
@@ -85,23 +130,26 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
  */
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const { name, category, description = '', basePrice = 0, productType = 'DYNAMIC', isActive = true, definitions = [] } = req.body;
-    const updatedProduct = await CatalogService.updateProductWithDefinitions(id, { name, category, description, basePrice, productType, isActive, definitions });
+    const { id } = productIdSchema.parse(req.params);
+    const validatedData = updateProductSchema.parse(req.body);
 
-    if (!updatedProduct) {
-      res.status(404).json({ success: false, message: 'Product not found' });
-      return;
-    }
+    const updatedProduct = await CatalogService.updateProduct(id, validatedData);
 
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
-      data: updatedProduct,
+      data: {
+        ...updatedProduct,
+        basePrice: updatedProduct.basePrice.toNumber(),
+      },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to update product',
+    });
   }
 };
 
@@ -111,17 +159,13 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
  */
 export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
-    const product = await CatalogService.softDeleteProduct(id);
+    const { id } = productIdSchema.parse(req.params);
 
-    if (!product) {
-      res.status(404).json({ success: false, message: 'Product to delete was not found' });
-      return;
-    }
+    await CatalogService.softDeleteProduct(id);
 
     res.status(200).json({
       success: true,
-      message: 'Product removed successfully (Soft Delete)',
+      message: 'Product removed successfully',
     });
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
@@ -129,6 +173,10 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
       return;
     }
     console.error(error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+    res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to delete product',
+    });
   }
 };

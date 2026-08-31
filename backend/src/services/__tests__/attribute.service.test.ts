@@ -1,6 +1,6 @@
 import { CatalogService } from '../catalog.service';
 import { prisma } from '../../config/db';
-import { Prisma } from '@prisma/client';
+import { AttributeDisplayStyle, Prisma } from '@prisma/client';
 import type { ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 import { AttributeType, PricingImpactType, PriceModifierType } from 'shared-types';
 import { ZodError } from 'zod';
@@ -44,6 +44,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: 'Paper Type',
         attributeType: AttributeType.SELECT,
+        displayStyle: AttributeDisplayStyle.CARDS,
         isRequired: true,
         displayOrder: 1,
         pricingRule: PricingImpactType.FLAT_ADD_PER_OPTION,
@@ -72,6 +73,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: dto.attributeName,
         attributeType: dto.attributeType,
+        displayStyle: dto.displayStyle,
         isRequired: true,
         displayOrder: 1,
         pricingRule: dto.pricingRule,
@@ -109,6 +111,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: dto.attributeName,
           attributeType: dto.attributeType,
+          displayStyle: dto.displayStyle,
           isRequired: true,
           displayOrder: 1,
           pricingRule: PricingImpactType.FLAT_ADD_PER_OPTION,
@@ -147,6 +150,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: 'Quantity per pack',
         attributeType: AttributeType.NUMBER,
+        displayStyle: AttributeDisplayStyle.NUMBER_INPUT,
         isRequired: false,
         displayOrder: 2,
         pricingRule: PricingImpactType.NONE,
@@ -159,6 +163,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: dto.attributeName,
         attributeType: dto.attributeType,
+        displayStyle: dto.displayStyle,
         isRequired: false,
         displayOrder: 2,
         pricingRule: dto.pricingRule,
@@ -183,6 +188,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: dto.attributeName,
           attributeType: dto.attributeType,
+          displayStyle: dto.displayStyle,
           isRequired: false,
           displayOrder: 2,
           pricingRule: PricingImpactType.NONE,
@@ -207,6 +213,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Notes',
           attributeType: AttributeType.TEXT,
+          displayStyle: AttributeDisplayStyle.MULTI_LINE,
         })
       ).rejects.toThrow('Database error');
     });
@@ -220,6 +227,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Paper Type',
           attributeType: 'SELECT',
+          displayStyle: 'CARDS',
           isRequired: true,
           displayOrder: 1,
           pricingRule: 'NONE',
@@ -291,6 +299,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: 'Updated Paper Type',
         attributeType: 'SELECT',
+        displayStyle: 'DROPDOWN',
         isRequired: true,
         displayOrder: 3,
         pricingRule: 'NONE',
@@ -346,6 +355,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: 'Paper Type',
         attributeType: 'SELECT',
+        displayStyle: 'CARDS',
         isRequired: true,
         displayOrder: 1,
         pricingRule: 'NONE',
@@ -377,6 +387,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         productId: validProductId,
         attributeName: 'Paper Type',
         attributeType: 'SELECT',
+        displayStyle: 'CARDS',
         isRequired: true,
         displayOrder: 1,
         pricingRule: 'NONE',
@@ -416,6 +427,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Paper Type',
           attributeType: 'SELECT',
+          displayStyle: 'CARDS',
           isRequired: true,
           displayOrder: 0,
           pricingRule: 'NONE',
@@ -626,6 +638,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Select With No Options',
           attributeType: AttributeType.SELECT,
+          displayStyle: AttributeDisplayStyle.CARDS,
           options: [],
         })
       ).rejects.toThrow(ZodError);
@@ -637,6 +650,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Select With 1 Option',
           attributeType: AttributeType.SELECT,
+          displayStyle: AttributeDisplayStyle.DROPDOWN,
           options: [{ optionLabel: 'Single Option', optionValue: 'single' }],
         })
       ).rejects.toThrow(ZodError);
@@ -648,6 +662,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Number With Options',
           attributeType: AttributeType.NUMBER,
+          displayStyle: AttributeDisplayStyle.NUMBER_INPUT,
           options: [{ optionLabel: 'Invalid', optionValue: 'invalid' }],
         })
       ).rejects.toThrow(ZodError);
@@ -659,6 +674,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Text With Options',
           attributeType: AttributeType.TEXT,
+          displayStyle: AttributeDisplayStyle.MULTI_LINE,
           options: [{ optionLabel: 'Invalid', optionValue: 'invalid' }],
         })
       ).rejects.toThrow(ZodError);
@@ -670,6 +686,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'File Upload With Options',
           attributeType: AttributeType.FILE_UPLOAD,
+          displayStyle: AttributeDisplayStyle.FILE_DROPZONE,
           options: [{ optionLabel: 'Invalid', optionValue: 'invalid' }],
         })
       ).rejects.toThrow(ZodError);
@@ -681,6 +698,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: 'Boolean With Options',
           attributeType: AttributeType.BOOLEAN,
+          displayStyle: AttributeDisplayStyle.SWITCH,
           options: [{ optionLabel: 'Invalid', optionValue: 'invalid' }],
         })
       ).rejects.toThrow(ZodError);
@@ -692,6 +710,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: 'invalid-uuid',
           attributeName: 'Valid Name',
           attributeType: AttributeType.TEXT,
+          displayStyle: AttributeDisplayStyle.SINGLE_LINE,
         })
       ).rejects.toThrow(ZodError);
     });
@@ -702,6 +721,7 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           productId: validProductId,
           attributeName: '',
           attributeType: AttributeType.TEXT,
+          displayStyle: AttributeDisplayStyle.MULTI_LINE,
         })
       ).rejects.toThrow(ZodError);
     });

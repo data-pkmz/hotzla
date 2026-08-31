@@ -11,7 +11,14 @@ const DRAWER_WIDTH = 240;
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'row-reverse',
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+      }}
+    >
       <CssBaseline />
       <Header />
       <Sidebar />
