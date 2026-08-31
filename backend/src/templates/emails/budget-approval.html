@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>אישור תקציבי להזמנה</title>
+  </head>
+
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      text-align: right;
+    "
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      style="background-color: #f5f5f5; padding: 24px"
+    >
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            style="max-width: 600px; background-color: #ffffff; border-radius: 8px; padding: 32px"
+          >
+            <tr>
+              <td style="font-size: 22px; font-weight: bold; padding-bottom: 24px">
+                אישור תקציבי להזמנה {{orderNumber}}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="font-size: 16px; line-height: 1.6; padding-bottom: 16px">
+                התקבלה הזמנה חדשה מאת <strong>{{requesterName}}</strong>.
+              </td>
+            </tr>
+
+            <tr>
+              <td style="font-size: 16px; font-weight: bold; padding-bottom: 12px">
+                פירוט הפריטים שהוזמנו:
+              </td>
+            </tr>
+
+            <tr>
+              <td style="font-size: 15px; line-height: 1.6; padding-bottom: 20px">
+                {{orderItems}}
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                style="
+                  font-size: 18px;
+                  font-weight: bold;
+                  padding-top: 16px;
+                  padding-bottom: 24px;
+                  border-top: 1px solid #dddddd;
+                "
+              >
+                סה"כ עלות: {{totalPrice}} ₪
+              </td>
+            </tr>
+
+            <tr>
+              <td style="font-size: 16px; line-height: 1.6; padding-bottom: 20px">
+                לאישור ההזמנה, השב למייל זה במילה
+                <strong>"מאושר"</strong>,
+                <br />
+                או לחץ על הכפתור הבא:
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding-bottom: 24px">
+                <a
+                  href="{{approvalUrl}}"
+                  style="
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background-color: #243b7a;
+                    color: #ffffff;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    font-size: 16px;
+                    font-weight: bold;
+                  "
+                >
+                  אישור ההזמנה
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+                style="
+                  font-size: 13px;
+                  color: #666666;
+                  line-height: 1.5;
+                  padding-top: 16px;
+                  border-top: 1px solid #eeeeee;
+                "
+              >
+                קישור האישור מיועד להזמנה זו בלבד.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
