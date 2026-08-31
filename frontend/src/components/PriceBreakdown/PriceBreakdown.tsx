@@ -220,6 +220,7 @@ export default function PriceBreakdown({
             fullWidth
             variant="contained"
             endIcon={<ShoppingCartOutlinedIcon />}
+            disabled={!isFormValid || !result || isLoading}
             onClick={() => {
               // Cart functionality will be connected later.
             }}
@@ -247,7 +248,9 @@ export default function PriceBreakdown({
               textAlign: 'left',
             }}
           >
-            בחרו את אפשרויות המוצר לקבלת מחיר
+            {isFormValid
+              ? 'בחרו את אפשרויות המוצר לקבלת מחיר'
+              : 'יש לתקן או להשלים את פרטי המוצר לקבלת מחיר'}
           </Typography>
         )
       )}

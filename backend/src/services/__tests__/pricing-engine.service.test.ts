@@ -38,6 +38,8 @@ const product: Product = {
   imageUrl: '/images/test-product.jpg',
   productType: ProductType.DYNAMIC,
   basePrice: new Prisma.Decimal(0),
+  minQuantity: 1,
+  maxQuantity: null,
   isActive: true,
   createdBy: null,
   createdAt: new Date(),
@@ -184,6 +186,93 @@ describe('PricingEngineService', () => {
           quantity: 1.5,
         })
       ).rejects.toThrow('הכמות חייבת להיות מספר שלם וחיובי');
+    });
+
+    it('rejects quantity below the product minimum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 9,
+        })
+      ).rejects.toThrow('הכמות המינימלית למוצר זה היא 10');
+    });
+
+    it('allows quantity equal to the product minimum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 10,
+        })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          quantity: 10,
+        })
+      );
+    });
+
+    it('allows quantity equal to the product maximum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 100,
+        })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          quantity: 100,
+        })
+      );
+    });
+
+    it('rejects quantity above the product maximum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: 100,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 101,
+        })
+      ).rejects.toThrow('הכמות המקסימלית למוצר זה היא 100');
+    });
+
+    it('allows quantities above the minimum when there is no maximum', async () => {
+      (prisma.product.findFirst as jest.Mock).mockResolvedValue({
+        ...product,
+        minQuantity: 10,
+        maxQuantity: null,
+      });
+
+      await expect(
+        PricingEngineService.calculatePrice({
+          productId: 'product-1',
+          quantity: 1000,
+        })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          quantity: 1000,
+        })
+      );
     });
   });
 

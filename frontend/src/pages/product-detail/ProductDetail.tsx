@@ -34,6 +34,8 @@ export const ProductDetailPage: React.FC = () => {
   } = usePriceCalculator({
     productId: id,
     quantity: configuration.quantity,
+    minQuantity: product?.minQuantity,
+    maxQuantity: product?.maxQuantity,
     selectedAttributes: configuration.selectedAttributes,
     enabled: Boolean(product),
   });
@@ -161,6 +163,8 @@ export const ProductDetailPage: React.FC = () => {
 
           <AttributeForm
             attributeDefinitions={product.attributes}
+            minQuantity={product.minQuantity}
+            maxQuantity={product.maxQuantity}
             onChange={(value, isValid) => {
               setConfiguration(value);
               setFormIsValid(isValid);

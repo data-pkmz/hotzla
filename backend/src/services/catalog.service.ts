@@ -67,6 +67,8 @@ export class CatalogService {
     productType: ProductType;
     basePrice: number;
     createdBy?: string;
+    minQuantity: number;
+    maxQuantity?: number | null;
   }): Promise<Product> {
     return prisma.product.create({
       data: {
@@ -77,6 +79,8 @@ export class CatalogService {
         basePrice: data.basePrice,
         isActive: true,
         createdBy: data.createdBy,
+        minQuantity: data.minQuantity,
+        maxQuantity: data.maxQuantity ?? null,
       },
     });
   }
@@ -92,8 +96,31 @@ export class CatalogService {
       category?: string;
       productType?: ProductType;
       basePrice?: number;
+      minQuantity?: number;
+      maxQuantity?: number | null;
     }
   ): Promise<Product> {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        minQuantity: true,
+        maxQuantity: true,
+      },
+    });
+
+    if (!existingProduct) {
+      throw new Error('Product not found');
+    }
+
+    const finalMinQuantity = data.minQuantity ?? existingProduct.minQuantity;
+
+    const finalMaxQuantity =
+      data.maxQuantity !== undefined ? data.maxQuantity : existingProduct.maxQuantity;
+
+    if (finalMaxQuantity !== null && finalMaxQuantity < finalMinQuantity) {
+      throw new Error('Maximum quantity cannot be less than minimum quantity');
+    }
+
     return prisma.product.update({
       where: {
         id,

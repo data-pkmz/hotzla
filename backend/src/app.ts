@@ -5,6 +5,7 @@ import { testDbConnection } from './config/db';
 import logger from './utils/logger';
 import authRoutes from './routes/auth.routes';
 import pricingRoutes from './routes/pricing.routes';
+import { authMiddleware } from './middlewares/auth.middleware';
 
 // 1. Import Catalog Routes
 import catalogRouter from './routes/catalog.routes';
@@ -67,6 +68,9 @@ app.use('/api/admin/products', adminCatalogRouter);
 
 // 3. Register Pricing routes
 app.use('/api/pricing', pricingRoutes);
+
+// 4. Order routes
+app.use('/api/orders', authMiddleware, orderRoutes);
 
 app.listen(port, async () => {
   logger.info(`Backend server is running on port ${port}`);
