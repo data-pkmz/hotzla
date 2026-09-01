@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Container, Grid, Typography, Alert, CircularProgress } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -10,6 +11,7 @@ import type { CartItem } from 'shared-types';
 
 export default function CartPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // 1. Fetch the real cart from the Backend (port 8080)
   const {
@@ -64,8 +66,7 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
-    // Navigate to the checkout page (which will use checkoutCart)
-    alert('מוכן להזמנה! (נתיב הקופה ייווצר בהמשך)');
+    navigate('/checkout');
   };
 
   if (isLoading) {

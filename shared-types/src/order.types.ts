@@ -76,9 +76,22 @@ export interface Order {
 }
 
 export interface CreateOrderInput {
-  budgetOfficerName: string;
-  budgetOfficerEmail: string;
+  requesterId?: string;
+  cartId?: string;
+  customer?: {
+    name: string;
+    phone: string;
+    orgEmail: string;
+    unit: string;
+  };
+  budgetOfficer?: {
+    fullName: string;
+    militaryEmail: string;
+  };
+  budgetOfficerName?: string;
+  budgetOfficerEmail?: string;
   unit?: string;
+  deliveryDueDate?: string;
   notes?: string;
 }
 
