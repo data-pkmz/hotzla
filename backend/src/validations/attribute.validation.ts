@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AttributeType, FileTypeMode, PricingImpactType, PriceModifierType, SelectionMode } from 'shared-types';
+import { AttributeType, PricingImpactType, PriceModifierType } from 'shared-types';
 
 const getEnumValues = <T extends Record<string, string>>(obj: T) =>
   Object.values(obj) as [string, ...string[]];
@@ -29,11 +29,6 @@ const CreateAttributeBaseSchema = z.object({
   unitPrice: z.number().optional(),
   minValue: z.number().optional(),
   maxValue: z.number().optional(),
-  selectionMode: z.enum(getEnumValues(SelectionMode)).optional(),
-  isMultipleSelection: z.boolean().optional().default(false),
-  maxLength: z.number().int().positive().optional(),
-  allowedFileTypes: z.enum(getEnumValues(FileTypeMode)).optional(),
-  allowMultipleFiles: z.boolean().optional().default(false),
   options: z.array(ProductAttributeOptionSchema).optional(),
 });
 

@@ -1,5 +1,6 @@
+import React from 'react';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import { Box, IconButton, TextField } from '@mui/material';
+import { Box, FormControlLabel, IconButton, MenuItem, Switch, TextField } from '@mui/material';
 import type { BuilderOption } from '../../pages/admin/ProductBuilderPage';
 
 interface AttributeOptionFormProps {
@@ -8,51 +9,79 @@ interface AttributeOptionFormProps {
   onRemove: () => void;
 }
 
-export const AttributeOptionForm = ({ option, onChange, onRemove }: AttributeOptionFormProps) => (
+export const AttributeOptionForm: React.FC<AttributeOptionFormProps> = ({
+  option,
+  onChange,
+  onRemove,
+}) => (
   <Box
     sx={{
       display: 'grid',
-      gridTemplateColumns: { xs: '1fr 1fr', md: '1.5fr 1.3fr 0.9fr 0.9fr auto' },
-      gap: 1,
+      gridTemplateColumns: { xs: '1fr 1fr', md: '1.4fr 1.2fr 0.9fr 1fr auto auto' },
+      gap: 1.5,
       alignItems: 'center',
-      p: 1.25,
-      bgcolor: 'surface.containerLow',
+      p: 1.5,
+      bgcolor: 'background.paper',
+      border: '1px solid',
+      borderColor: 'divider',
       borderRadius: 1,
     }}
   >
     <TextField
       size="small"
-      label="תווית"
+      label="תווית תצוגה"
+      placeholder="לדוגמה: נייר כרומו 300 גרם"
       value={option.optionLabel}
-      onChange={(event) => onChange({ optionLabel: event.target.value })}
+      onChange={(event) => {
+        const optionLabel = event.target.value;
+        const patch: Partial<BuilderOption> = { optionLabel };
+        if (!option.optionValue || option.optionValue === option.optionLabel) {
+          patch.optionValue = optionLabel;
+        }
+        onChange(patch);
+      }}
     />
     <TextField
       size="small"
-      label="ערך"
+      label="ערך מזהה"
+      placeholder="chromo_300"
       value={option.optionValue}
       onChange={(event) => onChange({ optionValue: event.target.value })}
     />
     <TextField
       size="small"
-      label="תוספת"
+      label="תוספת מחיר"
       type="number"
+      inputProps={{ step: '0.1' }}
       value={option.priceModifier}
-      onChange={(event) => onChange({ priceModifier: Number(event.target.value) })}
+      onChange={(event) => onChange({ priceModifier: Number(event.target.value) || 0 })}
     />
     <TextField
       select
       size="small"
-      label="סוג"
+      label="סוג תוספת"
       value={option.priceModifierType}
-      SelectProps={{ native: true }}
       onChange={(event) =>
-        onChange({ priceModifierType: event.target.value as BuilderOption['priceModifierType'] })
+        onChange({
+          priceModifierType: event.target.value as BuilderOption['priceModifierType'],
+        })
       }
     >
-      <option value="FIXED_ADD">תוספת קבועה</option>
-      <option value="MULTIPLY">מכפיל</option>
+      <MenuItem value="FIXED_ADD">תוספת קבועה (₪)</MenuItem>
+      <MenuItem value="MULTIPLY">מכפיל (x)</MenuItem>
     </TextField>
-    <IconButton aria-label="הסר אפשרות" color="error" onClick={onRemove}>
+    <FormControlLabel
+      control={
+        <Switch
+          size="small"
+          checked={Boolean(option.isPerUnit)}
+          onChange={(event) => onChange({ isPerUnit: event.target.checked })}
+        />
+      }
+      label="ליחידה"
+      sx={{ m: 0 }}
+    />
+    <IconButton aria-label="הסר אפשרות" color="error" size="small" onClick={onRemove}>
       <DeleteOutlineRoundedIcon />
     </IconButton>
   </Box>

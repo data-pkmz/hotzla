@@ -8,7 +8,7 @@ import authRoutes from './routes/auth.routes';
 import pricingRoutes from './routes/pricing.routes';
 import { authMiddleware } from './middlewares/auth.middleware';
 
-// Catalog routes
+// 1. Import Catalog Routes
 import catalogRouter from './routes/catalog.routes';
 import adminCatalogRouter from './routes/admin-catalog.routes';
 import fileRouter from './routes/file.routes';

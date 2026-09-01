@@ -58,11 +58,6 @@ const numberAttribute: ProductAttributeDefinition = {
   unitPrice: new Prisma.Decimal(1.2),
   minValue: new Prisma.Decimal(1),
   maxValue: new Prisma.Decimal(1000),
-  selectionMode: null,
-  maxLength: null,
-  allowedFileTypes: null,
-  isMultipleSelection: false,
-  allowMultipleFiles: false,
   isDeleted: false,
 };
 
@@ -78,11 +73,6 @@ const paperAttribute: ProductAttributeDefinition = {
   unitPrice: null,
   minValue: null,
   maxValue: null,
-  selectionMode: null,
-  maxLength: null,
-  allowedFileTypes: null,
-  isMultipleSelection: false,
-  allowMultipleFiles: false,
   isDeleted: false,
 };
 
@@ -98,11 +88,6 @@ const bindingAttribute: ProductAttributeDefinition = {
   unitPrice: null,
   minValue: null,
   maxValue: null,
-  selectionMode: null,
-  maxLength: null,
-  allowedFileTypes: null,
-  isMultipleSelection: false,
-  allowMultipleFiles: false,
   isDeleted: false,
 };
 
@@ -118,11 +103,6 @@ const booleanAttribute: ProductAttributeDefinition = {
   unitPrice: new Prisma.Decimal(5),
   minValue: null,
   maxValue: null,
-  selectionMode: null,
-  maxLength: null,
-  allowedFileTypes: null,
-  isMultipleSelection: false,
-  allowMultipleFiles: false,
   isDeleted: false,
 };
 
@@ -138,11 +118,6 @@ const textAttribute: ProductAttributeDefinition = {
   unitPrice: null,
   minValue: null,
   maxValue: null,
-  selectionMode: null,
-  maxLength: null,
-  allowedFileTypes: null,
-  isMultipleSelection: false,
-  allowMultipleFiles: false,
   isDeleted: false,
 };
 

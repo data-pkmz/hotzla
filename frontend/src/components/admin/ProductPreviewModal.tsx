@@ -1,193 +1,373 @@
+import React, { useState } from 'react';
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import { useState } from 'react';
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import {
-  Button,
   Box,
+  Button,
+  Card,
+  CardActionArea,
   Checkbox,
   Chip,
   Divider,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
   MenuItem,
   Paper,
-  Radio,
-  FormControlLabel,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
-import type { BuilderOption } from '../../pages/admin/ProductBuilderPage';
+import type { BuilderAttribute } from '../../pages/admin/ProductBuilderPage';
 
-interface PreviewAttribute {
-  id: string;
-  attributeName: string;
-  attributeType: string;
-  isRequired: boolean;
-  minValue: number | null;
-  maxValue: number | null;
-  options: BuilderOption[];
-  selectionMode?: 'DROPDOWN' | 'FLAT' | 'MULTI' | null;
-  maxLength?: number | null;
-  allowedFileTypes?: 'IMAGE' | 'PDF' | 'IMAGE_AND_PDF' | null;
-  allowMultipleFiles?: boolean;
-  isMultipleSelection?: boolean;
-}
 interface PreviewProduct {
   name: string;
   description: string;
   category: string;
+  basePrice: string;
   imageUrl?: string | null;
+  minQuantity?: number;
+  maxQuantity?: number | null;
 }
+
 interface ProductPreviewModalProps {
   product: PreviewProduct;
-  attributes: PreviewAttribute[];
-  price: number;
+  attributes: BuilderAttribute[];
+  price?: number;
 }
 
-export const ProductPreviewModal = ({ product, attributes, price }: ProductPreviewModalProps) => {
-  const [multiValues, setMultiValues] = useState<Record<string, string[]>>({});
-  const [flatValues, setFlatValues] = useState<Record<string, string[]>>({});
+export const ProductPreviewModal: React.FC<ProductPreviewModalProps> = ({
+  product,
+  attributes,
+}) => {
+  const [selectedValues, setSelectedValues] = useState<Record<string, string>>({});
+  const [numberValues, setNumberValues] = useState<Record<string, number>>({});
+  const [boolValues, setBoolValues] = useState<Record<string, boolean>>({});
+  const [textValues, setTextValues] = useState<Record<string, string>>({});
+  const [quantity, setQuantity] = useState<number>(product.minQuantity || 1);
+
+  // Calculate live dynamic preview price
+  const calculatedPrice = React.useMemo(() => {
+    let base = Number(product.basePrice) || 0;
+    let multiplier = 1;
+
+    for (const attr of attributes) {
+      if (attr.attributeType === 'SELECT') {
+        const chosenVal = selectedValues[attr.id];
+        const chosenOpt = attr.options.find(
+          (o) => o.optionValue === chosenVal || o.optionLabel === chosenVal
+        );
+        if (chosenOpt) {
+          const mod = Number(chosenOpt.priceModifier) || 0;
+          if (chosenOpt.priceModifierType === 'MULTIPLY') {
+            multiplier *= mod > 0 ? mod : 1;
+          } else {
+            base += chosenOpt.isPerUnit ? mod * quantity : mod;
+          }
+        }
+      } else if (attr.attributeType === 'NUMBER') {
+        const num = numberValues[attr.id] || 0;
+        if (attr.pricingRule === 'PER_UNIT_MULTIPLIER' && attr.unitPrice) {
+          base += Number(attr.unitPrice) * num;
+        }
+      }
+    }
+
+    return (base * multiplier * quantity).toFixed(2);
+  }, [product.basePrice, attributes, selectedValues, numberValues, quantity]);
 
   return (
-  <Paper
-    sx={{
-      position: { xs: 'static', md: 'sticky' },
-      top: { md: 16 },
-      width: '100%',
-      maxHeight: { md: 'calc(100vh - 112px)' },
-      overflowY: { md: 'auto' },
-      zIndex: 2,
-      p: { xs: 2, md: 2.5 },
-      border: '1px solid',
-      borderTop: '4px solid',
-      borderColor: 'divider',
-      borderTopColor: 'secondary.main',
-      bgcolor: '#f7f9fd',
-      boxShadow: '0 10px 28px rgba(9,35,64,.08)',
-    }}
-  >
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-      <Stack direction="row" alignItems="center" gap={1}>
-        <VisibilityOutlinedIcon color="secondary" />
-        <Typography variant="h6">תצוגה מקדימה</Typography>
-      </Stack>
-      <Chip label="תצוגת לקוח" size="small" color="secondary" variant="outlined" />
-    </Stack>
-    <Divider sx={{ mb: 2 }} />
     <Paper
       sx={{
+        position: { xs: 'static', md: 'sticky' },
+        top: { md: 24 },
+        width: '100%',
+        maxHeight: { md: 'calc(100vh - 120px)' },
+        overflowY: { md: 'auto' },
+        zIndex: 2,
         p: { xs: 2, md: 2.5 },
-        bgcolor: 'background.paper',
-        boxShadow: '0 4px 14px rgba(9,35,64,.06)',
+        border: '1px solid',
+        borderTop: '4px solid',
+        borderColor: 'divider',
+        borderTopColor: 'primary.main',
+        bgcolor: '#f8fafc',
+        borderRadius: 2,
+        boxShadow: '0 10px 28px rgba(9,35,64,.08)',
       }}
     >
-      <Typography variant="overline" color="secondary">
-        {product.category || 'קטגוריה'}
-      </Typography>
-      <Typography variant="h5" sx={{ mt: 0.5 }}>
-        {product.name || 'שם המוצר'}
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
-        {product.description || 'תיאור המוצר שיוצג למזמין'}
-      </Typography>
-      {product.imageUrl && <Box component="img" src={product.imageUrl} alt={product.name || 'תמונת המוצר'} sx={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 1, mb: 2 }} />}
-      <Stack gap={1.5}>
-        {attributes.map((attribute) =>
-          attribute.attributeType === 'SELECT' && attribute.selectionMode === 'FLAT' ? (
-            <Stack key={`${attribute.id}-flat`} gap={0.75}>
-              <Typography variant="body2" fontWeight={600}>{attribute.attributeName}</Typography>
-              <Stack direction="row" flexWrap="wrap" gap={0.75}>
-                {attribute.options.map((option) => {
-                  const selectedValues = flatValues[attribute.id] ?? [];
-                  const isSelected = selectedValues.includes(option.optionValue);
-                  return <Button
-                    key={option.id}
-                    size="small"
-                    variant={isSelected ? 'contained' : 'outlined'}
-                    color={isSelected ? 'secondary' : 'primary'}
-                    onClick={() => setFlatValues({
-                      ...flatValues,
-                      [attribute.id]: attribute.isMultipleSelection
-                        ? isSelected
-                          ? selectedValues.filter((value) => value !== option.optionValue)
-                          : [...selectedValues, option.optionValue]
-                        : [option.optionValue],
-                    })}
-                  >{option.optionLabel}</Button>;
-                })}
-              </Stack>
-            </Stack>
-          ) : attribute.attributeType === 'SELECT' && attribute.selectionMode !== 'FLAT' && attribute.isMultipleSelection ? (
-            <TextField
-              key={`${attribute.id}-multi-dropdown`}
-              select
-              fullWidth
-              size="small"
-              label={`${attribute.attributeName}${attribute.isRequired ? ' *' : ''}`}
-              value={Array.isArray(multiValues[attribute.id]) ? multiValues[attribute.id] : []}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setMultiValues({ ...multiValues, [attribute.id]: Array.isArray(nextValue) ? nextValue : [nextValue] });
-              }}
-              SelectProps={{
-                multiple: true,
-                renderValue: (selected) => (Array.isArray(selected) ? selected : [selected]).map((value) => attribute.options.find((option) => option.optionValue === value)?.optionLabel ?? value).join(', '),
-              }}
-            >
-              {attribute.options.map((option) => <MenuItem key={option.id} value={option.optionValue}><Checkbox size="small" checked={(multiValues[attribute.id] ?? []).includes(option.optionValue)} />{option.optionLabel}</MenuItem>)}
-            </TextField>
-          ) : attribute.attributeType === 'SELECT' && attribute.selectionMode === 'MULTI' ? (
-            <Stack key={`${attribute.id}-multi-flat`} gap={0.25}>
-              <Typography variant="body2" fontWeight={600}>{attribute.attributeName}</Typography>
-              {attribute.options.map((option) => <FormControlLabel key={option.id} control={<Checkbox size="small" />} label={option.optionLabel} />)}
-            </Stack>
-          ) : attribute.attributeType === 'SELECT' ? (
-            <TextField key={`${attribute.id}-dropdown`} select fullWidth size="small" label={`${attribute.attributeName}${attribute.isRequired ? ' *' : ''}`} defaultValue="">
-              <MenuItem value="">בחירה</MenuItem>
-              {attribute.options.map((option) => <MenuItem key={option.id} value={option.optionValue}>{option.optionLabel}</MenuItem>)}
-            </TextField>
-          ) : attribute.attributeType === 'BOOLEAN' ? (
-            <Stack key={attribute.id} direction="row" alignItems="center" gap={1}>
-              <Radio size="small" />
-              <Typography>{attribute.attributeName || 'כן / לא'}</Typography>
-            </Stack>
-          ) : attribute.attributeType === 'FILE_UPLOAD' ? (
-            <Button key={attribute.id} variant="outlined" component="label" startIcon={<VisibilityOutlinedIcon />}>
-              העלאת {attribute.allowedFileTypes === 'PDF' ? 'PDF' : attribute.allowedFileTypes === 'IMAGE' ? 'תמונה' : 'קובץ'}{attribute.allowMultipleFiles ? 'ים' : ''}
-              <input hidden type="file" multiple={attribute.allowMultipleFiles} accept={attribute.allowedFileTypes === 'PDF' ? '.pdf' : attribute.allowedFileTypes === 'IMAGE' ? 'image/*' : 'image/*,.pdf'} />
-            </Button>
-          ) : (
-            <TextField
-              key={attribute.id}
-              fullWidth
-              size="small"
-              label={`${attribute.attributeName}${attribute.isRequired ? ' *' : ''}`}
-              type={attribute.attributeType === 'NUMBER' ? 'number' : 'text'}
-              inputProps={{
-                min: attribute.minValue ?? undefined,
-                max: attribute.maxValue ?? undefined,
-                maxLength: attribute.maxLength ?? undefined,
-              }}
-            />
-          )
-        )}
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Stack direction="row" alignItems="center" gap={1}>
+          <VisibilityOutlinedIcon color="primary" />
+          <Typography variant="h6" fontWeight={700}>
+            תצוגה מקדימה (לקוח)
+          </Typography>
+        </Stack>
+        <Chip label="בזמן אמת" size="small" color="primary" variant="outlined" />
       </Stack>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="baseline"
-        sx={{ mt: 2.5, mb: 1.5 }}
+
+      <Divider sx={{ mb: 2 }} />
+
+      <Paper
+        sx={{
+          p: { xs: 2, md: 2.5 },
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          boxShadow: '0 4px 14px rgba(9,35,64,.05)',
+        }}
       >
-        <Typography variant="body2" color="text.secondary">
-          מחיר בסיס
+        <Typography variant="overline" color="primary.main" fontWeight={700}>
+          {product.category || 'קטגוריית מוצר'}
         </Typography>
-        <Typography variant="h5" color="secondary">
-          ₪{price.toFixed(2)}
+        <Typography variant="h5" fontWeight={700} sx={{ mt: 0.5, mb: 1 }}>
+          {product.name || 'שם המוצר שייקבע'}
         </Typography>
-      </Stack>
-      <Button fullWidth variant="contained" disabled startIcon={<ShoppingBagOutlinedIcon />}>
-        הוסף לעגלה
-      </Button>
+        <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+          {product.description || 'תיאור המוצר, מאפייניו והנחיות למזמין יופיעו כאן...'}
+        </Typography>
+
+        {product.imageUrl && (
+          <Box
+            component="img"
+            src={product.imageUrl}
+            alt={product.name || 'תמונת מוצר'}
+            sx={{
+              width: '100%',
+              maxHeight: 180,
+              objectFit: 'cover',
+              borderRadius: 1.5,
+              mb: 2.5,
+            }}
+          />
+        )}
+
+        <Stack gap={2.5}>
+          {attributes.map((attribute) => (
+            <Box key={attribute.id}>
+              {attribute.attributeType === 'SELECT' && (
+                <FormControl fullWidth size="small">
+                  <FormLabel sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
+                    {attribute.attributeName}
+                    {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
+                  </FormLabel>
+
+                  {attribute.displayStyle === 'CARDS' ? (
+                    <Stack direction="row" flexWrap="wrap" gap={1}>
+                      {attribute.options.map((opt) => {
+                        const isSelected =
+                          selectedValues[attribute.id] === opt.optionValue ||
+                          selectedValues[attribute.id] === opt.optionLabel;
+                        return (
+                          <Card
+                            key={opt.id}
+                            variant="outlined"
+                            sx={{
+                              borderColor: isSelected ? 'primary.main' : 'divider',
+                              bgcolor: isSelected ? 'primary.50' : 'background.paper',
+                              borderWidth: isSelected ? 2 : 1,
+                              borderRadius: 1.5,
+                              minWidth: 100,
+                            }}
+                          >
+                            <CardActionArea
+                              onClick={() =>
+                                setSelectedValues({
+                                  ...selectedValues,
+                                  [attribute.id]: opt.optionValue || opt.optionLabel,
+                                })
+                              }
+                              sx={{ p: 1.25, textAlign: 'center' }}
+                            >
+                              <Typography variant="body2" fontWeight={isSelected ? 700 : 500}>
+                                {opt.optionLabel || 'אפשרות'}
+                              </Typography>
+                              {opt.priceModifier > 0 && (
+                                <Typography variant="caption" color="text.secondary">
+                                  +{opt.priceModifier} ₪
+                                </Typography>
+                              )}
+                            </CardActionArea>
+                          </Card>
+                        );
+                      })}
+                    </Stack>
+                  ) : (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      value={selectedValues[attribute.id] || ''}
+                      onChange={(e) =>
+                        setSelectedValues({
+                          ...selectedValues,
+                          [attribute.id]: e.target.value,
+                        })
+                      }
+                    >
+                      <MenuItem value="" disabled>
+                        בחירת {attribute.attributeName}
+                      </MenuItem>
+                      {attribute.options.map((opt) => (
+                        <MenuItem key={opt.id} value={opt.optionValue || opt.optionLabel}>
+                          {opt.optionLabel}
+                          {opt.priceModifier > 0 && ` (+${opt.priceModifier} ₪)`}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                </FormControl>
+              )}
+
+              {attribute.attributeType === 'NUMBER' && (
+                <FormControl fullWidth size="small">
+                  <FormLabel sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
+                    {attribute.attributeName}
+                    {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
+                  </FormLabel>
+                  <TextField
+                    size="small"
+                    type="number"
+                    inputProps={{
+                      min: attribute.minValue ?? undefined,
+                      max: attribute.maxValue ?? undefined,
+                    }}
+                    value={numberValues[attribute.id] || ''}
+                    placeholder={`הזן ערך${
+                      attribute.minValue !== null ? ` (מינימום ${attribute.minValue})` : ''
+                    }`}
+                    onChange={(e) =>
+                      setNumberValues({
+                        ...numberValues,
+                        [attribute.id]: Number(e.target.value),
+                      })
+                    }
+                  />
+                </FormControl>
+              )}
+
+              {attribute.attributeType === 'BOOLEAN' && (
+                <FormControlLabel
+                  control={
+                    attribute.displayStyle === 'CHECKBOX' ? (
+                      <Checkbox
+                        checked={Boolean(boolValues[attribute.id])}
+                        onChange={(e) =>
+                          setBoolValues({ ...boolValues, [attribute.id]: e.target.checked })
+                        }
+                      />
+                    ) : (
+                      <Switch
+                        checked={Boolean(boolValues[attribute.id])}
+                        onChange={(e) =>
+                          setBoolValues({ ...boolValues, [attribute.id]: e.target.checked })
+                        }
+                      />
+                    )
+                  }
+                  label={
+                    <Typography variant="body2" fontWeight={600}>
+                      {attribute.attributeName}
+                      {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
+                    </Typography>
+                  }
+                />
+              )}
+
+              {attribute.attributeType === 'TEXT' && (
+                <FormControl fullWidth size="small">
+                  <FormLabel sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
+                    {attribute.attributeName}
+                    {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
+                  </FormLabel>
+                  <TextField
+                    size="small"
+                    multiline={attribute.displayStyle === 'MULTI_LINE'}
+                    rows={attribute.displayStyle === 'MULTI_LINE' ? 3 : 1}
+                    value={textValues[attribute.id] || ''}
+                    placeholder="הקלד טקסט..."
+                    onChange={(e) =>
+                      setTextValues({ ...textValues, [attribute.id]: e.target.value })
+                    }
+                  />
+                </FormControl>
+              )}
+
+              {attribute.attributeType === 'FILE_UPLOAD' && (
+                <Box>
+                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                    {attribute.attributeName}
+                    {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
+                  </Typography>
+                  <Box
+                    sx={{
+                      p: 2,
+                      border: '1.5px dashed',
+                      borderColor: 'primary.light',
+                      borderRadius: 1.5,
+                      bgcolor: '#f1f5f9',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <CloudUploadOutlinedIcon color="primary" sx={{ fontSize: 28, mb: 0.5 }} />
+                    <Typography variant="caption" display="block">
+                      גרור קובץ לכאן או לחץ לבחירה
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          ))}
+
+          {/* Quantity selector */}
+          <Divider sx={{ my: 1 }} />
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" fontWeight={600}>
+              כמות להזמנה:
+            </Typography>
+            <TextField
+              size="small"
+              type="number"
+              inputProps={{ min: product.minQuantity || 1, max: product.maxQuantity || undefined }}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+              sx={{ width: 100 }}
+            />
+          </Stack>
+
+          {/* Price summary */}
+          <Paper
+            sx={{
+              p: 2,
+              bgcolor: 'primary.50',
+              border: '1px solid',
+              borderColor: 'primary.light',
+              borderRadius: 1.5,
+            }}
+          >
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle2" color="text.secondary">
+                מחיר משוער להזמנה:
+              </Typography>
+              <Typography variant="h5" color="primary.main" fontWeight={800}>
+                ₪{calculatedPrice}
+              </Typography>
+            </Stack>
+          </Paper>
+
+          <Button
+            variant="contained"
+            fullWidth
+            size="large"
+            disabled
+            startIcon={<ShoppingBagOutlinedIcon />}
+            sx={{ borderRadius: 1.5, py: 1.25 }}
+          >
+            הוספה לסל (תצוגה מקדימה)
+          </Button>
+        </Stack>
+      </Paper>
     </Paper>
-  </Paper>
   );
 };

@@ -8,6 +8,7 @@ import { theme } from './theme/theme';
 import { rtlCache } from './theme/rtlCache';
 import { MainLayout } from './components/layout/MainLayout';
 import { AppRoutes } from './routes/AppRoutes';
+
 const queryClient = new QueryClient();
 
 export const App: React.FC = () => {

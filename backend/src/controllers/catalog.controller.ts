@@ -168,10 +168,6 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
       message: 'Product removed successfully',
     });
   } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-      res.status(404).json({ success: false, message: 'Product to delete was not found' });
-      return;
-    }
     console.error(error);
 
     res.status(400).json({

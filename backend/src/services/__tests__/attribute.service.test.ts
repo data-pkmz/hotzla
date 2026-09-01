@@ -80,11 +80,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         unitPrice: null,
         minValue: null,
         maxValue: null,
-        selectionMode: null,
-        maxLength: null,
-        allowedFileTypes: null,
-        isMultipleSelection: false,
-        allowMultipleFiles: false,
         isDeleted: false,
         attributeOptionEntries: dto.options.map((opt, i) => ({
           id: `opt-${i}`,
@@ -170,11 +165,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         unitPrice: null,
         minValue: new Prisma.Decimal(10),
         maxValue: new Prisma.Decimal(1000),
-        selectionMode: null,
-        maxLength: null,
-        allowedFileTypes: null,
-        isMultipleSelection: false,
-        allowMultipleFiles: false,
         isDeleted: false,
       };
 
@@ -234,11 +224,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           unitPrice: null,
           minValue: null,
           maxValue: null,
-          selectionMode: null,
-          maxLength: null,
-          allowedFileTypes: null,
-          isMultipleSelection: false,
-          allowMultipleFiles: false,
           isDeleted: false,
           attributeOptionEntries: [
             {
@@ -306,11 +291,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         unitPrice: null,
         minValue: null,
         maxValue: null,
-        selectionMode: null,
-        maxLength: null,
-        allowedFileTypes: null,
-        isMultipleSelection: false,
-        allowMultipleFiles: false,
         isDeleted: false,
       };
 
@@ -362,11 +342,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         unitPrice: null,
         minValue: null,
         maxValue: null,
-        selectionMode: null,
-        maxLength: null,
-        allowedFileTypes: null,
-        isMultipleSelection: false,
-        allowMultipleFiles: false,
         isDeleted: true,
       };
 
@@ -394,11 +369,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
         unitPrice: null,
         minValue: null,
         maxValue: null,
-        selectionMode: null,
-        maxLength: null,
-        allowedFileTypes: null,
-        isMultipleSelection: false,
-        allowMultipleFiles: false,
         isDeleted: true,
       };
 
@@ -434,11 +404,6 @@ describe('CatalogService - Attributes & Options CRUD (DPS-013)', () => {
           unitPrice: null,
           minValue: null,
           maxValue: null,
-          selectionMode: null,
-          maxLength: null,
-          allowedFileTypes: null,
-          isMultipleSelection: false,
-          allowMultipleFiles: false,
           isDeleted: false,
         },
       ];

@@ -1,10 +1,8 @@
 import type {
   AttributeType,
-  FileTypeMode,
   PriceModifierType,
   PricingImpactType,
-  SelectionMode,
-  AttributeDisplayStyle
+  AttributeDisplayStyle,
 } from './attribute.types.js';
 
 // Product types
@@ -41,11 +39,6 @@ export interface ProductAttributeDefinition {
   unitPrice: number | null;
   minValue: number | null;
   maxValue: number | null;
-  selectionMode?: SelectionMode | null;
-  isMultipleSelection?: boolean;
-  maxLength?: number | null;
-  allowedFileTypes?: FileTypeMode | null;
-  allowMultipleFiles?: boolean;
   options?: ProductAttributeOption[];
   attributeOptionEntries?: ProductAttributeOption[];
 }
