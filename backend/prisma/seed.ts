@@ -15,7 +15,7 @@ async function main() {
     update: {},
     create: {
       fullName: 'משתמש מבקש',
-      militaryEmail: 'requester@example.com',
+      militaryEmail: 'eitantestemail@gmail.com',
       adUsername: 'requester',
       unit: 'יחידת פיתוח',
       phone: '050-1111111',
@@ -30,7 +30,7 @@ async function main() {
     update: {},
     create: {
       fullName: 'משתמש מבקש נוסף',
-      militaryEmail: 'requester2@example.com',
+      militaryEmail: 'eitantestemail@gmail.com',
       adUsername: 'requester2',
       unit: 'יחידת בדיקות',
       phone: '050-4444444',
@@ -45,7 +45,7 @@ async function main() {
     update: {},
     create: {
       fullName: 'מנהל מערכת',
-      militaryEmail: 'manager@example.com',
+      militaryEmail: 'eitantestemail@gmail.com',
       adUsername: 'manager',
       unit: 'יחידת פיתוח',
       phone: '050-2222222',
@@ -60,7 +60,7 @@ async function main() {
     update: {},
     create: {
       fullName: 'עובד דפוס',
-      militaryEmail: 'worker@example.com',
+      militaryEmail: 'eitantestemail@gmail.com',
       adUsername: 'worker',
       unit: 'בית דפוס',
       phone: '050-3333333',
@@ -561,20 +561,6 @@ async function main() {
       ],
       uploadedFilePath: '',
       isDeleted: false,
-    },
-    create: {
-      id: '51000000-0000-0000-0000-000000000003',
-      cartId: activeCart.id,
-      productId: notebooks.id,
-      quantity: 2,
-      computedPrice: 135,
-      selectedAttributes: [
-        {
-          attributeDefinitionId: notebookSize.id,
-          selectedOptionIds: [notebookA4.id],
-        },
-      ],
-      uploadedFilePath: '',
     },
   });
 

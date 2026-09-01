@@ -81,9 +81,17 @@ enum Direction {
 
 enum ProcessedStatus {
   PENDING
-  MATCHED
-  IGNORED
+  APPROVED
+  REJECTED
   ERROR
+}
+
+enum EmailType {
+  BUDGET_APPROVAL
+  ORDER_CONFIRMATION
+  READY_FOR_PICKUP
+  INBOUND_REPLY
+  INBOUND_OTHER
 }
 
 model User {
@@ -258,16 +266,17 @@ model OrderItemAttributeValue {
 }
 
 model EmailLog {
-  id                 String          @id @default(uuid()) @db.Uuid
-  orderId            String          @map("order_id") @db.Uuid
-  order              Order           @relation(fields: [orderId], references: [id])
-  direction          Direction 
-  toAddress          String          @map("to_address")
-  fromAddress        String          @map("from_address")
-  subject            String 
-  processedStatus    ProcessedStatus @map("processed_status")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  isDeleted          Boolean         @default(false) @map("is_deleted")
+  id              String          @id @default(uuid()) @db.Uuid
+  orderId         String?         @map("order_id") @db.Uuid
+  order           Order?          @relation(fields: [orderId], references: [id])
+  direction       Direction
+  type            EmailType
+  toAddress       String          @map("to_address")
+  fromAddress     String          @map("from_address")
+  subject         String
+  processedStatus ProcessedStatus @map("processed_status")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  isDeleted       Boolean         @default(false) @map("is_deleted")
   @@map("email_log")
 }
 
