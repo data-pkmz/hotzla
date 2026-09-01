@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 // Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
@@ -29,7 +30,8 @@ app.use('/api/files', fileRouter);
 
 // Cart & Order routes
 app.use('/api/cart', cartRoutes);
-app.use('/api/cart', orderRoutes); // תומך בכתובת /api/cart/checkout
+app.use('/api/cart', orderRoutes); // for /api/cart/checkout
+app.use('/api/orders', orderRoutes); // for /api/orders/:id/history
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {

@@ -1,4 +1,11 @@
-import type { AttributeType, FileTypeMode, PriceModifierType, PricingImpactType, SelectionMode } from './attribute.types.js';
+import type {
+  AttributeType,
+  FileTypeMode,
+  PriceModifierType,
+  PricingImpactType,
+  SelectionMode,
+  AttributeDisplayStyle
+} from './attribute.types.js';
 
 // Product types
 
@@ -53,16 +60,6 @@ export interface ProductAttributeOption {
   isPerUnit: boolean;
   displayOrder: number;
 }
-
-export type AttributeDisplayStyle =
-  | 'DROPDOWN'
-  | 'CARDS'
-  | 'NUMBER_INPUT'
-  | 'CHECKBOX'
-  | 'SWITCH'
-  | 'SINGLE_LINE'
-  | 'MULTI_LINE'
-  | 'FILE_DROPZONE';
 
 export interface ProductDetails extends Product {
   attributes: ProductAttributeDefinition[];
