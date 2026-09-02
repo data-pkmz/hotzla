@@ -25,6 +25,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/orders" element={<OrdersTablePage />} />
       <Route path="/admin/order/:id" element={<OrderDetailPage />} />
       <Route path="/admin/builder" element={<ProductBuilderPage />} />
+      <Route path="/admin/builder/:id" element={<ProductBuilderPage />} />
     </Routes>
   );
 };
