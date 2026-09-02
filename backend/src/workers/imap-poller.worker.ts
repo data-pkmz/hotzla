@@ -8,6 +8,7 @@ import logger from '../utils/logger';
 
 import { EmailParserService } from '../services/email-parser.service';
 import { EmailService } from '../services/email.service';
+import { ApprovalService } from '../services/approval.service';
 
 export class ImapPollingWorker {
   private static intervalId: NodeJS.Timeout | null = null;
@@ -234,28 +235,6 @@ export class ImapPollingWorker {
       return;
     }
 
-    if (order.status !== OrderStatus.PENDING_BUDGET) {
-      await prisma.emailLog.create({
-        data: {
-          orderId: order.id,
-          direction: 'INBOUND',
-          type: 'INBOUND_REPLY',
-          toAddress: process.env.IMAP_USER ?? '',
-          fromAddress: parsed.senderEmail,
-          subject: parsed.subject,
-          processedStatus: 'ERROR',
-        },
-      });
-
-      logger.warn('Inbound budget response ignored because order is not pending budget approval', {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        currentStatus: order.status,
-      });
-
-      return;
-    }
-
     if (parsed.decision === 'UNKNOWN') {
       await prisma.emailLog.create({
         data: {
@@ -278,33 +257,23 @@ export class ImapPollingWorker {
     }
 
     const nextStatus =
-      parsed.decision === 'APPROVED' ? OrderStatus.BUDGET_APPROVED : OrderStatus.REJECTED;
+      parsed.decision === 'APPROVED'
+        ? OrderStatus.PENDING_MANAGER_APPROVAL
+        : OrderStatus.REJECTED_BUDGET;
 
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          status: nextStatus,
-        },
+    try {
+      await ApprovalService.transitionOrderStatus({
+        orderId: order.id,
+        toStatus: nextStatus,
+        changedByUserId: null,
+        changedBySource: ChangeSource.EMAIL_BUDGET_OFFICER,
+        note:
+          parsed.decision === 'APPROVED'
+            ? 'האישור התקציבי התקבל במייל.'
+            : 'ההזמנה נדחתה על ידי קצין התקציב במייל.',
       });
-
-      await tx.orderStatusHistory.create({
-        data: {
-          orderId: order.id,
-          fromStatus: OrderStatus.PENDING_BUDGET,
-          toStatus: nextStatus,
-          changedByUserId: null,
-          changedBySource: ChangeSource.EMAIL_BUDGET_OFFICER,
-          note:
-            parsed.decision === 'APPROVED'
-              ? 'האישור התקציבי התקבל במייל.'
-              : 'ההזמנה נדחתה על ידי קצין התקציב במייל.',
-        },
-      });
-
-      await tx.emailLog.create({
+    } catch (error) {
+      await prisma.emailLog.create({
         data: {
           orderId: order.id,
           direction: 'INBOUND',
@@ -312,10 +281,19 @@ export class ImapPollingWorker {
           toAddress: process.env.IMAP_USER ?? '',
           fromAddress: parsed.senderEmail,
           subject: parsed.subject,
-          processedStatus: parsed.decision === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+          processedStatus: 'ERROR',
         },
       });
-    });
+
+      logger.warn('Inbound budget response could not change order status', {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        requestedStatus: nextStatus,
+        error,
+      });
+
+      return;
+    }
 
     try {
       await EmailService.sendBudgetDecisionConfirmation({
