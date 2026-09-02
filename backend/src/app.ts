@@ -3,6 +3,8 @@ import express, { Request, Response } from 'express';
 // Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
 import { testDbConnection } from './config/db';
+// Start the recurring maintenance tasks once the backend bootstraps.
+import { startScheduler } from './config/scheduler';
 import logger from './utils/logger';
 import authRoutes from './routes/auth.routes';
 import pricingRoutes from './routes/pricing.routes';
@@ -73,6 +75,9 @@ app.use('/api/pricing', pricingRoutes);
 
 // 4. Order routes
 app.use('/api/orders', authMiddleware, orderRoutes);
+
+// Initialize the background maintenance jobs before the HTTP server begins serving traffic.
+startScheduler();
 
 app.listen(port, async () => {
   logger.info(`Backend server is running on port ${port}`);
