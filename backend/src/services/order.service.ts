@@ -176,8 +176,8 @@ export class OrderService {
         },
       });
 
-      await tx.orderStatusHistory.create({
-        data: {
+      await AuditLogService.logStatusChange(
+        {
           orderId: newOrder.id,
           fromStatus: null,
           toStatus: OrderStatus.PENDING_BUDGET,
@@ -185,7 +185,8 @@ export class OrderService {
           changedBySource: ChangeSource.SYSTEM,
           note: input.notes?.trim() || 'הזמנה נוצרה ונשלחה לאישור תקציבי',
         },
-      });
+        tx
+      );
 
       await tx.cart.update({
         where: {
@@ -228,6 +229,33 @@ export class OrderService {
           error,
         });
       }
+    }
+
+    try {
+      await EmailService.sendBudgetApproval({
+        orderId: newOrder.id,
+        orderNumber: newOrder.orderNumber,
+        requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
+        budgetOfficerEmail: newOrder.budgetOfficerEmail,
+        totalPrice: Number(newOrder.totalPrice),
+        approvalUrl: `${process.env.APP_BASE_URL}/orders/${newOrder.id}`,
+        items: newOrder.itemEntries.map((item) => ({
+          productName: item.product.name,
+          quantity: Number(item.quantity),
+          price: Number(item.computedTotalPrice),
+          specifications: item.itemAttributeEntries.map((attribute) => ({
+            name: attribute.attributeDefinition.attributeName,
+            value: attribute.selectedOption?.optionLabel ?? attribute.valueText ?? '',
+          })),
+        })),
+      });
+    } catch (error) {
+      logger.error('Failed to send budget approval email', {
+        orderId: newOrder.id,
+        orderNumber: newOrder.orderNumber,
+        budgetOfficerEmail: newOrder.budgetOfficerEmail,
+        error,
+      });
     }
 
     return newOrder;

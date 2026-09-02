@@ -1,14 +1,6 @@
 import type { Product } from './product.types.js';
 import type { User, UserRole } from './user.types.js';
-
-export type OrderStatus =
-  | 'PENDING_BUDGET'
-  | 'BUDGET_APPROVED'
-  | 'APPROVED_FOR_PRODUCTION'
-  | 'IN_PRINTING'
-  | 'READY_FOR_PICKUP'
-  | 'COMPLETED'
-  | 'REJECTED';
+import type { OrderStatus } from './status.types.js';
 
 export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'WORKER_UI';
 
