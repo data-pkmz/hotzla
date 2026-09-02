@@ -16,11 +16,14 @@ import fileRouter from './routes/file.routes';
 // Import Cart & Order Routes (DPS-025)
 import cartRoutes from './routes/cart.routes';
 import orderRoutes from './routes/order.routes';
+import { ImapPollingWorker } from './workers/imap-poller.worker';
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(express.json());
+
+ImapPollingWorker.start();
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
