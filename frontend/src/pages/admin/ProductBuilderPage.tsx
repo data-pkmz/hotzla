@@ -34,7 +34,14 @@ import type {
   ProductAttributeOption,
 } from 'shared-types';
 import { AttributeDefinitionForm } from '../../components/admin/AttributeDefinitionForm';
-import { ProductPreviewModal } from '../../components/admin/ProductPreviewModal';
+import { ProductPreviewPanel } from '../../components/admin/ProductPreviewPanel';
+import { getProducts } from '../../services/api/catalog.service';
+import {
+  createAdminProduct,
+  getAdminProductById,
+  updateAdminProduct,
+  type SaveProductPayload,
+} from '../../services/api/admin-catalog.service';
 
 export type BuilderOption = Omit<ProductAttributeOption, 'id' | 'attributeDefinitionId'> & {
   id: string;
@@ -147,12 +154,11 @@ export const ProductBuilderPage: React.FC = () => {
 
   // Load existing categories for autocomplete
   useEffect(() => {
-    fetch('/api/products')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Categories fetch error'))))
-      .then((payload) => {
-        const values = (payload.data ?? [])
-          .map((item: { category?: string }) => item.category?.trim())
-          .filter((cat: string | undefined): cat is string => Boolean(cat));
+    getProducts()
+      .then((items) => {
+        const values = items
+          .map((item) => item.category?.trim())
+          .filter((cat): cat is string => Boolean(cat));
         setCategories([...new Set<string>(values)]);
       })
       .catch(() => setCategories([]));
@@ -163,14 +169,9 @@ export const ProductBuilderPage: React.FC = () => {
     if (!id) return;
     let isCancelled = false;
 
-    fetch(`/api/products/${id}`)
-      .then(async (response) => {
-        if (!response.ok) throw new Error('לא ניתן לטעון את נתוני המוצר');
-        return response.json();
-      })
-      .then((payload) => {
+    getAdminProductById(id)
+      .then((data) => {
         if (isCancelled) return;
-        const data = payload.data;
         setProduct({
           name: data.name ?? '',
           description: data.description ?? '',
@@ -274,7 +275,7 @@ export const ProductBuilderPage: React.FC = () => {
 
     setSaving(true);
     try {
-      const payload = {
+      const payload: SaveProductPayload = {
         name: product.name.trim(),
         description: product.description.trim(),
         category: product.category.trim(),
@@ -305,24 +306,15 @@ export const ProductBuilderPage: React.FC = () => {
         })),
       };
 
-      const response = await fetch(id ? `/api/admin/products/${id}` : '/api/admin/products', {
-        method: id ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || 'שמירת המוצר נכשלה');
-      }
+      const result = id ? await updateAdminProduct(id, payload) : await createAdminProduct(payload);
 
       setNotice({
         severity: 'success',
         message: id ? 'המוצר עודכן בהצלחה' : 'המוצר הוקם בהצלחה ונוסף לקטלוג',
       });
 
-      if (!id && result.data?.id) {
-        navigate(`/admin/builder/${result.data.id}`, { replace: true });
+      if (!id && result?.id) {
+        navigate(`/admin/builder/${result.id}`, { replace: true });
       }
     } catch (err) {
       setNotice({
@@ -735,7 +727,7 @@ export const ProductBuilderPage: React.FC = () => {
 
         {/* Real-time Customer Preview */}
         <Box sx={{ direction: 'rtl', minWidth: 0 }}>
-          <ProductPreviewModal
+          <ProductPreviewPanel
             product={{ ...product, imageUrl: imagePreview }}
             attributes={attributes}
             price={previewPrice}

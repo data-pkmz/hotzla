@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import type { BuilderAttribute } from '../../pages/admin/ProductBuilderPage';
 
-interface PreviewProduct {
+export interface PreviewProduct {
   name: string;
   description: string;
   category: string;
@@ -32,13 +32,13 @@ interface PreviewProduct {
   maxQuantity?: number | null;
 }
 
-interface ProductPreviewModalProps {
+export interface ProductPreviewPanelProps {
   product: PreviewProduct;
   attributes: BuilderAttribute[];
   price?: number;
 }
 
-export const ProductPreviewModal: React.FC<ProductPreviewModalProps> = ({
+export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
   product,
   attributes,
 }) => {
@@ -371,3 +371,5 @@ export const ProductPreviewModal: React.FC<ProductPreviewModalProps> = ({
     </Paper>
   );
 };
+
+export default ProductPreviewPanel;
