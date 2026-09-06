@@ -7,6 +7,7 @@ import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {
@@ -33,6 +34,7 @@ import type {
   ProductAttributeDefinition,
   ProductAttributeOption,
 } from 'shared-types';
+
 import { AttributeDefinitionForm } from '../../components/admin/AttributeDefinitionForm';
 import { ProductPreviewPanel } from '../../components/admin/ProductPreviewPanel';
 import { getProducts } from '../../services/api/catalog.service';
@@ -66,15 +68,17 @@ interface ProductForm {
   isActive: boolean;
 }
 
+const FILE_UPLOAD_NAME = 'קובץ להדפסה';
+
 const createAttribute = (
   order: number,
   attributeType: AttributeType = 'SELECT'
 ): BuilderAttribute => {
   let displayStyle: AttributeDisplayStyle = 'DROPDOWN';
+
   if (attributeType === 'NUMBER') displayStyle = 'NUMBER_INPUT';
   if (attributeType === 'BOOLEAN') displayStyle = 'SWITCH';
   if (attributeType === 'TEXT') displayStyle = 'SINGLE_LINE';
-  if (attributeType === 'FILE_UPLOAD') displayStyle = 'FILE_DROPZONE';
 
   return {
     id: crypto.randomUUID(),
@@ -113,6 +117,48 @@ const createAttribute = (
   };
 };
 
+const createFileUploadAttribute = (order: number): BuilderAttribute => ({
+  id: crypto.randomUUID(),
+  attributeName: FILE_UPLOAD_NAME,
+  attributeType: 'FILE_UPLOAD',
+  displayStyle: 'FILE_DROPZONE',
+  isRequired: true,
+  displayOrder: order,
+  pricingRule: 'NONE',
+  unitPrice: null,
+  minValue: null,
+  maxValue: null,
+  options: [],
+});
+
+const normalizeAttributes = (attributes: BuilderAttribute[]): BuilderAttribute[] => {
+  const regularAttributes = attributes.filter(
+    (attribute) => attribute.attributeType !== 'FILE_UPLOAD'
+  );
+
+  const existingUpload = attributes.find((attribute) => attribute.attributeType === 'FILE_UPLOAD');
+
+  const uploadAttribute: BuilderAttribute = existingUpload
+    ? {
+        ...existingUpload,
+        attributeName: FILE_UPLOAD_NAME,
+        attributeType: 'FILE_UPLOAD',
+        displayStyle: 'FILE_DROPZONE',
+        isRequired: true,
+        pricingRule: 'NONE',
+        unitPrice: null,
+        minValue: null,
+        maxValue: null,
+        options: [],
+      }
+    : createFileUploadAttribute(regularAttributes.length);
+
+  return [...regularAttributes, uploadAttribute].map((attribute, index) => ({
+    ...attribute,
+    displayOrder: index,
+  }));
+};
+
 const initialProduct: ProductForm = {
   name: '',
   description: '',
@@ -132,46 +178,156 @@ const attributeTypeLabels: Record<AttributeType, string> = {
   FILE_UPLOAD: 'העלאת קובץ',
 };
 
+const validateAttributes = (attributes: BuilderAttribute[]): string | null => {
+  const uploadAttributes = attributes.filter(
+    (attribute) => attribute.attributeType === 'FILE_UPLOAD'
+  );
+
+  if (uploadAttributes.length !== 1) {
+    return 'המוצר חייב להכיל שדה העלאת קובץ אחד בדיוק';
+  }
+
+  if (attributes.at(-1)?.attributeType !== 'FILE_UPLOAD') {
+    return 'שדה העלאת הקובץ חייב להיות השדה האחרון';
+  }
+
+  for (const attribute of attributes) {
+    if (!attribute.attributeName.trim()) {
+      return 'שם מאפיין אינו יכול להיות ריק';
+    }
+
+    if (attribute.unitPrice !== null && attribute.unitPrice !== undefined) {
+      const unitPrice = Number(attribute.unitPrice);
+
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        return `מחיר היחידה של "${attribute.attributeName}" אינו תקין`;
+      }
+    }
+
+    if (attribute.minValue !== null && attribute.minValue !== undefined) {
+      const minValue = Number(attribute.minValue);
+
+      if (!Number.isFinite(minValue) || minValue < 0) {
+        return `הערך המינימלי של "${attribute.attributeName}" אינו תקין`;
+      }
+    }
+
+    if (attribute.maxValue !== null && attribute.maxValue !== undefined) {
+      const maxValue = Number(attribute.maxValue);
+
+      if (!Number.isFinite(maxValue) || maxValue < 0) {
+        return `הערך המקסימלי של "${attribute.attributeName}" אינו תקין`;
+      }
+    }
+
+    if (
+      attribute.minValue !== null &&
+      attribute.minValue !== undefined &&
+      attribute.maxValue !== null &&
+      attribute.maxValue !== undefined &&
+      Number(attribute.maxValue) < Number(attribute.minValue)
+    ) {
+      return `הערך המקסימלי של "${attribute.attributeName}" חייב להיות גדול או שווה לערך המינימלי`;
+    }
+
+    if (attribute.attributeType === 'SELECT' && attribute.options.length < 2) {
+      return `המאפיין "${attribute.attributeName}" חייב להכיל לפחות שתי אפשרויות`;
+    }
+
+    for (const option of attribute.options) {
+      if (!option.optionLabel.trim()) {
+        return `אחת האפשרויות במאפיין "${attribute.attributeName}" חסרה שם`;
+      }
+
+      const priceModifier = Number(option.priceModifier);
+
+      if (!Number.isFinite(priceModifier) || priceModifier < 0) {
+        return `תוספת המחיר של האפשרות "${option.optionLabel}" במאפיין "${attribute.attributeName}" חייבת להיות מספר שאינו שלילי`;
+      }
+    }
+  }
+
+  return null;
+};
+
 export const ProductBuilderPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
   const [product, setProduct] = useState<ProductForm>(initialProduct);
-  const [attributes, setAttributes] = useState<BuilderAttribute[]>([]);
+
+  const [attributes, setAttributes] = useState<BuilderAttribute[]>(() => normalizeAttributes([]));
+
   const [categories, setCategories] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(Boolean(id));
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [notice, setNotice] = useState<{ severity: 'success' | 'error'; message: string } | null>(
-    null
-  );
+
+  const [notice, setNotice] = useState<{
+    severity: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
   const [addFieldAnchor, setAddFieldAnchor] = useState<HTMLElement | null>(null);
 
+  const basePriceNumber = Number(product.basePrice);
+
+  const basePriceIsValid =
+    product.basePrice.trim() !== '' && Number.isFinite(basePriceNumber) && basePriceNumber >= 0;
+
+  const minQuantityIsValid = Number.isInteger(product.minQuantity) && product.minQuantity > 0;
+
+  const maxQuantityIsValid =
+    product.maxQuantity === null ||
+    (Number.isInteger(product.maxQuantity) &&
+      product.maxQuantity > 0 &&
+      product.maxQuantity >= product.minQuantity);
+
   const addAttribute = (attributeType: AttributeType) => {
-    setAttributes([...attributes, createAttribute(attributes.length, attributeType)]);
+    if (attributeType === 'FILE_UPLOAD') {
+      return;
+    }
+
+    setAttributes((current) => {
+      const regularAttributes = current.filter(
+        (attribute) => attribute.attributeType !== 'FILE_UPLOAD'
+      );
+
+      const uploadAttribute =
+        current.find((attribute) => attribute.attributeType === 'FILE_UPLOAD') ??
+        createFileUploadAttribute(regularAttributes.length);
+
+      const newAttribute = createAttribute(regularAttributes.length, attributeType);
+
+      return normalizeAttributes([...regularAttributes, newAttribute, uploadAttribute]);
+    });
+
     setAddFieldAnchor(null);
   };
 
-  // Load existing categories for autocomplete
   useEffect(() => {
     getProducts()
       .then((items) => {
         const values = items
           .map((item) => item.category?.trim())
           .filter((cat): cat is string => Boolean(cat));
+
         setCategories([...new Set<string>(values)]);
       })
       .catch(() => setCategories([]));
   }, []);
 
-  // Load product data if editing an existing product
   useEffect(() => {
     if (!id) return;
+
     let isCancelled = false;
 
     getAdminProductById(id)
       .then((data) => {
         if (isCancelled) return;
+
         setProduct({
           name: data.name ?? '',
           description: data.description ?? '',
@@ -182,6 +338,7 @@ export const ProductBuilderPage: React.FC = () => {
           maxQuantity: data.maxQuantity ?? null,
           isActive: data.isActive ?? true,
         });
+
         setImagePreview(data.imageUrl ?? null);
 
         const loadedAttrs: BuilderAttribute[] = (
@@ -190,6 +347,7 @@ export const ProductBuilderPage: React.FC = () => {
           []
         ).map((attr: ProductAttributeDefinition, idx: number) => {
           const rawOptions = attr.options ?? attr.attributeOptionEntries ?? [];
+
           return {
             id: attr.id || crypto.randomUUID(),
             attributeName: attr.attributeName,
@@ -213,11 +371,14 @@ export const ProductBuilderPage: React.FC = () => {
           };
         });
 
-        setAttributes(loadedAttrs);
+        setAttributes(normalizeAttributes(loadedAttrs));
       })
       .catch((err: Error) => {
         if (!isCancelled) {
-          setNotice({ severity: 'error', message: err.message });
+          setNotice({
+            severity: 'error',
+            message: err.message,
+          });
         }
       })
       .finally(() => {
@@ -233,17 +394,54 @@ export const ProductBuilderPage: React.FC = () => {
 
   const updateAttribute = (attributeId: string, patch: Partial<BuilderAttribute>) => {
     setAttributes((current) =>
-      current.map((attr) => (attr.id === attributeId ? { ...attr, ...patch } : attr))
+      normalizeAttributes(
+        current.map((attribute) => {
+          if (attribute.id !== attributeId) {
+            return attribute;
+          }
+
+          if (attribute.attributeType === 'FILE_UPLOAD') {
+            return attribute;
+          }
+
+          return {
+            ...attribute,
+            ...patch,
+          };
+        })
+      )
     );
   };
 
   const moveAttribute = (sourceIndex: number, targetIndex: number) => {
-    if (sourceIndex === targetIndex || targetIndex < 0 || targetIndex >= attributes.length) return;
     setAttributes((current) => {
+      if (
+        sourceIndex === targetIndex ||
+        sourceIndex < 0 ||
+        targetIndex < 0 ||
+        sourceIndex >= current.length ||
+        targetIndex >= current.length
+      ) {
+        return current;
+      }
+
+      const source = current[sourceIndex];
+      const target = current[targetIndex];
+
+      if (!source || !target) {
+        return current;
+      }
+
+      if (source.attributeType === 'FILE_UPLOAD' || target.attributeType === 'FILE_UPLOAD') {
+        return current;
+      }
+
       const next = [...current];
       const [moved] = next.splice(sourceIndex, 1);
+
       next.splice(targetIndex, 0, moved);
-      return next.map((attr, order) => ({ ...attr, displayOrder: order }));
+
+      return normalizeAttributes(next);
     });
   };
 
@@ -251,57 +449,128 @@ export const ProductBuilderPage: React.FC = () => {
     return (
       Number(product.basePrice || 0) +
       attributes
-        .flatMap((attr) => attr.options ?? [])
-        .reduce((sum, opt) => sum + Number(opt.priceModifier || 0), 0)
+        .flatMap((attribute) => attribute.options ?? [])
+        .reduce((sum, option) => sum + Number(option.priceModifier || 0), 0)
     );
   }, [attributes, product.basePrice]);
 
   const handleImageChange = (file?: File) => {
     if (!file) return;
+
     if (!file.type.startsWith('image/')) {
-      setNotice({ severity: 'error', message: 'ניתן להעלות קובץ תמונה בלבד (JPG / PNG)' });
+      setNotice({
+        severity: 'error',
+        message: 'ניתן להעלות קובץ תמונה בלבד (JPG / PNG)',
+      });
       return;
     }
+
     const reader = new FileReader();
+
     reader.onload = () => setImagePreview(String(reader.result));
     reader.readAsDataURL(file);
   };
 
   const saveProduct = async () => {
-    if (!product.name.trim() || !product.category.trim()) {
-      setNotice({ severity: 'error', message: 'יש למלא שם מוצר וקטגוריה' });
+    if (!product.name.trim()) {
+      setNotice({
+        severity: 'error',
+        message: 'יש למלא שם מוצר',
+      });
+      return;
+    }
+
+    if (!product.description.trim()) {
+      setNotice({
+        severity: 'error',
+        message: 'יש למלא תיאור מוצר',
+      });
+      return;
+    }
+
+    if (!product.category.trim()) {
+      setNotice({
+        severity: 'error',
+        message: 'יש למלא קטגוריה',
+      });
+      return;
+    }
+
+    if (!basePriceIsValid) {
+      setNotice({
+        severity: 'error',
+        message: 'מחיר הבסיס חייב להיות מספר שאינו שלילי',
+      });
+      return;
+    }
+
+    if (!minQuantityIsValid) {
+      setNotice({
+        severity: 'error',
+        message: 'כמות המינימום חייבת להיות מספר שלם הגדול מאפס',
+      });
+      return;
+    }
+
+    if (!maxQuantityIsValid) {
+      setNotice({
+        severity: 'error',
+        message:
+          'כמות המקסימום חייבת להיות מספר שלם הגדול מאפס ולא יכולה להיות קטנה מכמות המינימום',
+      });
+      return;
+    }
+
+    const normalizedAttributes = normalizeAttributes(attributes);
+
+    const attributeError = validateAttributes(normalizedAttributes);
+
+    if (attributeError) {
+      setNotice({
+        severity: 'error',
+        message: attributeError,
+      });
       return;
     }
 
     setSaving(true);
+
     try {
       const payload: SaveProductPayload = {
         name: product.name.trim(),
         description: product.description.trim(),
         category: product.category.trim(),
         productType: product.productType,
-        basePrice: Number(product.basePrice) || 0,
-        minQuantity: Number(product.minQuantity) || 1,
-        maxQuantity: product.maxQuantity ? Number(product.maxQuantity) : null,
+        basePrice: basePriceNumber,
+        minQuantity: product.minQuantity,
+        maxQuantity: product.maxQuantity,
         isActive: product.isActive,
         imageUrl: imagePreview || '',
-        definitions: attributes.map((attr, idx) => ({
-          attributeName: attr.attributeName.trim(),
-          attributeType: attr.attributeType,
-          displayStyle: attr.displayStyle,
-          isRequired: attr.isRequired,
-          displayOrder: idx,
-          pricingRule: attr.pricingRule,
-          unitPrice: attr.unitPrice !== null ? Number(attr.unitPrice) : null,
-          minValue: attr.minValue !== null ? Number(attr.minValue) : null,
-          maxValue: attr.maxValue !== null ? Number(attr.maxValue) : null,
-          options: attr.options.map((opt, optIdx) => ({
-            optionLabel: opt.optionLabel.trim(),
-            optionValue: (opt.optionValue || opt.optionLabel).trim(),
-            priceModifier: Number(opt.priceModifier) || 0,
-            priceModifierType: opt.priceModifierType || 'FIXED_ADD',
-            displayOrder: optIdx,
-            isPerUnit: Boolean(opt.isPerUnit),
+
+        definitions: normalizedAttributes.map((attribute, index) => ({
+          attributeName: attribute.attributeName.trim(),
+          attributeType: attribute.attributeType,
+          displayStyle: attribute.displayStyle,
+          isRequired: attribute.isRequired,
+          displayOrder: index,
+          pricingRule: attribute.pricingRule,
+
+          unitPrice: attribute.unitPrice !== null ? Number(attribute.unitPrice) : null,
+
+          minValue: attribute.minValue !== null ? Number(attribute.minValue) : null,
+
+          maxValue: attribute.maxValue !== null ? Number(attribute.maxValue) : null,
+
+          options: attribute.options.map((option, optionIndex) => ({
+            optionLabel: option.optionLabel.trim(),
+            optionValue: (option.optionValue || option.optionLabel).trim(),
+
+            priceModifier: Number(option.priceModifier),
+
+            priceModifierType: option.priceModifierType || 'FIXED_ADD',
+
+            displayOrder: optionIndex,
+            isPerUnit: Boolean(option.isPerUnit),
           })),
         })),
       };
@@ -314,7 +583,9 @@ export const ProductBuilderPage: React.FC = () => {
       });
 
       if (!id && result?.id) {
-        navigate(`/admin/builder/${result.id}`, { replace: true });
+        navigate(`/admin/builder/${result.id}`, {
+          replace: true,
+        });
       }
     } catch (err) {
       setNotice({
@@ -328,15 +599,28 @@ export const ProductBuilderPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 400 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          placeItems: 'center',
+          minHeight: 400,
+        }}
+      >
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 1440, mx: 'auto', pb: 4, px: { xs: 1, md: 0 }, direction: 'rtl' }}>
-      {/* Header */}
+    <Box
+      sx={{
+        maxWidth: 1440,
+        mx: 'auto',
+        pb: 4,
+        px: { xs: 1, md: 0 },
+        direction: 'rtl',
+      }}
+    >
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         justifyContent="space-between"
@@ -347,44 +631,41 @@ export const ProductBuilderPage: React.FC = () => {
         <Box>
           <Stack direction="row" alignItems="center" gap={1}>
             <AutoAwesomeRoundedIcon color="primary" sx={{ fontSize: 32 }} />
+
             <Typography variant="h4" fontWeight={700}>
               בונה מוצר דינמי
             </Typography>
           </Stack>
+
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
             הגדרת מוצרים מותאמים אישית, תכונות דינמיות וכללי תמחור למערכת ההזמנות.
           </Typography>
         </Box>
 
-        <Stack direction="row" gap={1.5}>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={
-              saving ? <CircularProgress size={20} color="inherit" /> : <SaveRoundedIcon />
-            }
-            onClick={saveProduct}
-            disabled={saving}
-            sx={{ px: 3, borderRadius: 2 }}
-          >
-            {saving ? 'שומר...' : id ? 'שמור שינויים' : 'הקם מוצר'}
-          </Button>
-        </Stack>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveRoundedIcon />}
+          onClick={saveProduct}
+          disabled={saving}
+          sx={{ px: 3, borderRadius: 2 }}
+        >
+          {saving ? 'שומר...' : id ? 'שמור שינויים' : 'הקם מוצר'}
+        </Button>
       </Stack>
 
-      {/* Main Grid: Form Left / Center, Preview Right */}
       <Box
         sx={{
           display: { xs: 'block', md: 'grid' },
-          gridTemplateColumns: { md: 'minmax(0, 1fr) minmax(320px, 380px)' },
+          gridTemplateColumns: {
+            md: 'minmax(0, 1fr) minmax(320px, 380px)',
+          },
           gap: { xs: 2.5, md: 3 },
           direction: { md: 'ltr' },
           alignItems: 'start',
         }}
       >
-        {/* Product Editor Form */}
         <Box sx={{ direction: 'rtl', minWidth: 0 }}>
-          {/* Card 1: Basic Settings */}
           <Paper
             sx={{
               p: { xs: 2, md: 3 },
@@ -397,6 +678,7 @@ export const ProductBuilderPage: React.FC = () => {
           >
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2.5 }}>
               <TuneRoundedIcon color="primary" />
+
               <Typography variant="h6" fontWeight={700}>
                 פרטי מוצר בסיסיים
               </Typography>
@@ -405,7 +687,10 @@ export const ProductBuilderPage: React.FC = () => {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: '1.2fr 1fr 1fr' },
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  md: '1.2fr 1fr 1fr',
+                },
                 gap: 2,
               }}
             >
@@ -416,14 +701,24 @@ export const ProductBuilderPage: React.FC = () => {
                 placeholder="לדוגמה: פוסטר מעוצב 70x100, חוברת מהודרת"
                 required
                 value={product.name}
-                onChange={(e) => setProduct({ ...product, name: e.target.value })}
+                onChange={(event) =>
+                  setProduct({
+                    ...product,
+                    name: event.target.value,
+                  })
+                }
               />
 
               <Autocomplete
                 freeSolo
                 options={categories}
                 value={product.category}
-                onInputChange={(_e, val) => setProduct({ ...product, category: val })}
+                onInputChange={(_event, value) =>
+                  setProduct({
+                    ...product,
+                    category: value,
+                  })
+                }
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -439,9 +734,19 @@ export const ProductBuilderPage: React.FC = () => {
                 size="small"
                 label="מחיר בסיס (₪)"
                 type="number"
-                inputProps={{ min: 0, step: '0.01' }}
+                inputProps={{
+                  min: 0,
+                  step: '0.01',
+                }}
                 value={product.basePrice}
-                onChange={(e) => setProduct({ ...product, basePrice: e.target.value })}
+                error={!basePriceIsValid}
+                helperText={!basePriceIsValid ? 'המחיר לא יכול להיות שלילי' : undefined}
+                onChange={(event) =>
+                  setProduct({
+                    ...product,
+                    basePrice: event.target.value,
+                  })
+                }
               />
 
               <Stack
@@ -461,13 +766,20 @@ export const ProductBuilderPage: React.FC = () => {
                   <Typography variant="body2" fontWeight={700}>
                     סטטוס פעיל
                   </Typography>
+
                   <Typography variant="caption" color="text.secondary">
                     גלוי למזמינים
                   </Typography>
                 </Box>
+
                 <Switch
                   checked={product.isActive}
-                  onChange={(e) => setProduct({ ...product, isActive: e.target.checked })}
+                  onChange={(event) =>
+                    setProduct({
+                      ...product,
+                      isActive: event.target.checked,
+                    })
+                  }
                 />
               </Stack>
 
@@ -475,24 +787,54 @@ export const ProductBuilderPage: React.FC = () => {
                 size="small"
                 label="כמות מינימום"
                 type="number"
-                inputProps={{ min: 1 }}
+                inputProps={{ min: 1, step: 1 }}
                 value={product.minQuantity}
-                onChange={(e) =>
-                  setProduct({ ...product, minQuantity: Math.max(1, Number(e.target.value) || 1) })
+                error={!minQuantityIsValid}
+                helperText={
+                  !minQuantityIsValid ? 'כמות המינימום חייבת להיות מספר שלם הגדול מאפס' : undefined
+                }
+                onChange={(event) =>
+                  setProduct({
+                    ...product,
+                    minQuantity: Number(event.target.value),
+                  })
                 }
               />
 
               <TextField
+                fullWidth
                 size="small"
                 label="כמות מקסימום (אופציונלי)"
                 type="number"
-                inputProps={{ min: 1 }}
+                inputProps={{ min: 1, step: 1 }}
                 value={product.maxQuantity ?? ''}
                 placeholder="ללא הגבלה"
-                onChange={(e) =>
+                error={!maxQuantityIsValid}
+                helperText={
+                  !maxQuantityIsValid
+                    ? 'כמות המקסימום חייבת להיות גדולה או שווה לכמות המינימום'
+                    : undefined
+                }
+                InputLabelProps={{
+                  shrink: true,
+                  sx: {
+                    maxWidth: 'none',
+                    overflow: 'visible',
+                    whiteSpace: 'nowrap',
+                  },
+                }}
+                sx={{
+                  minWidth: 0,
+                  '& .MuiInputLabel-root': {
+                    maxWidth: 'none',
+                    overflow: 'visible',
+                    textOverflow: 'clip',
+                  },
+                }}
+                onChange={(event) =>
                   setProduct({
                     ...product,
-                    maxQuantity: e.target.value === '' ? null : Number(e.target.value),
+                    maxQuantity: event.target.value === '' ? null : Number(event.target.value),
                   })
                 }
               />
@@ -503,12 +845,17 @@ export const ProductBuilderPage: React.FC = () => {
                 label="תיאור המוצר"
                 multiline
                 minRows={3}
+                required
                 placeholder="הסבר קצר על המוצר, שימושיו, והנחיות מיוחדות..."
                 value={product.description}
-                onChange={(e) => setProduct({ ...product, description: e.target.value })}
+                onChange={(event) =>
+                  setProduct({
+                    ...product,
+                    description: event.target.value,
+                  })
+                }
               />
 
-              {/* Image Uploader */}
               <Box
                 onClick={() => imageInputRef.current?.click()}
                 sx={{
@@ -523,7 +870,9 @@ export const ProductBuilderPage: React.FC = () => {
                   cursor: 'pointer',
                   overflow: 'hidden',
                   position: 'relative',
-                  '&:hover': { bgcolor: '#f1f5f9' },
+                  '&:hover': {
+                    bgcolor: '#f1f5f9',
+                  },
                 }}
               >
                 <input
@@ -531,8 +880,9 @@ export const ProductBuilderPage: React.FC = () => {
                   hidden
                   type="file"
                   accept="image/jpeg,image/png"
-                  onChange={(e) => handleImageChange(e.target.files?.[0])}
+                  onChange={(event) => handleImageChange(event.target.files?.[0])}
                 />
+
                 {imagePreview ? (
                   <Box
                     component="img"
@@ -548,9 +898,11 @@ export const ProductBuilderPage: React.FC = () => {
                 ) : (
                   <Stack alignItems="center" gap={0.5} sx={{ p: 1.5 }}>
                     <CloudUploadRoundedIcon color="primary" />
+
                     <Typography variant="caption" fontWeight={600}>
                       העלאת תמונת מוצר
                     </Typography>
+
                     <Typography variant="caption" color="text.secondary">
                       JPG או PNG
                     </Typography>
@@ -560,7 +912,6 @@ export const ProductBuilderPage: React.FC = () => {
             </Box>
           </Paper>
 
-          {/* Card 2: Dynamic Attributes Builder */}
           <Paper
             sx={{
               p: { xs: 2, md: 3 },
@@ -574,18 +925,21 @@ export const ProductBuilderPage: React.FC = () => {
               direction="row"
               justifyContent="space-between"
               alignItems="center"
+              gap={2}
               sx={{ mb: 2.5 }}
             >
-              <Box>
-                <Stack direction="row" alignItems="center" gap={1}>
+              <Box sx={{ minWidth: 0 }}>
+                <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                   <Typography variant="h6" fontWeight={700}>
                     מאפיינים ותכונות דינמיות
                   </Typography>
+
                   <Chip label={`${attributes.length} שדות`} size="small" color="primary" />
                 </Stack>
+
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  סדר המאפיינים ברשימה הוא הסדר שבו יוצגו בטופס למזמין. ניתן לשנות סדר בגרירה או
-                  בחיצים.
+                  סדר המאפיינים ברשימה הוא הסדר שבו יוצגו בטופס למזמין. שדה העלאת הקובץ קבוע ותמיד
+                  מוצג אחרון.
                 </Typography>
               </Box>
 
@@ -593,8 +947,11 @@ export const ProductBuilderPage: React.FC = () => {
                 size="small"
                 variant="contained"
                 startIcon={<AddRoundedIcon />}
-                onClick={(e) => setAddFieldAnchor(e.currentTarget)}
-                sx={{ borderRadius: 1.5 }}
+                onClick={(event) => setAddFieldAnchor(event.currentTarget)}
+                sx={{
+                  borderRadius: 1.5,
+                  flexShrink: 0,
+                }}
               >
                 הוסף מאפיין
               </Button>
@@ -603,144 +960,214 @@ export const ProductBuilderPage: React.FC = () => {
                 anchorEl={addFieldAnchor}
                 open={Boolean(addFieldAnchor)}
                 onClose={() => setAddFieldAnchor(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
               >
                 <MenuItem onClick={() => addAttribute('SELECT')}>רשימת בחירה (Select)</MenuItem>
+
                 <MenuItem onClick={() => addAttribute('NUMBER')}>שדה מספרי (Number)</MenuItem>
+
                 <MenuItem onClick={() => addAttribute('BOOLEAN')}>כן / לא (Boolean)</MenuItem>
+
                 <MenuItem onClick={() => addAttribute('TEXT')}>טקסט חופשי (Text)</MenuItem>
-                <MenuItem onClick={() => addAttribute('FILE_UPLOAD')}>
-                  העלאת קובץ (File Upload)
-                </MenuItem>
               </Menu>
             </Stack>
 
-            {attributes.length === 0 ? (
-              <Box
-                sx={{
-                  p: 4,
-                  textAlign: 'center',
-                  bgcolor: '#f8fafc',
-                  borderRadius: 2,
-                  border: '1px dashed',
-                  borderColor: 'divider',
-                }}
-              >
-                <Typography color="text.secondary">
-                  עדיין לא נוספו מאפיינים למוצר זה. לחץ על "הוסף מאפיין" כדי להגדיר תכונות.
-                </Typography>
-              </Box>
-            ) : (
-              <Stack divider={<Divider flexItem />} gap={2.5}>
-                {attributes.map((attribute, index) => (
+            <Stack divider={<Divider flexItem />} gap={2.5}>
+              {attributes.map((attribute, index) => {
+                const isFileUpload = attribute.attributeType === 'FILE_UPLOAD';
+
+                const canMoveUp = !isFileUpload && index > 0;
+
+                const canMoveDown = !isFileUpload && index < attributes.length - 2;
+
+                return (
                   <Box
                     key={attribute.id}
-                    draggable
+                    draggable={!isFileUpload}
                     onDragStart={(event) => {
+                      if (isFileUpload) {
+                        event.preventDefault();
+                        return;
+                      }
+
                       event.dataTransfer.effectAllowed = 'move';
                       event.dataTransfer.setData('text/plain', String(index));
                     }}
-                    onDragOver={(event) => event.preventDefault()}
+                    onDragOver={(event) => {
+                      if (!isFileUpload) {
+                        event.preventDefault();
+                      }
+                    }}
                     onDrop={(event) => {
+                      if (isFileUpload) {
+                        return;
+                      }
+
                       event.preventDefault();
+
                       moveAttribute(Number(event.dataTransfer.getData('text/plain')), index);
                     }}
                     sx={{
                       p: 2,
-                      bgcolor: '#f8fafc',
+                      bgcolor: isFileUpload ? '#f3f6fb' : '#f8fafc',
                       border: '1px solid',
-                      borderColor: 'divider',
+                      borderColor: isFileUpload ? 'primary.light' : 'divider',
                       borderRadius: 1.5,
                     }}
                   >
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      sx={{ mb: 1.5 }}
-                    >
-                      <Stack direction="row" alignItems="center" gap={1}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            cursor: 'grab',
-                            color: 'text.secondary',
-                            userSelect: 'none',
-                          }}
-                          aria-label="גרור לשינוי סדר"
-                          title="גרור לשינוי סדר"
+                    <Stack gap={1.25} sx={{ mb: 1.5 }}>
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        gap={1}
+                      >
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          gap={1}
+                          flexWrap="wrap"
+                          sx={{ minWidth: 0 }}
                         >
-                          <DragIndicatorRoundedIcon />
-                        </Box>
-                        <Chip
-                          label={attributeTypeLabels[attribute.attributeType]}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                        <Typography variant="subtitle2" fontWeight={700}>
-                          #{index + 1} {attribute.attributeName}
-                        </Typography>
+                          {isFileUpload ? (
+                            <LockRoundedIcon color="primary" fontSize="small" />
+                          ) : (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                cursor: 'grab',
+                                color: 'text.secondary',
+                                userSelect: 'none',
+                                flexShrink: 0,
+                              }}
+                              aria-label="גרור לשינוי סדר"
+                              title="גרור לשינוי סדר"
+                            >
+                              <DragIndicatorRoundedIcon />
+                            </Box>
+                          )}
+
+                          <Chip
+                            label={attributeTypeLabels[attribute.attributeType]}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ flexShrink: 0 }}
+                          />
+
+                          {isFileUpload && (
+                            <Chip
+                              label="שדה קבוע"
+                              size="small"
+                              variant="outlined"
+                              sx={{ flexShrink: 0 }}
+                            />
+                          )}
+                        </Stack>
+
+                        {!isFileUpload && (
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            gap={0.5}
+                            sx={{ flexShrink: 0 }}
+                          >
+                            <IconButton
+                              size="small"
+                              disabled={!canMoveUp}
+                              onClick={() => moveAttribute(index, index - 1)}
+                              title="הזז למעלה"
+                            >
+                              <ArrowUpwardRoundedIcon fontSize="small" />
+                            </IconButton>
+
+                            <IconButton
+                              size="small"
+                              disabled={!canMoveDown}
+                              onClick={() => moveAttribute(index, index + 1)}
+                              title="הזז למטה"
+                            >
+                              <ArrowDownwardRoundedIcon fontSize="small" />
+                            </IconButton>
+
+                            <Button
+                              color="error"
+                              size="small"
+                              startIcon={<DeleteOutlineRoundedIcon />}
+                              onClick={() =>
+                                setAttributes((current) =>
+                                  normalizeAttributes(
+                                    current.filter((item) => item.id !== attribute.id)
+                                  )
+                                )
+                              }
+                            >
+                              הסרה
+                            </Button>
+                          </Stack>
+                        )}
                       </Stack>
 
-                      <Stack direction="row" alignItems="center" gap={0.5}>
-                        <IconButton
-                          size="small"
-                          disabled={index === 0}
-                          onClick={() => moveAttribute(index, index - 1)}
-                          title="הזז למעלה"
-                        >
-                          <ArrowUpwardRoundedIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          disabled={index === attributes.length - 1}
-                          onClick={() => moveAttribute(index, index + 1)}
-                          title="הזז למטה"
-                        >
-                          <ArrowDownwardRoundedIcon fontSize="small" />
-                        </IconButton>
-                        <Button
-                          color="error"
-                          size="small"
-                          startIcon={<DeleteOutlineRoundedIcon />}
-                          onClick={() =>
-                            setAttributes(attributes.filter((item) => item.id !== attribute.id))
-                          }
-                        >
-                          הסרה
-                        </Button>
-                      </Stack>
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight={700}
+                        title={attribute.attributeName}
+                        sx={{
+                          width: '100%',
+                          minWidth: 0,
+                          whiteSpace: 'normal',
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        #{index + 1} {attribute.attributeName}
+                      </Typography>
                     </Stack>
-
-                    <AttributeDefinitionForm
-                      attribute={attribute}
-                      onChange={(patch) => updateAttribute(attribute.id, patch)}
-                    />
+                    {isFileUpload ? (
+                      <Alert severity="info" icon={<CloudUploadRoundedIcon />}>
+                        שדה זה נוסף אוטומטית לכל מוצר, הוא חובה ותמיד יוצג אחרון בטופס ההזמנה.
+                      </Alert>
+                    ) : (
+                      <AttributeDefinitionForm
+                        attribute={attribute}
+                        onChange={(patch) => updateAttribute(attribute.id, patch)}
+                      />
+                    )}
                   </Box>
-                ))}
-              </Stack>
-            )}
+                );
+              })}
+            </Stack>
           </Paper>
         </Box>
 
-        {/* Real-time Customer Preview */}
         <Box sx={{ direction: 'rtl', minWidth: 0 }}>
           <ProductPreviewPanel
-            product={{ ...product, imageUrl: imagePreview }}
+            product={{
+              ...product,
+              imageUrl: imagePreview,
+            }}
             attributes={attributes}
             price={previewPrice}
           />
         </Box>
       </Box>
 
-      {/* Toast Notification */}
       <Snackbar open={Boolean(notice)} autoHideDuration={4500} onClose={() => setNotice(null)}>
         <Alert
           severity={notice?.severity}
           onClose={() => setNotice(null)}
-          sx={{ width: '100%', boxShadow: 3 }}
+          sx={{
+            width: '100%',
+            boxShadow: 3,
+          }}
         >
           {notice?.message}
         </Alert>

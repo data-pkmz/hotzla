@@ -14,7 +14,10 @@ export class ManagerApprovalController {
         note: 'Order approved by manager',
       });
 
-      res.status(200).json(order);
+      res.status(200).json({
+        success: true,
+        data: order,
+      });
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Failed to approve order',
@@ -32,7 +35,10 @@ export class ManagerApprovalController {
         note: 'Order rejected by manager',
       });
 
-      res.status(200).json(order);
+      res.status(200).json({
+        success: true,
+        data: order,
+      });
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Failed to reject order',

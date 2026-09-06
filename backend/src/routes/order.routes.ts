@@ -13,6 +13,7 @@ router.get('/:id/history', AuditController.getOrderHistory);
 
 router.post('/checkout', OrderController.checkout);
 router.get('/my-orders', OrderController.getMyOrders);
+router.get('/', OrderController.getOrders);
 router.get('/:id', OrderController.getOrderById);
 
 export default router;

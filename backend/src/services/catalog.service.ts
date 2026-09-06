@@ -75,6 +75,40 @@ export interface UpdateProductInput {
   attributes?: ProductDefinitionInput[];
 }
 
+function normalizeProductDefinitions(
+  definitions: ProductDefinitionInput[] = []
+): ProductDefinitionInput[] {
+  const regularDefinitions = definitions.filter(
+    (definition) => definition.attributeType !== 'FILE_UPLOAD'
+  );
+
+  const existingUpload = definitions.find(
+    (definition) => definition.attributeType === 'FILE_UPLOAD'
+  );
+
+  const uploadDefinition: ProductDefinitionInput = {
+    id: existingUpload?.id,
+    attributeName: 'קובץ להדפסה',
+    attributeType: 'FILE_UPLOAD',
+    displayStyle: 'FILE_DROPZONE',
+    isRequired: true,
+    displayOrder: regularDefinitions.length,
+    pricingRule: 'NONE',
+    unitPrice: null,
+    minValue: null,
+    maxValue: null,
+    options: [],
+  };
+
+  return [
+    ...regularDefinitions.map((definition, index) => ({
+      ...definition,
+      displayOrder: index,
+    })),
+    uploadDefinition,
+  ];
+}
+
 function getDefaultDisplayStyle(
   attributeType: AttributeType,
   style?: AttributeDisplayStyle
@@ -135,27 +169,7 @@ export class CatalogService {
    * Creates a new product (and optionally its attribute definitions and options).
    */
   public static async createProduct(data: CreateProductInput): Promise<Product> {
-    const rawDefinitions = data.definitions ?? data.attributes;
-
-    if (!rawDefinitions || rawDefinitions.length === 0) {
-      const createData: Prisma.ProductUncheckedCreateInput = {
-        name: data.name,
-        description: data.description,
-        category: data.category,
-        productType: data.productType ?? 'DYNAMIC',
-        basePrice: data.basePrice,
-        isActive: data.isActive ?? true,
-        createdBy: data.createdBy,
-        minQuantity: data.minQuantity,
-        maxQuantity: data.maxQuantity ?? null,
-      };
-      if (data.imageUrl !== undefined) {
-        createData.imageUrl = data.imageUrl;
-      }
-      return prisma.product.create({
-        data: createData,
-      });
-    }
+    const rawDefinitions = normalizeProductDefinitions(data.definitions ?? data.attributes ?? []);
 
     return prisma.$transaction(async (tx) => {
       const createData: Prisma.ProductUncheckedCreateInput = {
@@ -217,7 +231,29 @@ export class CatalogService {
    * Updates an existing product (and optionally its attribute definitions and options).
    */
   public static async updateProduct(id: string, data: UpdateProductInput): Promise<Product> {
-    const rawDefinitions = data.definitions ?? data.attributes;
+    const suppliedDefinitions = data.definitions ?? data.attributes;
+
+    const rawDefinitions =
+      suppliedDefinitions !== undefined
+        ? normalizeProductDefinitions(suppliedDefinitions)
+        : undefined;
+
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!existingProduct) {
+      throw new Error('Product not found');
+    }
+
+    const effectiveMinQuantity = data.minQuantity ?? existingProduct.minQuantity;
+
+    const effectiveMaxQuantity =
+      data.maxQuantity !== undefined ? data.maxQuantity : existingProduct.maxQuantity;
+
+    if (effectiveMaxQuantity !== null && effectiveMaxQuantity < effectiveMinQuantity) {
+      throw new Error('Maximum quantity cannot be less than minimum quantity');
+    }
 
     const productUpdateData: Prisma.ProductUpdateInput = {};
     if (data.name !== undefined) productUpdateData.name = data.name;
