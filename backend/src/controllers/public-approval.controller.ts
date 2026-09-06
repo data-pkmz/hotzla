@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { TokenService } from '../services/token.service';
-import { prisma } from '../config/db';
+
 import logger from '../utils/logger';
 
 export class PublicApprovalController {
@@ -17,34 +17,7 @@ export class PublicApprovalController {
         return res.status(400).json({ error: 'Token is required' });
       }
 
-      const tokenRecord = await prisma.approvalToken.findUnique({
-        where: { token },
-        include: {
-          order: {
-            include: {
-              requester: {
-                select: {
-                  fullName: true,
-                  militaryEmail: true,
-                  unit: true,
-                  phone: true,
-                },
-              },
-              itemEntries: {
-                include: {
-                  product: true,
-                  itemAttributeEntries: {
-                    include: {
-                      attributeDefinition: true,
-                      selectedOption: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
+      const tokenRecord = await TokenService.getApprovalInfo(token);
 
       if (!tokenRecord || tokenRecord.isDeleted) {
         return res.status(404).json({ error: 'Invalid or missing token' });

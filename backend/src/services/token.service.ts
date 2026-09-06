@@ -28,6 +28,41 @@ export class TokenService {
   }
 
   /**
+   * Fetches the order details associated with an approval token.
+   * Returns the token record with deep nested order relations.
+   */
+  public static async getApprovalInfo(tokenStr: string) {
+    return prisma.approvalToken.findUnique({
+      where: { token: tokenStr },
+      include: {
+        order: {
+          include: {
+            requester: {
+              select: {
+                fullName: true,
+                militaryEmail: true,
+                unit: true,
+                phone: true,
+              },
+            },
+            itemEntries: {
+              include: {
+                product: true,
+                itemAttributeEntries: {
+                  include: {
+                    attributeDefinition: true,
+                    selectedOption: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Validates a token and processes the approval/rejection decision.
    * Ensures the token is only used once.
    */
