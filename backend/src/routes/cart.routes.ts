@@ -7,7 +7,7 @@ const router = Router();
 
 // Apply authentication and RBAC middleware to all cart routes
 router.use(authMiddleware);
-router.use(requireRoles(['REQUESTER', 'MANAGER', 'WORKER']));
+router.use(requireRoles(['REQUESTER']));
 
 router.get('/', CartController.getActiveCart);
 router.post('/items', CartController.addItem);

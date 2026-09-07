@@ -6,15 +6,18 @@ import { requireRoles } from '../middlewares/rbac.middleware';
 
 const router = Router();
 
-// Apply authentication and RBAC middleware to all order routes
+// Apply authentication middleware to all order routes
 router.use(authMiddleware);
-router.use(requireRoles(['REQUESTER', 'MANAGER', 'WORKER']));
 
 // Audit / History
-router.get('/:id/history', AuditController.getOrderHistory);
+router.get(
+  '/:id/history',
+  requireRoles(['REQUESTER', 'MANAGER', 'WORKER']),
+  AuditController.getOrderHistory
+);
 
-router.post('/checkout', OrderController.checkout);
-router.get('/my-orders', OrderController.getMyOrders);
-router.get('/:id', OrderController.getOrderById);
+router.post('/checkout', requireRoles(['REQUESTER']), OrderController.checkout);
+router.get('/my-orders', requireRoles(['REQUESTER']), OrderController.getMyOrders);
+router.get('/:id', requireRoles(['REQUESTER', 'MANAGER', 'WORKER']), OrderController.getOrderById);
 
 export default router;
