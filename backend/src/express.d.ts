@@ -1,5 +1,5 @@
 import 'express';
-import { User as PrismaUser } from '@prisma/client';
+import type { User as SharedUser } from 'shared-types';
 
 declare global {
   namespace Express {
@@ -10,7 +10,7 @@ declare global {
 
     interface Request {
       user?: User;
-      dbUser?: PrismaUser;
+      dbUser?: SharedUser;
     }
   }
 }
