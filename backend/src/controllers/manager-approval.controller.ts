@@ -9,15 +9,12 @@ export class ManagerApprovalController {
       const order = await ApprovalService.transitionOrderStatus({
         orderId: req.params.id,
         toStatus: OrderStatus.APPROVED_FOR_PRODUCTION,
-        changedByUserId: res.locals.authenticatedUser.id,
+        changedByUserId: req.dbUser!.id,
         changedBySource: ChangeSource.MANAGER_UI,
         note: 'Order approved by manager',
       });
 
-      res.status(200).json({
-        success: true,
-        data: order,
-      });
+      res.status(200).json(order);
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Failed to approve order',
@@ -30,15 +27,12 @@ export class ManagerApprovalController {
       const order = await ApprovalService.transitionOrderStatus({
         orderId: req.params.id,
         toStatus: OrderStatus.REJECTED_MANAGER,
-        changedByUserId: res.locals.authenticatedUser.id,
+        changedByUserId: req.dbUser!.id,
         changedBySource: ChangeSource.MANAGER_UI,
         note: 'Order rejected by manager',
       });
 
-      res.status(200).json({
-        success: true,
-        data: order,
-      });
+      res.status(200).json(order);
     } catch (error) {
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Failed to reject order',
