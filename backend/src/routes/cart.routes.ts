@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { CartController } from '../controllers/cart.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { requireRoles } from '../middlewares/rbac.middleware';
 
 const router = Router();
 
-// Apply authentication middleware to all cart routes
+// Apply authentication and RBAC middleware to all cart routes
 router.use(authMiddleware);
+router.use(requireRoles(['REQUESTER', 'MANAGER', 'WORKER']));
 
 router.get('/', CartController.getActiveCart);
 router.post('/items', CartController.addItem);
