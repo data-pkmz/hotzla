@@ -65,6 +65,7 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
     phone: '050-1234567',
     role: 'REQUESTER',
     createdAt: new Date(),
+    isDeleted: false,
   };
 
   const initialStatus: OrderStatus = 'PENDING_BUDGET';

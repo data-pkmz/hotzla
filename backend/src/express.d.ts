@@ -1,4 +1,5 @@
 import 'express';
+import type { User as SharedUser } from 'shared-types';
 
 declare global {
   namespace Express {
@@ -9,6 +10,7 @@ declare global {
 
     interface Request {
       user?: User;
+      dbUser?: SharedUser;
     }
   }
 }
