@@ -1,7 +1,7 @@
 import React from 'react';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { Box, FormControlLabel, IconButton, MenuItem, Switch, TextField } from '@mui/material';
-import type { BuilderOption } from '../../pages/admin/ProductBuilderPage';
+import type { BuilderOption } from '../../pages/admin/product-builder/ProductBuilderPage';
 
 interface AttributeOptionFormProps {
   option: BuilderOption;

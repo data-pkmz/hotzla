@@ -1,1 +1,1 @@
-export { default as OrdersTable } from './orders-table';
+export { default as OrdersTablePage } from './OrdersTablePage';

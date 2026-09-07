@@ -79,7 +79,7 @@ export interface OrderQueryParams {
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'orderNumber' | 'totalPrice' | 'status';
+  sortBy?: 'createdAt' | 'orderNumber' | 'totalPrice' | 'status' | 'requesterName' | 'unit';
   sortOrder?: 'asc' | 'desc';
 }
 

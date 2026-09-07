@@ -35,15 +35,15 @@ import type {
   ProductAttributeOption,
 } from 'shared-types';
 
-import { AttributeDefinitionForm } from '../../components/admin/AttributeDefinitionForm';
-import { ProductPreviewPanel } from '../../components/admin/ProductPreviewPanel';
-import { getProducts } from '../../services/api/catalog.service';
+import { AttributeDefinitionForm } from '../../../components/admin/AttributeDefinitionForm';
+import { ProductPreviewPanel } from '../../../components/admin/ProductPreviewPanel';
+import { getProducts } from '../../../services/api/catalog.service';
 import {
   createAdminProduct,
   getAdminProductById,
   updateAdminProduct,
   type SaveProductPayload,
-} from '../../services/api/admin-catalog.service';
+} from '../../../services/api/admin-catalog.service';
 
 export type BuilderOption = Omit<ProductAttributeOption, 'id' | 'attributeDefinitionId'> & {
   id: string;

@@ -10,7 +10,10 @@ import {
   Typography,
 } from '@mui/material';
 import type { AttributeDisplayStyle, PricingImpactType } from 'shared-types';
-import type { BuilderAttribute, BuilderOption } from '../../pages/admin/ProductBuilderPage';
+import type {
+  BuilderAttribute,
+  BuilderOption,
+} from '../../pages/admin/product-builder/ProductBuilderPage';
 import { AttributeOptionForm } from './AttributeOptionForm';
 
 interface AttributeDefinitionFormProps {

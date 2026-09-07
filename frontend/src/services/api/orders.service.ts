@@ -1,4 +1,4 @@
-import type { Order, OrderDetails, OrderListResponse } from 'shared-types';
+import type { Order, OrderDetails, OrderListResponse, OrderQueryParams } from 'shared-types';
 import { apiFetch } from '../api';
 
 interface ApiResponse<T> {
@@ -18,8 +18,36 @@ export const getMyOrders = async (): Promise<Order[]> => {
   return result.data;
 };
 
-export const getOrders = async (): Promise<OrderListResponse> => {
-  const response = await apiFetch('/api/orders');
+export const getOrders = async (params: OrderQueryParams = {}): Promise<OrderListResponse> => {
+  const searchParams = new URLSearchParams();
+
+  if (params.page !== undefined) {
+    searchParams.set('page', String(params.page));
+  }
+
+  if (params.limit !== undefined) {
+    searchParams.set('limit', String(params.limit));
+  }
+
+  if (params.status) {
+    searchParams.set('status', params.status);
+  }
+
+  if (params.search?.trim()) {
+    searchParams.set('search', params.search.trim());
+  }
+
+  if (params.sortBy) {
+    searchParams.set('sortBy', params.sortBy);
+  }
+
+  if (params.sortOrder) {
+    searchParams.set('sortOrder', params.sortOrder);
+  }
+
+  const queryString = searchParams.toString();
+
+  const response = await apiFetch(`/api/orders${queryString ? `?${queryString}` : ''}`);
 
   if (!response.ok) {
     throw new Error('Failed to load orders');
