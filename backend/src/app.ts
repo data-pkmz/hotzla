@@ -16,6 +16,7 @@ import fileRouter from './routes/file.routes';
 // Import Cart & Order Routes (DPS-025)
 import cartRoutes from './routes/cart.routes';
 import orderRoutes from './routes/order.routes';
+import publicRoutes from './routes/public.routes';
 import { ImapPollingWorker } from './workers/imap-poller.worker';
 
 const app = express();
@@ -23,7 +24,11 @@ const port = process.env.PORT || 3001;
 
 app.use(express.json());
 
-ImapPollingWorker.start();
+if (process.env.IMAP_HOST) {
+  ImapPollingWorker.start();
+} else {
+  logger.warn('IMAP_HOST not configured, skipping IMAP Polling Worker startup');
+}
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
@@ -35,6 +40,9 @@ app.use('/api/files', fileRouter);
 app.use('/api/cart', cartRoutes);
 app.use('/api/cart', orderRoutes); // for /api/cart/checkout
 app.use('/api/orders', orderRoutes); // for /api/orders/:id/history
+
+// Public routes (unauthenticated)
+app.use('/api/public', publicRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
