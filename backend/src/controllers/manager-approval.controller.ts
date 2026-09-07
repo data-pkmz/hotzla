@@ -9,7 +9,7 @@ export class ManagerApprovalController {
       const order = await ApprovalService.transitionOrderStatus({
         orderId: req.params.id,
         toStatus: OrderStatus.APPROVED_FOR_PRODUCTION,
-        changedByUserId: res.locals.authenticatedUser.id,
+        changedByUserId: req.dbUser!.id,
         changedBySource: ChangeSource.MANAGER_UI,
         note: 'Order approved by manager',
       });
@@ -27,7 +27,7 @@ export class ManagerApprovalController {
       const order = await ApprovalService.transitionOrderStatus({
         orderId: req.params.id,
         toStatus: OrderStatus.REJECTED_MANAGER,
-        changedByUserId: res.locals.authenticatedUser.id,
+        changedByUserId: req.dbUser!.id,
         changedBySource: ChangeSource.MANAGER_UI,
         note: 'Order rejected by manager',
       });
