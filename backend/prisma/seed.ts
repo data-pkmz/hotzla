@@ -1098,6 +1098,24 @@ async function main() {
   // Seed summary
   // --------------------
 
+  // ------------------------------------------------------------
+  // Test Approval Token for DPS-035
+  // ------------------------------------------------------------
+  await prisma.approvalToken.upsert({
+    where: { token: 'TEST-TOKEN-123' },
+    update: {
+      isUsed: false,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    },
+    create: {
+      id: '80000000-0000-0000-0000-000000000001',
+      orderId: pendingOrder.id,
+      token: 'TEST-TOKEN-123',
+      isUsed: false,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
   logger.info('Seeded development data', {
     users: {
       requester: requester.adUsername,

@@ -9,11 +9,13 @@ import { OrdersTablePage } from '../pages/admin/orders-table';
 import { OrderDetailPage } from '../pages/admin/order-detail';
 import { ProductBuilderPage } from '../pages/admin/product-builder';
 import { OrderDetailsPage } from '../pages/order-details-page';
+import { PublicApprovalPage } from '../pages/public/PublicApprovalPage';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<CatalogPage />} />
+      <Route path="/approve-order" element={<PublicApprovalPage />} />
       <Route path="/product/:id" element={<ProductDetailPage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
