@@ -17,7 +17,11 @@ router.get(
 );
 
 router.post('/checkout', requireRoles(['REQUESTER']), OrderController.checkout);
+
 router.get('/my-orders', requireRoles(['REQUESTER']), OrderController.getMyOrders);
+
+router.get('/', requireRoles(['MANAGER']), OrderController.getOrders);
+
 router.get('/:id', requireRoles(['REQUESTER', 'MANAGER', 'WORKER']), OrderController.getOrderById);
 
 export default router;
