@@ -30,6 +30,11 @@ router.post(
  * 3. FileController.downloadFile: Performs complex ABAC/RBAC ownership validation.
  */
 router.get('/download', authMiddleware, rbacMiddleware, FileController.downloadFile);
+
+/**
+ * GET /api/files/product-image?path=...
+ * Serves catalog images that are referenced by a product's imageUrl.
+ */
 router.get('/product-image', authMiddleware, rbacMiddleware, FileController.downloadProductImage);
 
 export default router;
