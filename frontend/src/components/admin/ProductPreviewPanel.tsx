@@ -20,7 +20,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import type { BuilderAttribute } from '../../pages/admin/ProductBuilderPage';
+import type { BuilderAttribute } from '../../pages/admin/product-builder/ProductBuilderPage';
 
 export interface PreviewProduct {
   name: string;

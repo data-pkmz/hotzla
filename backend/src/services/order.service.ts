@@ -367,12 +367,22 @@ export class OrderService {
 
     if (params?.search && params.search.trim()) {
       const search = params.search.trim();
+
       where.OR = [
-        { orderNumber: { contains: search, mode: 'insensitive' } },
-        { unit: { contains: search, mode: 'insensitive' } },
-        { budgetOfficerName: { contains: search, mode: 'insensitive' } },
-        { budgetOfficerEmail: { contains: search, mode: 'insensitive' } },
-        { requester: { fullName: { contains: search, mode: 'insensitive' } } },
+        {
+          orderNumber: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          requester: {
+            fullName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
       ];
     }
 
@@ -380,19 +390,35 @@ export class OrderService {
     const limit = Math.max(1, Math.min(100, params?.limit ?? 10));
     const skip = (page - 1) * limit;
 
-    const allowedSortFields = ['createdAt', 'orderNumber', 'totalPrice', 'status'];
+    const allowedSortFields = [
+      'createdAt',
+      'orderNumber',
+      'totalPrice',
+      'status',
+      'requesterName',
+      'unit',
+    ];
     const sortBy =
       params?.sortBy && allowedSortFields.includes(params.sortBy) ? params.sortBy : 'createdAt';
     const sortOrder = params?.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    const orderBy: Prisma.OrderOrderByWithRelationInput =
+      sortBy === 'requesterName'
+        ? {
+            requester: {
+              fullName: sortOrder,
+            },
+          }
+        : {
+            [sortBy]: sortOrder,
+          };
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
+        orderBy,
         include: {
           requester: {
             select: {
