@@ -16,6 +16,12 @@ export default function ProductCard({ product }: ProductCardProps) {
     navigate(`/product/${product.id}`);
   };
 
+  const getFileUrl = (filePath?: string | null): string => {
+    if (!filePath) return '';
+
+    return `/api/files/product-image?path=${encodeURIComponent(filePath)}`;
+  };
+
   return (
     <Card
       onClick={handleProductClick}
@@ -55,7 +61,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       >
         <Box
           component="img"
-          src={product.imageUrl}
+          src={getFileUrl(product.imageUrl)}
           alt={product.name}
           sx={{
             width: '100%',

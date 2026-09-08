@@ -44,6 +44,7 @@ import {
   updateAdminProduct,
   type SaveProductPayload,
 } from '../../../services/api/admin-catalog.service';
+import { uploadFile } from '../../../services/api/file.service';
 
 export type BuilderOption = Omit<ProductAttributeOption, 'id' | 'attributeDefinitionId'> & {
   id: string;
@@ -116,6 +117,9 @@ const createAttribute = (
         : [],
   };
 };
+
+const getFileUrl = (filePath: string): string =>
+  `/api/files/download?path=${encodeURIComponent(filePath)}`;
 
 const createFileUploadAttribute = (order: number): BuilderAttribute => ({
   id: crypto.randomUUID(),
@@ -261,7 +265,15 @@ export const ProductBuilderPage: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(Boolean(id));
+
+  // The path that is stored in the database.
+  const [imagePath, setImagePath] = useState('');
+
+  // The URL used only to display the image in the browser.
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // The actual File selected by the user. This is uploaded when the product is saved.
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -339,7 +351,11 @@ export const ProductBuilderPage: React.FC = () => {
           isActive: data.isActive ?? true,
         });
 
-        setImagePreview(data.imageUrl ?? null);
+        const storedImagePath = data.imageUrl ?? '';
+
+        setImagePath(storedImagePath);
+        setImagePreview(storedImagePath ? getFileUrl(storedImagePath) : null);
+        setImageFile(null);
 
         const loadedAttrs: BuilderAttribute[] = (
           data.attributeDefinitionEntries ??
@@ -391,6 +407,14 @@ export const ProductBuilderPage: React.FC = () => {
       isCancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const updateAttribute = (attributeId: string, patch: Partial<BuilderAttribute>) => {
     setAttributes((current) =>
@@ -457,7 +481,7 @@ export const ProductBuilderPage: React.FC = () => {
   const handleImageChange = (file?: File) => {
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
       setNotice({
         severity: 'error',
         message: 'ניתן להעלות קובץ תמונה בלבד (JPG / PNG)',
@@ -465,10 +489,12 @@ export const ProductBuilderPage: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
+    if (imagePreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
 
-    reader.onload = () => setImagePreview(String(reader.result));
-    reader.readAsDataURL(file);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const saveProduct = async () => {
@@ -536,6 +562,12 @@ export const ProductBuilderPage: React.FC = () => {
     setSaving(true);
 
     try {
+      let savedImagePath = imagePath;
+
+      if (imageFile) {
+        savedImagePath = await uploadFile(imageFile);
+      }
+
       const payload: SaveProductPayload = {
         name: product.name.trim(),
         description: product.description.trim(),
@@ -545,7 +577,7 @@ export const ProductBuilderPage: React.FC = () => {
         minQuantity: product.minQuantity,
         maxQuantity: product.maxQuantity,
         isActive: product.isActive,
-        imageUrl: imagePreview || '',
+        imageUrl: savedImagePath,
 
         definitions: normalizedAttributes.map((attribute, index) => ({
           attributeName: attribute.attributeName.trim(),
@@ -576,6 +608,9 @@ export const ProductBuilderPage: React.FC = () => {
       };
 
       const result = id ? await updateAdminProduct(id, payload) : await createAdminProduct(payload);
+
+      setImagePath(savedImagePath);
+      setImageFile(null);
 
       setNotice({
         severity: 'success',
@@ -1131,6 +1166,7 @@ export const ProductBuilderPage: React.FC = () => {
                         #{index + 1} {attribute.attributeName}
                       </Typography>
                     </Stack>
+
                     {isFileUpload ? (
                       <Alert severity="info" icon={<CloudUploadRoundedIcon />}>
                         שדה זה נוסף אוטומטית לכל מוצר, הוא חובה ותמיד יוצג אחרון בטופס ההזמנה.
