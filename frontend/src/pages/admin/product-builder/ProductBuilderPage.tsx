@@ -44,7 +44,7 @@ import {
   updateAdminProduct,
   type SaveProductPayload,
 } from '../../../services/api/admin-catalog.service';
-import { uploadFile } from '../../../services/api/file.service';
+import { uploadFile, getProductImageUrl } from '../../../services/api/file.service';
 
 export type BuilderOption = Omit<ProductAttributeOption, 'id' | 'attributeDefinitionId'> & {
   id: string;
@@ -117,9 +117,6 @@ const createAttribute = (
         : [],
   };
 };
-
-const getFileUrl = (filePath: string): string =>
-  `/api/files/download?path=${encodeURIComponent(filePath)}`;
 
 const createFileUploadAttribute = (order: number): BuilderAttribute => ({
   id: crypto.randomUUID(),
@@ -354,7 +351,7 @@ export const ProductBuilderPage: React.FC = () => {
         const storedImagePath = data.imageUrl ?? '';
 
         setImagePath(storedImagePath);
-        setImagePreview(storedImagePath ? getFileUrl(storedImagePath) : null);
+        setImagePreview(getProductImageUrl(storedImagePath));
         setImageFile(null);
 
         const loadedAttrs: BuilderAttribute[] = (

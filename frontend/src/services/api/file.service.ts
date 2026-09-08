@@ -23,3 +23,13 @@ export const uploadFile = async (file: File): Promise<string> => {
 
   return data.filePath;
 };
+
+export const getProductImageUrl = (filePath?: string | null): string => {
+  if (!filePath) return '';
+
+  if (filePath.startsWith('/images/')) {
+    return filePath;
+  }
+
+  return `/api/files/product-image?path=${encodeURIComponent(filePath)}`;
+};

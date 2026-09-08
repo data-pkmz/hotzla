@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 
 import type { Product } from 'shared-types';
 
+import { getProductImageUrl } from '../../services/api/file.service';
+
 interface ProductCardProps {
   product: Product;
 }
@@ -14,12 +16,6 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const handleProductClick = () => {
     navigate(`/product/${product.id}`);
-  };
-
-  const getFileUrl = (filePath?: string | null): string => {
-    if (!filePath) return '';
-
-    return `/api/files/product-image?path=${encodeURIComponent(filePath)}`;
   };
 
   return (
@@ -61,7 +57,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       >
         <Box
           component="img"
-          src={getFileUrl(product.imageUrl)}
+          src={getProductImageUrl(product.imageUrl)}
           alt={product.name}
           sx={{
             width: '100%',
