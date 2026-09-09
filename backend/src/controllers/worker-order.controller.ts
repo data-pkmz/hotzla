@@ -70,12 +70,10 @@ export class WorkerOrderController {
         logger.warn('Could not send ready-for-pickup email: missing order or requester email', {
           orderId,
         });
-        res
-          .status(200)
-          .json({
-            message:
-              'Order status updated to READY_FOR_PICKUP (no email sent due to missing address)',
-          });
+        res.status(200).json({
+          message:
+            'Order status updated to READY_FOR_PICKUP (no email sent due to missing address)',
+        });
       }
     } catch (error) {
       logger.error('Error marking order as ready for pickup', { error, orderId: req.params.id });
