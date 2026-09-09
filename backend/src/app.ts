@@ -17,6 +17,7 @@ import fileRouter from './routes/file.routes';
 import cartRoutes from './routes/cart.routes';
 import orderRoutes from './routes/order.routes';
 import publicRoutes from './routes/public.routes';
+import workerRoutes from './routes/worker.routes';
 import { ImapPollingWorker } from './workers/imap-poller.worker';
 
 const app = express();
@@ -30,19 +31,25 @@ if (process.env.IMAP_HOST) {
   logger.warn('IMAP_HOST not configured, skipping IMAP Polling Worker startup');
 }
 
-// Authentication routes
-app.use('/api/auth', authRoutes);
+// API Routes
+app.use('/api', authRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/public', publicRoutes);
 
-// File routes
+// 2. Mount Catalog routes
+app.use('/api/products', catalogRouter);
+app.use('/api/admin/products', adminCatalogRouter);
 app.use('/api/files', fileRouter);
 
-// Cart & Order routes
+// Mount Cart & Order routes
 app.use('/api/cart', cartRoutes);
-app.use('/api/cart', orderRoutes); // for /api/cart/checkout
 app.use('/api/orders', orderRoutes); // for /api/orders/:id/history
 
-// Public routes (unauthenticated)
-app.use('/api/public', publicRoutes);
+// 5. Manager routes
+app.use('/api/orders', managerRoutes);
+
+// Worker routes
+app.use('/api/orders', workerRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
