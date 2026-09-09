@@ -4,39 +4,12 @@ import type {
   BudgetDecisionConfirmationEmailData,
   OrderConfirmationEmailData,
   ReadyForPickupEmailData,
-  ManagerNewOrderNotificationData,
 } from 'shared-types';
 
 import { EmailService } from './email.service';
 import logger from '../utils/logger';
 
 export class NotificationService {
-  /**
-   * Sends a new-order notification to the configured manager.
-   *
-   * NotificationService resolves the recipient from configuration so callers
-   * do not need to know how manager addresses are stored. Missing
-   * configuration is reported and skipped because a notification cannot be
-   * delivered without a destination address.
-   */
-  static async notifyManagerNewOrder(
-    data: Omit<ManagerNewOrderNotificationData, 'managerEmail'>
-  ): Promise<void> {
-    const managerEmail = process.env.MANAGER_EMAIL?.trim();
-
-    if (!managerEmail) {
-      logger.warn('Manager notification skipped because MANAGER_EMAIL is not configured', {
-        orderId: data.orderId,
-        orderNumber: data.orderNumber,
-      });
-      return;
-    }
-
-    await this.send('manager new order', data.orderId, data.orderNumber, () =>
-      EmailService.sendManagerNewOrder({ ...data, managerEmail })
-    );
-  }
-
   /**
    * Sends a requester-facing email for a status transition.
    *

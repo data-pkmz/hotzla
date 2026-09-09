@@ -10,7 +10,6 @@ import type {
   ReadyForPickupEmailData,
   BudgetDecisionConfirmationEmailData,
 } from 'shared-types';
-import type { ManagerNewOrderNotificationData } from 'shared-types';
 
 import { prisma } from '../config/db';
 import logger from '../utils/logger';
@@ -115,31 +114,6 @@ export class EmailService {
       type: 'ORDER_CONFIRMATION',
       to: data.requesterEmail,
       subject,
-      html,
-    });
-  }
-
-  /**
-   * Builds and sends the manager's new-order email.
-   *
-   * This is an infrastructure operation: NotificationService decides when the
-   * business event should be emitted, while EmailService renders the template,
-   * sends it through SMTP, and records the result in EMAIL_LOG.
-   */
-  static async sendManagerNewOrder(data: ManagerNewOrderNotificationData): Promise<void> {
-    const template = await this.loadTemplate('manager-new-order.html');
-    const html = this.renderTemplate(template, {
-      orderNumber: this.escapeHtml(data.orderNumber),
-      requesterName: this.escapeHtml(data.requesterName),
-      totalPrice: this.formatPrice(data.totalPrice),
-      orderUrl: this.escapeHtml(data.orderUrl),
-    });
-
-    await this.sendEmail({
-      orderId: data.orderId,
-      type: 'MANAGER_NEW_ORDER',
-      to: data.managerEmail,
-      subject: `התקבלה הזמנה חדשה מספר ${data.orderNumber}`,
       html,
     });
   }

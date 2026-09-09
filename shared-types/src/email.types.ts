@@ -6,7 +6,6 @@ export type EmailProcessedStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ERROR'
 // backend Prisma EmailType enum so TypeScript and EMAIL_LOG stay aligned.
 export type EmailType =
   | 'BUDGET_APPROVAL'
-  | 'MANAGER_NEW_ORDER'
   | 'ORDER_CONFIRMATION'
   | 'BUDGET_DECISION_CONFIRMATION'
   | 'READY_FOR_PICKUP'

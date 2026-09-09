@@ -235,8 +235,6 @@ export class OrderService {
       }
     }
 
-    // Notify the manager through the central notification boundary. The
-    // manager address is resolved from MANAGER_EMAIL inside the service.
     try {
       await NotificationService.notifyBudgetOfficer({
         orderId: newOrder.id,
@@ -260,28 +258,6 @@ export class OrderService {
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
         budgetOfficerEmail: newOrder.budgetOfficerEmail,
-        error,
-      });
-    }
-
-    try {
-      await NotificationService.notifyManagerNewOrder({
-        orderId: newOrder.id,
-        orderNumber: newOrder.orderNumber,
-        requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
-        totalPrice: Number(newOrder.totalPrice),
-        orderUrl: `${process.env.APP_BASE_URL}/orders/${newOrder.id}`,
-        items: newOrder.itemEntries.map((item) => ({
-          productName: item.product.name,
-          quantity: Number(item.quantity),
-          price: Number(item.computedTotalPrice),
-          specifications: [],
-        })),
-      });
-    } catch (error) {
-      logger.error('Failed to notify manager about new order', {
-        orderId: newOrder.id,
-        orderNumber: newOrder.orderNumber,
         error,
       });
     }
