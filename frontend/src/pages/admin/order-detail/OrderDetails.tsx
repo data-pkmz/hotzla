@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from '../../../services/api';
 
 import {
   Alert,
@@ -89,6 +90,32 @@ export default function OrderDetails() {
       ]);
     },
   });
+
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
+    try {
+      const response = await apiFetch(`/api/files/download?path=${encodeURIComponent(filePath)}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+
+      link.href = downloadUrl;
+      link.download = fileName;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Failed to download file:', error);
+    }
+  };
 
   const contacts = order
     ? [
@@ -484,8 +511,11 @@ export default function OrderDetails() {
                                 {item.product.name}
                               </Typography>
                             </Box>
-
-                            <IconButton size="small" aria-label={`הורדת ${fileName}`} disabled>
+                            <IconButton
+                              size="small"
+                              aria-label={`הורדת ${fileName}`}
+                              onClick={() => handleDownloadFile(item.uploadedFilePath, fileName)}
+                            >
                               <DownloadOutlinedIcon />
                             </IconButton>
                           </Box>
