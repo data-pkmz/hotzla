@@ -33,3 +33,24 @@ export const getProductImageUrl = (filePath?: string | null): string => {
 
   return `/api/files/product-image?path=${encodeURIComponent(filePath)}`;
 };
+
+export const downloadFile = async (filePath: string, fileName: string): Promise<void> => {
+  const response = await apiFetch(`/api/files/download?path=${encodeURIComponent(filePath)}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to download file');
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = fileName;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.URL.revokeObjectURL(downloadUrl);
+};

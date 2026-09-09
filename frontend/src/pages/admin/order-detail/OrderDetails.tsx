@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { downloadFile } from '../../../services/api/file.service';
 
 import {
   Alert,
@@ -89,6 +90,14 @@ export default function OrderDetails() {
       ]);
     },
   });
+
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
+    try {
+      await downloadFile(filePath, fileName);
+    } catch (error) {
+      console.error('Failed to download file:', error);
+    }
+  };
 
   const contacts = order
     ? [
@@ -484,8 +493,11 @@ export default function OrderDetails() {
                                 {item.product.name}
                               </Typography>
                             </Box>
-
-                            <IconButton size="small" aria-label={`הורדת ${fileName}`} disabled>
+                            <IconButton
+                              size="small"
+                              aria-label={`הורדת ${fileName}`}
+                              onClick={() => handleDownloadFile(item.uploadedFilePath, fileName)}
+                            >
                               <DownloadOutlinedIcon />
                             </IconButton>
                           </Box>

@@ -32,4 +32,10 @@ router.post(
 router.get('/download', authMiddleware, rbacMiddleware, FileController.downloadFile);
 router.get('/product-image', authMiddleware, rbacMiddleware, FileController.downloadProductImage);
 
+/**
+ * GET /api/files/product-image?path=...
+ * Serves catalog images that are referenced by a product's imageUrl.
+ */
+router.get('/product-image', authMiddleware, rbacMiddleware, FileController.downloadProductImage);
+
 export default router;
