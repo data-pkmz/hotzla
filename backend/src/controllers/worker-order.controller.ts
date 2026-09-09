@@ -62,13 +62,21 @@ export class WorkerOrderController {
             req.body.pickupInstructions || 'Your order is ready for pickup at the printing center.',
           trackingUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders/${order.id}`,
         });
+
+        res
+          .status(200)
+          .json({ message: 'Order status updated to READY_FOR_PICKUP and email sent' });
       } else {
         logger.warn('Could not send ready-for-pickup email: missing order or requester email', {
           orderId,
         });
+        res
+          .status(200)
+          .json({
+            message:
+              'Order status updated to READY_FOR_PICKUP (no email sent due to missing address)',
+          });
       }
-
-      res.status(200).json({ message: 'Order status updated to READY_FOR_PICKUP and email sent' });
     } catch (error) {
       logger.error('Error marking order as ready for pickup', { error, orderId: req.params.id });
       const message = error instanceof Error ? error.message : 'Internal server error';
