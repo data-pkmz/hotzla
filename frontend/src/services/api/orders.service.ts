@@ -97,3 +97,37 @@ export const managerRejectOrder = async (orderId: string): Promise<OrderDetails>
 
   return result.data;
 };
+
+// Worker Endpoints (DPS-043)
+export const startPrinting = async (orderId: string): Promise<void> => {
+  const response = await apiFetch(`/api/orders/${orderId}/start-printing`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to start printing');
+  }
+};
+
+export const readyForPickup = async (orderId: string): Promise<void> => {
+  const response = await apiFetch(`/api/orders/${orderId}/ready-for-pickup`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to mark as ready for pickup');
+  }
+};
+
+export const completeOrder = async (orderId: string): Promise<void> => {
+  const response = await apiFetch(`/api/orders/${orderId}/complete`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to complete order');
+  }
+};
