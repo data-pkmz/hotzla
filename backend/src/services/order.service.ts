@@ -361,8 +361,22 @@ export class OrderService {
       where.requesterId = currentUser.id;
     }
 
-    if (params?.status) {
-      where.status = params.status;
+    if (currentUser.role === Role.WORKER) {
+      const allowedWorkerStatuses: OrderStatus[] = [
+        OrderStatus.APPROVED_FOR_PRODUCTION,
+        OrderStatus.IN_PRODUCTION,
+        OrderStatus.READY_FOR_PICKUP,
+        OrderStatus.COMPLETED,
+      ];
+      if (params?.status && allowedWorkerStatuses.includes(params.status)) {
+        where.status = params.status;
+      } else {
+        where.status = { in: allowedWorkerStatuses };
+      }
+    } else {
+      if (params?.status) {
+        where.status = params.status;
+      }
     }
 
     if (params?.search && params.search.trim()) {
