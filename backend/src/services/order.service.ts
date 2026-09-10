@@ -3,7 +3,7 @@ import { prisma } from '../config/db';
 import { OrderNumberGenerator } from '../utils/order-number-generator';
 import { PricingEngineService } from './pricing-engine.service';
 import { AuditLogService } from './audit-log.service';
-import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 import logger from '../utils/logger';
 import type {
   CreateOrderInput,
@@ -206,6 +206,9 @@ export class OrderService {
       return newOrder;
     });
 
+    // Notifications are intentionally sent after the database transaction.
+    // A failed transaction must not produce an email for an order that was
+    // never committed.
     if (!newOrder.requester.militaryEmail) {
       logger.error('Requester email is missing', {
         orderId: newOrder.id,
@@ -213,8 +216,10 @@ export class OrderService {
         requesterId: newOrder.requester.id,
       });
     } else {
+      // Notify the budget officer with the existing approval template and all
+      // product details required to make an approval decision.
       try {
-        await EmailService.sendOrderConfirmation({
+        await NotificationService.notifyRequesterOrderReceived({
           orderId: newOrder.id,
           orderNumber: newOrder.orderNumber,
           requesterEmail: newOrder.requester.militaryEmail,
@@ -231,7 +236,7 @@ export class OrderService {
     }
 
     try {
-      await EmailService.sendBudgetApproval({
+      await NotificationService.notifyBudgetOfficer({
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
         requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',

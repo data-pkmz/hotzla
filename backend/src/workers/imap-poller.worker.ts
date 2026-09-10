@@ -7,7 +7,7 @@ import { prisma } from '../config/db';
 import logger from '../utils/logger';
 
 import { EmailParserService } from '../services/email-parser.service';
-import { EmailService } from '../services/email.service';
+import { NotificationService } from '../services/notification.service';
 import { ApprovalService } from '../services/approval.service';
 
 export class ImapPollingWorker {
@@ -61,6 +61,8 @@ export class ImapPollingWorker {
 
     const client = this.createClient();
 
+    // Route the confirmation through NotificationService so inbound email
+    // processing does not become another direct EmailService caller.
     try {
       await client.connect();
 
@@ -296,7 +298,7 @@ export class ImapPollingWorker {
     }
 
     try {
-      await EmailService.sendBudgetDecisionConfirmation({
+      await NotificationService.notifyBudgetOfficer({
         orderId: order.id,
         orderNumber: order.orderNumber,
         budgetOfficerEmail: order.budgetOfficerEmail,
