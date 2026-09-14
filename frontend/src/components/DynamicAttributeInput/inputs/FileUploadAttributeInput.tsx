@@ -12,22 +12,33 @@ interface FileUploadAttributeInputProps {
   attributeDefinition: ProductAttributeDefinition;
   value?: SelectedAttributeInput;
   onChange: (value: SelectedAttributeInput, isValid: boolean) => void;
+  onFileChange?: (file: File | null) => void;
 }
 
 export default function FileUploadAttributeInput({
   attributeDefinition,
   onChange,
+  onFileChange,
 }: FileUploadAttributeInputProps) {
   const { id, attributeName, isRequired } = attributeDefinition;
+
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const isValid = !isRequired || file !== null;
-  const MAX_FILE_SIZE = 20 * 1024 * 1024;
   const [fileError, setFileError] = useState<string | null>(null);
+
+  const isValid = !isRequired || file !== null;
+
+  const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+  const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+
+  const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
   const handleFile = (selectedFile: File | null) => {
     if (!selectedFile) {
       setFile(null);
       setFileError(null);
+      onFileChange?.(null);
 
       onChange(
         {
@@ -41,7 +52,8 @@ export default function FileUploadAttributeInput({
 
     if (selectedFile.size > MAX_FILE_SIZE) {
       setFile(null);
-      setFileError('גודל הקובץ המרבי הוא 20MB');
+      setFileError('הקובץ שנבחר גדול מדי. הגודל המרבי המותר הוא 20MB.');
+      onFileChange?.(null);
 
       onChange(
         {
@@ -53,11 +65,15 @@ export default function FileUploadAttributeInput({
       return;
     }
 
-    const allowedTypes = ['application/pdf', 'image/jpeg'];
+    const extension = '.' + selectedFile.name.split('.').pop()?.toLowerCase();
 
-    if (!allowedTypes.includes(selectedFile.type)) {
+    const isMimeTypeAllowed = ALLOWED_MIME_TYPES.includes(selectedFile.type);
+    const isExtensionAllowed = ALLOWED_EXTENSIONS.includes(extension);
+
+    if (!isMimeTypeAllowed || !isExtensionAllowed) {
       setFile(null);
-      setFileError('ניתן להעלות קובצי PDF או JPEG בלבד');
+      setFileError('פורמט הקובץ אינו נתמך. ניתן להעלות קבצי PDF או תמונות בלבד.');
+      onFileChange?.(null);
 
       onChange(
         {
@@ -71,6 +87,7 @@ export default function FileUploadAttributeInput({
 
     setFile(selectedFile);
     setFileError(null);
+    onFileChange?.(selectedFile);
 
     onChange(
       {
@@ -138,7 +155,7 @@ export default function FileUploadAttributeInput({
         <input
           hidden
           type="file"
-          accept=".pdf,.jpg,.jpeg,image/jpeg,application/pdf"
+          accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,application/pdf"
           onChange={(event) => {
             const selectedFile = event.target.files?.[0] ?? null;
 
@@ -178,7 +195,7 @@ export default function FileUploadAttributeInput({
             mt: 0.5,
           }}
         >
-          PDF או JPEG, עד 20MB
+          PDF, JPEG או PNG, עד 20MB
         </Typography>
 
         <Button
@@ -245,9 +262,10 @@ export default function FileUploadAttributeInput({
           </IconButton>
         </Box>
       )}
+
       {fileError && <FormHelperText error>{fileError}</FormHelperText>}
 
-      {!isValid && <FormHelperText>יש לבחור קובץ</FormHelperText>}
+      {!isValid && !fileError && <FormHelperText>יש לבחור קובץ</FormHelperText>}
     </FormControl>
   );
 }

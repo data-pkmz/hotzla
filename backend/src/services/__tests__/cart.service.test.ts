@@ -135,6 +135,66 @@ describe('CartService', () => {
     });
   });
 
+  it('should save uploadedFilePath when a file was uploaded', async () => {
+    // Arrange
+    const mockCart = {
+      id: 'cart-1',
+      userId: 'user-1',
+      status: Status.ACTIVE,
+    };
+
+    (prisma.cart.findFirst as jest.Mock).mockResolvedValue(mockCart);
+
+    const mockPriceResult = {
+      totalPrice: 150.5,
+    };
+
+    (PricingEngineService.calculatePrice as jest.Mock).mockResolvedValue(mockPriceResult);
+
+    const mockCreatedItem = {
+      id: 'item-1',
+      computedPrice: 150.5,
+      uploadedFilePath: '2026/09/14/document.pdf',
+    };
+
+    (prisma.cartItem.create as jest.Mock).mockResolvedValue(mockCreatedItem);
+
+    const input: AddToCartInput = {
+      productId: 'prod-1',
+      quantity: 5,
+      selectedAttributes: [
+        {
+          attributeDefinitionId: 'attr-1',
+          value: 'Red',
+        },
+      ],
+      uploadedFilePath: '2026/09/14/document.pdf',
+    };
+
+    // Act
+    const result = await CartService.addItemToCart('user-1', input);
+
+    // Assert
+    expect(PricingEngineService.calculatePrice).toHaveBeenCalledWith({
+      productId: 'prod-1',
+      quantity: 5,
+      selectedAttributes: input.selectedAttributes,
+    });
+
+    expect(prisma.cartItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        cartId: 'cart-1',
+        productId: 'prod-1',
+        quantity: 5,
+        computedPrice: 150.5,
+        selectedAttributes: input.selectedAttributes,
+        uploadedFilePath: '2026/09/14/document.pdf',
+      }),
+    });
+
+    expect(result).toEqual(mockCreatedItem);
+  });
+
   describe('updateItem', () => {
     it('should throw an error if the cart item is not found in the database', async () => {
       // Arrange: Force Prisma to return null when searching for the item

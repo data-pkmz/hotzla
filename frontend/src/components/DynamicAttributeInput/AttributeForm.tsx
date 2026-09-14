@@ -15,6 +15,7 @@ interface AttributeFormProps {
   minQuantity: number;
   maxQuantity: number | null;
   onChange?: (value: AttributeFormValue, isValid: boolean) => void;
+  onFileChange?: (file: File | null) => void;
 }
 
 interface AttributeFormState {
@@ -44,6 +45,7 @@ export default function AttributeForm({
   minQuantity,
   maxQuantity,
   onChange,
+  onFileChange,
 }: AttributeFormProps) {
   const [formState, setFormState] = useState<AttributeFormState>({
     quantity: minQuantity,
@@ -246,6 +248,7 @@ export default function AttributeForm({
               attributeDefinition={attribute}
               value={value}
               onChange={handleAttributeChange}
+              onFileChange={onFileChange}
             />
           </Box>
         );

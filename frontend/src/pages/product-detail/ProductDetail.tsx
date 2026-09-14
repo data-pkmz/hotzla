@@ -10,6 +10,9 @@ import PriceBreakdown from '../../components/PriceBreakdown/PriceBreakdown';
 import useProductDetails from '../../hooks/useProductDetails';
 import usePriceCalculator from '../../hooks/usePriceCalculator';
 
+import { addItemToCart } from '../../services/api/cart.service';
+import { uploadFile } from '../../services/api/file.service';
+
 interface ProductConfiguration {
   quantity: number;
   selectedAttributes: SelectedAttributeInput[];
@@ -27,6 +30,12 @@ export const ProductDetailPage: React.FC = () => {
 
   const [formIsValid, setFormIsValid] = useState(false);
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  const [addToCartError, setAddToCartError] = useState<string | null>(null);
+
   const {
     priceResult,
     isLoading: priceIsLoading,
@@ -39,6 +48,34 @@ export const ProductDetailPage: React.FC = () => {
     selectedAttributes: configuration.selectedAttributes,
     enabled: Boolean(product),
   });
+
+  const handleAddToCart = async () => {
+    if (!product || !formIsValid || !priceResult) {
+      return;
+    }
+
+    setIsAddingToCart(true);
+    setAddToCartError(null);
+
+    try {
+      let uploadedFilePath: string | undefined;
+
+      if (selectedFile) {
+        uploadedFilePath = await uploadFile(selectedFile);
+      }
+
+      await addItemToCart({
+        productId: product.id,
+        quantity: configuration.quantity,
+        selectedAttributes: configuration.selectedAttributes,
+        uploadedFilePath,
+      });
+    } catch (error) {
+      setAddToCartError(error instanceof Error ? error.message : 'הוספת המוצר לסל נכשלה');
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   if (productIsLoading) {
     return (
@@ -133,10 +170,13 @@ export const ProductDetailPage: React.FC = () => {
           <PriceBreakdown
             result={priceResult}
             isLoading={priceIsLoading}
-            error={priceError}
+            error={addToCartError ?? priceError}
             isFormValid={formIsValid}
+            onAddToCart={handleAddToCart}
+            isAddingToCart={isAddingToCart}
           />
         </Box>
+
         <Box
           sx={{
             border: '1px solid',
@@ -169,6 +209,7 @@ export const ProductDetailPage: React.FC = () => {
               setConfiguration(value);
               setFormIsValid(isValid);
             }}
+            onFileChange={setSelectedFile}
           />
         </Box>
       </Box>
