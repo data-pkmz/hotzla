@@ -55,6 +55,7 @@ export interface Order {
   budgetOfficerName: string;
   budgetOfficerEmail: string;
   totalPrice: number;
+  approvedByBudgetAt?: Date | string | null;
   approvedByManagerId?: string | null;
   approvedByManager?: Partial<User> | null;
   approvedByManagerAt?: Date | string | null;
