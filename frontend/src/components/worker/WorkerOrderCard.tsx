@@ -12,6 +12,7 @@ import {
   Alert,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { OrderStatus } from 'shared-types';
 import type { Order } from 'shared-types';
 import { startPrinting, readyForPickup, completeOrder } from '../../services/api/orders.service';
 import StatusBadge from '../StatusBadge';
@@ -43,7 +44,7 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatu
   };
 
   const renderActionButtons = () => {
-    if (order.status === 'APPROVED_FOR_PRODUCTION') {
+    if (order.status === OrderStatus.APPROVED_FOR_PRODUCTION) {
       return (
         <Button
           variant="contained"
@@ -58,7 +59,7 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatu
       );
     }
 
-    if (order.status === 'IN_PRODUCTION') {
+    if (order.status === OrderStatus.IN_PRODUCTION) {
       return (
         <Button
           variant="contained"
@@ -73,7 +74,7 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatu
       );
     }
 
-    if (order.status === 'READY_FOR_PICKUP') {
+    if (order.status === OrderStatus.READY_FOR_PICKUP) {
       return (
         <Button
           variant="contained"
@@ -92,9 +93,7 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatu
   };
 
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requesterName =
-    (order as any).requester?.fullName || (order as any).requesterName || 'לא ידוע';
+  const requesterName = order.requester?.fullName || 'לא ידוע';
   const unit = order.unit ? `(${order.unit})` : '';
 
   return (

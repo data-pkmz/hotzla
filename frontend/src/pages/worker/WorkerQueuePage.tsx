@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Container, Typography, CircularProgress, Alert, Button, Paper } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import type { Order, OrderStatus } from 'shared-types';
+import { OrderStatus } from 'shared-types';
+import type { Order } from 'shared-types';
 import { getOrders } from '../../services/api/orders.service';
 import { WorkerOrderCard } from '../../components/worker/WorkerOrderCard';
 
@@ -16,8 +17,8 @@ export const WorkerQueuePage: React.FC = () => {
       setError(null);
 
       const [approvedRes, inProductionRes] = await Promise.all([
-        getOrders({ status: 'APPROVED_FOR_PRODUCTION' as OrderStatus, limit: 100 }),
-        getOrders({ status: 'IN_PRODUCTION' as OrderStatus, limit: 100 }),
+        getOrders({ status: OrderStatus.APPROVED_FOR_PRODUCTION, limit: 100 }),
+        getOrders({ status: OrderStatus.IN_PRODUCTION, limit: 100 }),
       ]);
 
       const combinedOrders = [...approvedRes.orders, ...inProductionRes.orders];
