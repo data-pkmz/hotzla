@@ -1,6 +1,7 @@
 import { ChangeSource } from '@prisma/client';
 import { prisma } from '../config/db';
 import { AuditLogService } from './audit-log.service';
+import { NotificationService } from './notification.service';
 import { isOrderStatusTransitionAllowed, type OrderStatus } from 'shared-types';
 
 interface TransitionOrderStatusInput {
@@ -100,6 +101,34 @@ export class ApprovalService {
         toStatus,
       };
     });
+
+    // Read the requester after the transaction commits so external SMTP work
+    // never holds the order row lock and no email is sent for a rolled-back
+    // status transition.
+    if (result.toStatus === 'READY_FOR_PICKUP') {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          requester: {
+            select: {
+              militaryEmail: true,
+            },
+          },
+        },
+      });
+
+      // A missing requester email is not a delivery attempt; the existing
+      // status transition remains successful and no invalid email is queued.
+      if (order?.requester.militaryEmail) {
+        await NotificationService.notifyRequesterStatusChange({
+          status: result.toStatus,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          requesterEmail: order.requester.militaryEmail,
+          trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
+        });
+      }
+    }
 
     /**
      * Transition-related notifications are triggered after the transaction
