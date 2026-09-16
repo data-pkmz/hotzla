@@ -10,6 +10,7 @@ import { OrderDetails } from '../pages/admin/order-detail';
 import { ProductBuilderPage } from '../pages/admin/product-builder';
 import { OrderDetailsPage } from '../pages/order-details-page';
 import { PublicApprovalPage } from '../pages/public/PublicApprovalPage';
+import { WorkerQueuePage } from '../pages/worker/WorkerQueuePage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -25,6 +26,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/order/:id" element={<OrderDetails />} />
       <Route path="/admin/builder" element={<ProductBuilderPage />} />
       <Route path="/admin/builder/:id" element={<ProductBuilderPage />} />
+      <Route path="/worker/queue" element={<WorkerQueuePage />} />
     </Routes>
   );
 };
