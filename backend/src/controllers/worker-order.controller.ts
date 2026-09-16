@@ -59,7 +59,7 @@ export class WorkerOrderController {
           orderNumber: order.orderNumber,
           requesterEmail: order.requester.militaryEmail,
           pickupInstructions:
-            req.body.pickupInstructions || 'Your order is ready for pickup at the printing center.',
+            req.body.pickupInstructions || 'ההזמנה שלך מוכנה לאיסוף במרכז ההדפסה.',
           trackingUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders/${order.id}`,
         });
 
