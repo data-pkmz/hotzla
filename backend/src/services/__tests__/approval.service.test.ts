@@ -45,6 +45,7 @@ describe('ApprovalService', () => {
     mockTx.order.update.mockResolvedValue({
       id: 'order-1',
       status: OrderStatus.PENDING_MANAGER_APPROVAL,
+      approvedByBudgetAt: new Date(),
       isDeleted: false,
     });
 
@@ -64,7 +65,6 @@ describe('ApprovalService', () => {
       });
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-
       expect(mockTx.$queryRaw).toHaveBeenCalledTimes(1);
 
       expect(mockTx.order.findUnique).toHaveBeenCalledWith({
@@ -79,6 +79,7 @@ describe('ApprovalService', () => {
         },
         data: {
           status: OrderStatus.PENDING_MANAGER_APPROVAL,
+          approvedByBudgetAt: expect.any(Date),
         },
       });
 
@@ -94,14 +95,84 @@ describe('ApprovalService', () => {
         mockTx
       );
 
-      expect(result).toEqual({
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: 'order-1',
+          status: OrderStatus.PENDING_MANAGER_APPROVAL,
+          isDeleted: false,
+        })
+      );
+    });
+
+    it('should store the budget approval timestamp', async () => {
+      await ApprovalService.transitionOrderStatus({
+        orderId: 'order-1',
+        toStatus: OrderStatus.PENDING_MANAGER_APPROVAL,
+        changedByUserId: null,
+        changedBySource: ChangeSource.EMAIL_BUDGET_OFFICER,
+      });
+
+      expect(mockTx.order.update).toHaveBeenCalledWith({
+        where: {
+          id: 'order-1',
+        },
+        data: {
+          status: OrderStatus.PENDING_MANAGER_APPROVAL,
+          approvedByBudgetAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('should store manager approval metadata when a manager approves the order', async () => {
+      const managerId = 'manager-1';
+
+      mockTx.order.findUnique.mockResolvedValue({
         id: 'order-1',
         status: OrderStatus.PENDING_MANAGER_APPROVAL,
         isDeleted: false,
       });
+
+      mockTx.order.update.mockResolvedValue({
+        id: 'order-1',
+        status: OrderStatus.APPROVED_FOR_PRODUCTION,
+        approvedByManagerId: managerId,
+        approvedByManagerAt: new Date(),
+        isDeleted: false,
+      });
+
+      await ApprovalService.transitionOrderStatus({
+        orderId: 'order-1',
+        toStatus: OrderStatus.APPROVED_FOR_PRODUCTION,
+        changedByUserId: managerId,
+        changedBySource: ChangeSource.MANAGER_UI,
+        note: 'Order approved by manager',
+      });
+
+      expect(mockTx.order.update).toHaveBeenCalledWith({
+        where: {
+          id: 'order-1',
+        },
+        data: {
+          status: OrderStatus.APPROVED_FOR_PRODUCTION,
+          approvedByManagerId: managerId,
+          approvedByManagerAt: expect.any(Date),
+        },
+      });
+
+      expect(AuditLogService.logStatusChange).toHaveBeenCalledWith(
+        {
+          orderId: 'order-1',
+          fromStatus: OrderStatus.PENDING_MANAGER_APPROVAL,
+          toStatus: OrderStatus.APPROVED_FOR_PRODUCTION,
+          changedByUserId: managerId,
+          changedBySource: ChangeSource.MANAGER_UI,
+          note: 'Order approved by manager',
+        },
+        mockTx
+      );
     });
 
-    it('should allow rejection by the budget officer', async () => {
+    it('should allow rejection by the budget officer without setting an approval timestamp', async () => {
       mockTx.order.update.mockResolvedValue({
         id: 'order-1',
         status: OrderStatus.REJECTED_BUDGET,
@@ -132,6 +203,36 @@ describe('ApprovalService', () => {
         }),
         mockTx
       );
+    });
+
+    it('should not set manager approval metadata for a non-manager transition', async () => {
+      mockTx.order.findUnique.mockResolvedValue({
+        id: 'order-1',
+        status: OrderStatus.APPROVED_FOR_PRODUCTION,
+        isDeleted: false,
+      });
+
+      mockTx.order.update.mockResolvedValue({
+        id: 'order-1',
+        status: OrderStatus.IN_PRODUCTION,
+        isDeleted: false,
+      });
+
+      await ApprovalService.transitionOrderStatus({
+        orderId: 'order-1',
+        toStatus: OrderStatus.IN_PRODUCTION,
+        changedByUserId: 'worker-1',
+        changedBySource: ChangeSource.WORKER_UI,
+      });
+
+      expect(mockTx.order.update).toHaveBeenCalledWith({
+        where: {
+          id: 'order-1',
+        },
+        data: {
+          status: OrderStatus.IN_PRODUCTION,
+        },
+      });
     });
 
     it('should reject an invalid status transition', async () => {

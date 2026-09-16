@@ -475,13 +475,33 @@ export const ProductBuilderPage: React.FC = () => {
     );
   }, [attributes, product.basePrice]);
 
+  const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+  const ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png'];
+
+  const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png'];
+
   const handleImageChange = (file?: File) => {
     if (!file) return;
 
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    if (file.size > MAX_FILE_SIZE) {
       setNotice({
         severity: 'error',
-        message: 'ניתן להעלות קובץ תמונה בלבד (JPG / PNG)',
+        message: 'הקובץ שנבחר גדול מדי. הגודל המרבי המותר הוא 20MB.',
+      });
+      return;
+    }
+
+    const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    const isMimeTypeAllowed = ALLOWED_IMAGE_MIME_TYPES.includes(file.type);
+
+    const isExtensionAllowed = ALLOWED_IMAGE_EXTENSIONS.includes(extension);
+
+    if (!isMimeTypeAllowed || !isExtensionAllowed) {
+      setNotice({
+        severity: 'error',
+        message: 'פורמט הקובץ אינו נתמך. ניתן להעלות קבצי JPG או PNG בלבד.',
       });
       return;
     }

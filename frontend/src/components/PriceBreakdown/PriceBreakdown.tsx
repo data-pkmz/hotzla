@@ -9,6 +9,8 @@ interface PriceBreakdownProps {
   isLoading?: boolean;
   error?: string | null;
   isFormValid?: boolean;
+  onAddToCart?: () => void;
+  isAddingToCart?: boolean;
 }
 
 interface PriceRowProps {
@@ -81,6 +83,8 @@ export default function PriceBreakdown({
   isLoading = false,
   error,
   isFormValid = false,
+  onAddToCart,
+  isAddingToCart = false,
 }: PriceBreakdownProps) {
   return (
     <Box
@@ -166,6 +170,7 @@ export default function PriceBreakdown({
               borderColor: 'rgba(255,255,255,0.2)',
             }}
           />
+
           <Box
             sx={{
               display: 'flex',
@@ -195,6 +200,7 @@ export default function PriceBreakdown({
               {formatPrice(result.totalPrice)}
             </Typography>
           </Box>
+
           {!isFormValid && (
             <Box
               sx={{
@@ -219,11 +225,9 @@ export default function PriceBreakdown({
           <Button
             fullWidth
             variant="contained"
-            endIcon={<ShoppingCartOutlinedIcon />}
-            disabled={!isFormValid || !result || isLoading}
-            onClick={() => {
-              // Cart functionality will be connected later.
-            }}
+            endIcon={!isAddingToCart ? <ShoppingCartOutlinedIcon /> : undefined}
+            disabled={!isFormValid || !result || isLoading || isAddingToCart}
+            onClick={onAddToCart}
             sx={{
               minHeight: 48,
               borderRadius: 2,
@@ -236,7 +240,16 @@ export default function PriceBreakdown({
               },
             }}
           >
-            המשך לסל
+            {isAddingToCart ? (
+              <CircularProgress
+                size={22}
+                sx={{
+                  color: 'common.white',
+                }}
+              />
+            ) : (
+              'המשך לסל'
+            )}
           </Button>
         </>
       ) : (
