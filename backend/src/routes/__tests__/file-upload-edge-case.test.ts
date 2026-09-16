@@ -29,7 +29,7 @@ describe('POST /api/files/upload - file upload edge cases', () => {
 
       const response = await request(app)
         .post('/api/files/upload')
-        .set('X-Mock-User', 'dev-requester')
+        .set('X-Mock-User', 'requester')
         .attach('file', file, {
           filename: 'document.pdf',
           contentType: 'application/pdf',
@@ -49,7 +49,7 @@ describe('POST /api/files/upload - file upload edge cases', () => {
 
       const response = await request(app)
         .post('/api/files/upload')
-        .set('X-Mock-User', 'dev-requester')
+        .set('X-Mock-User', 'requester')
         .attach('file', file, {
           filename: 'document.pdf',
           contentType: 'application/pdf',
@@ -64,7 +64,7 @@ describe('POST /api/files/upload - file upload edge cases', () => {
 
       const response = await request(app)
         .post('/api/files/upload')
-        .set('X-Mock-User', 'dev-requester')
+        .set('X-Mock-User', 'requester')
         .attach('file', file, {
           filename: 'too-large.pdf',
           contentType: 'application/pdf',
@@ -97,7 +97,7 @@ describe('POST /api/files/upload - file upload edge cases', () => {
     ])('rejects $filename', async ({ filename, contentType }) => {
       const response = await request(app)
         .post('/api/files/upload')
-        .set('X-Mock-User', 'dev-requester')
+        .set('X-Mock-User', 'requester')
         .attach('file', Buffer.from('invalid file'), {
           filename,
           contentType,
@@ -115,7 +115,7 @@ describe('POST /api/files/upload - file upload edge cases', () => {
     it('rejects an .exe file even when the MIME type claims to be PDF', async () => {
       const response = await request(app)
         .post('/api/files/upload')
-        .set('X-Mock-User', 'dev-requester')
+        .set('X-Mock-User', 'requester')
         .attach('file', Buffer.from('fake pdf'), {
           filename: 'program.exe',
           contentType: 'application/pdf',
@@ -133,9 +133,7 @@ describe('POST /api/files/upload - file upload edge cases', () => {
 
   describe('missing file', () => {
     it('rejects a request without a file', async () => {
-      const response = await request(app)
-        .post('/api/files/upload')
-        .set('X-Mock-User', 'dev-requester');
+      const response = await request(app).post('/api/files/upload').set('X-Mock-User', 'requester');
 
       expect(response.status).toBe(400);
       expect(mockedSaveFile).not.toHaveBeenCalled();
