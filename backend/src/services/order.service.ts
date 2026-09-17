@@ -4,6 +4,7 @@ import { OrderNumberGenerator } from '../utils/order-number-generator';
 import { PricingEngineService } from './pricing-engine.service';
 import { AuditLogService } from './audit-log.service';
 import { EmailService } from './email.service';
+import { TokenService } from './token.service';
 import logger from '../utils/logger';
 import type {
   CreateOrderInput,
@@ -15,17 +16,44 @@ import type {
 
 export class OrderService {
   /**
-   * Converts an active cart into a new order.
+   * Converts the authenticated user's active cart into a new order.
    *
-   * 1. Validates user and active cart with items.
-   * 2. Recalculates authoritative prices on the server via PricingEngineService.
-   * 3. Generates a unique sequential order number in format YYYY-NNNN.
-   * 4. Creates the Order with initial status PENDING_BUDGET.
-   * 5. Creates OrderItem and OrderItemAttributeValue records.
-   * 6. Creates initial OrderStatusHistory entry.
-   * 7. Sets the active Cart status to CONVERTED.
+   * Expects:
+   * - userId: Database ID of the requester creating the order.
+   * - input.budgetOfficerName: Name of the budget officer responsible for approval.
+   * - input.budgetOfficerEmail: Valid email address of the budget officer.
+   * - input.unit: Optional requesting unit. Falls back to the user's stored unit.
+   * - input.notes: Optional note recorded with the initial order status history entry.
    *
-   * All DB operations run inside a single transaction.
+   * Does:
+   * - Validates the requester ID and required budget officer information.
+   * - Verifies that the requester exists and is not deleted.
+   * - Retrieves the requester's active cart and verifies that it contains items.
+   * - Recalculates every cart item's authoritative price using PricingEngineService
+   *   instead of trusting the price previously stored in the cart.
+   * - Converts selected product attributes into OrderItemAttributeValue records.
+   * - Calculates the total order price.
+   * - Generates the next sequential order number.
+   * - Creates the Order with initial status PENDING_BUDGET.
+   * - Creates the corresponding OrderItem and attribute-value records.
+   * - Records the initial status change through AuditLogService.
+   * - Marks the active cart as CONVERTED.
+   * - Performs the database changes inside a single Prisma transaction.
+   * - After the transaction succeeds, attempts to send:
+   *   - an order confirmation email to the requester.
+   *   - a budget approval email to the budget officer.
+   * - Email failures are logged but do not roll back the successfully created order.
+   *
+   * Returns:
+   * - The newly created order including requester information, order items,
+   *   products, and selected item attributes.
+   *
+   * Throws:
+   * - If required requester or budget officer information is missing or invalid.
+   * - If the requester does not exist.
+   * - If no active cart with items exists.
+   * - If a cart item's quantity or pricing data is invalid.
+   * - Any error produced while creating the order or related database records.
    */
   public static async createOrderFromCart(userId: string, input: CreateOrderInput) {
     if (!userId) {
@@ -230,14 +258,30 @@ export class OrderService {
       }
     }
 
+    /**
+     * Sends the budget approval request after the order transaction commits.
+     *
+     * The approval email contains a public, token-based link so the budget
+     * officer can review and approve or reject the order without having an
+     * authenticated application user.
+     *
+     * The approval token is valid for seven days and may only be used once.
+     *
+     * Email or token-generation failures are logged but do not roll back the
+     * already-created order.
+     */
     try {
+      const approvalToken = await TokenService.generateApprovalToken(newOrder.id);
+
+      const approvalUrl = `${process.env.APP_BASE_URL}/public/approval/${approvalToken}`;
+
       await EmailService.sendBudgetApproval({
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
         requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
         budgetOfficerEmail: newOrder.budgetOfficerEmail,
         totalPrice: Number(newOrder.totalPrice),
-        approvalUrl: `${process.env.APP_BASE_URL}/orders/${newOrder.id}`,
+        approvalUrl,
         items: newOrder.itemEntries.map((item) => ({
           productName: item.product.name,
           quantity: Number(item.quantity),
@@ -261,8 +305,28 @@ export class OrderService {
   }
 
   /**
-   * Fetches an order by its ID with role-based access validation.
-   * Requesters can only view their own orders. Managers and workers can view any order.
+   * Retrieves a single order and enforces role-based access to it.
+   *
+   * Expects:
+   * - orderId: UUID of the order to retrieve.
+   * - currentUser.id: Database ID of the authenticated user.
+   * - currentUser.role: Application role of the authenticated user.
+   *
+   * Does:
+   * - Retrieves the non-deleted order and its related requester information.
+   * - Loads assigned manager and worker information when available.
+   * - Loads non-deleted order items, their products, and configured attributes.
+   * - Loads the complete non-deleted status history in chronological order.
+   * - For REQUESTER users, verifies that the requested order belongs to them.
+   * - MANAGER and WORKER users are allowed to retrieve any matching order.
+   *
+   * Returns:
+   * - The complete order with its related user, item, attribute, and status data.
+   *
+   * Throws:
+   * - If the order ID is missing.
+   * - If the order does not exist or has been deleted.
+   * - If a REQUESTER attempts to access another requester's order.
    */
   public static async getOrderById(orderId: string, currentUser: { id: string; role: Role }) {
     if (!orderId) {
@@ -347,7 +411,40 @@ export class OrderService {
   }
 
   /**
-   * Fetches orders list with role-based filtering, search, pagination, and sorting.
+   * Retrieves a paginated, searchable, and sortable list of orders while
+   * applying visibility rules based on the authenticated user's role.
+   *
+   * Expects:
+   * - currentUser.id: Database ID of the authenticated user.
+   * - currentUser.role: Application role used to determine order visibility.
+   * - params.page: Optional page number.
+   * - params.limit: Optional number of orders per page.
+   * - params.status: Optional order-status filter.
+   * - params.search: Optional search term for order number or requester name.
+   * - params.sortBy: Optional supported field used to sort the results.
+   * - params.sortOrder: Optional "asc" or "desc" sorting direction.
+   *
+   * Does:
+   * - Excludes soft-deleted orders.
+   * - Restricts REQUESTER users to orders that they created.
+   * - Restricts WORKER users to production-related order statuses.
+   * - Allows status filtering when permitted by the user's role.
+   * - Applies a case-insensitive search against order number and requester name.
+   * - Ensures page is at least 1.
+   * - Restricts page size to between 1 and 100.
+   * - Allows sorting only by supported fields and defaults to createdAt.
+   * - Retrieves the requested page and total matching order count in parallel.
+   *
+   * Returns:
+   * - An OrderListResponse containing:
+   *   - orders: The orders visible on the requested page.
+   *   - total: Total number of matching orders.
+   *   - page: Current page number.
+   *   - limit: Number of orders per page.
+   *   - totalPages: Total number of available pages.
+   *
+   * Throws:
+   * - Any database error encountered while retrieving or counting orders.
    */
   public static async getOrders(
     currentUser: { id: string; role: Role },
