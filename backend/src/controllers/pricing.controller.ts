@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { CalculatePriceParams } from 'shared-types';
 
 import { PricingEngineService } from '../services/pricing-engine.service';
+import logger from '../utils/logger';
 
 /**
  * Calculates the price of a product based on quantity and selected attributes.
@@ -67,7 +68,7 @@ export const calculatePrice = async (
       data: result,
     });
   } catch (error) {
-    console.error('Failed to calculate price:', error);
+    logger.error('Failed to calculate price', { error });
 
     res.status(400).json({
       success: false,
