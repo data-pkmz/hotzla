@@ -241,6 +241,13 @@ model Order {
   @@map("orders")
 }
 
+model OrderNumberCounter {
+  year      Int @id
+  lastValue Int @map("last_value")
+
+  @@map("order_number_counters")
+}
+
 model OrderItem {
   id                   String         @id @default(uuid()) @db.Uuid
   orderId              String         @map("order_id") @db.Uuid
