@@ -15,6 +15,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import BuildIcon from '@mui/icons-material/Build';
+import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const DRAWER_WIDTH = 240;
@@ -42,12 +43,18 @@ export const Sidebar: React.FC = () => {
       show: currentUser.role === 'REQUESTER',
     },
     {
+      text: 'תור עבודה',
+      path: '/worker/queue',
+      icon: <LocalPrintshopIcon />,
+      show: isWorkerOrManager,
+    },
+    {
       text: 'ניהול הזמנות',
       path: '/admin/orders',
       icon: <AdminPanelSettingsIcon />,
       show: isWorkerOrManager,
     },
-    { text: 'בונה מוצר (Admin)', path: '/admin/builder', icon: <BuildIcon />, show: isManager },
+    { text: 'בניית מוצר (Admin)', path: '/admin/builder', icon: <BuildIcon />, show: isManager },
   ];
 
   return (

@@ -22,6 +22,114 @@ type ProductAttributeDefinitionWithOptions = Prisma.ProductAttributeDefinitionGe
   };
 }>;
 
+export interface ProductDefinitionOptionInput {
+  id?: string;
+  optionLabel: string;
+  optionValue: string;
+  priceModifier?: number;
+  priceModifierType?: 'FIXED_ADD' | 'MULTIPLY';
+  displayOrder?: number;
+  isPerUnit?: boolean;
+}
+
+export interface ProductDefinitionInput {
+  id?: string;
+  attributeName: string;
+  attributeType: AttributeType;
+  displayStyle?: AttributeDisplayStyle;
+  isRequired?: boolean;
+  displayOrder?: number;
+  pricingRule?: PricingRule;
+  unitPrice?: number | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  options?: ProductDefinitionOptionInput[];
+}
+
+export interface CreateProductInput {
+  name: string;
+  description: string;
+  category: string;
+  productType?: ProductType;
+  basePrice: number;
+  isActive?: boolean;
+  imageUrl?: string;
+  createdBy?: string;
+  minQuantity: number;
+  maxQuantity?: number | null;
+  definitions?: ProductDefinitionInput[];
+  attributes?: ProductDefinitionInput[];
+}
+
+export interface UpdateProductInput {
+  name?: string;
+  description?: string;
+  category?: string;
+  productType?: ProductType;
+  basePrice?: number;
+  isActive?: boolean;
+  imageUrl?: string;
+  minQuantity?: number;
+  maxQuantity?: number | null;
+  definitions?: ProductDefinitionInput[];
+  attributes?: ProductDefinitionInput[];
+}
+
+function normalizeProductDefinitions(
+  definitions: ProductDefinitionInput[] = []
+): ProductDefinitionInput[] {
+  const regularDefinitions = definitions.filter(
+    (definition) => definition.attributeType !== 'FILE_UPLOAD'
+  );
+
+  const existingUpload = definitions.find(
+    (definition) => definition.attributeType === 'FILE_UPLOAD'
+  );
+
+  const uploadDefinition: ProductDefinitionInput = {
+    id: existingUpload?.id,
+    attributeName: 'קובץ להדפסה',
+    attributeType: 'FILE_UPLOAD',
+    displayStyle: 'FILE_DROPZONE',
+    isRequired: true,
+    displayOrder: regularDefinitions.length,
+    pricingRule: 'NONE',
+    unitPrice: null,
+    minValue: null,
+    maxValue: null,
+    options: [],
+  };
+
+  return [
+    ...regularDefinitions.map((definition, index) => ({
+      ...definition,
+      displayOrder: index,
+    })),
+    uploadDefinition,
+  ];
+}
+
+function getDefaultDisplayStyle(
+  attributeType: AttributeType,
+  style?: AttributeDisplayStyle
+): AttributeDisplayStyle {
+  if (style) return style;
+  switch (attributeType) {
+    case 'SELECT':
+      return 'DROPDOWN';
+    case 'NUMBER':
+      return 'NUMBER_INPUT';
+    case 'BOOLEAN':
+      return 'SWITCH';
+    case 'TEXT':
+      return 'SINGLE_LINE';
+    case 'FILE_UPLOAD':
+      return 'FILE_DROPZONE';
+    default:
+      return 'DROPDOWN';
+  }
+}
+
 export class CatalogService {
   // ============================================================
   // PRODUCTS CRUD
@@ -58,86 +166,169 @@ export class CatalogService {
   }
 
   /**
-   * Creates a new product.
+   * Creates a new product (and optionally its attribute definitions and options).
    */
-  public static async createProduct(data: {
-    name: string;
-    description: string;
-    category: string;
-    productType: ProductType;
-    basePrice: number;
-    createdBy?: string;
-    minQuantity: number;
-    maxQuantity?: number | null;
-  }): Promise<Product> {
-    return prisma.product.create({
-      data: {
+  public static async createProduct(data: CreateProductInput): Promise<Product> {
+    const rawDefinitions = normalizeProductDefinitions(data.definitions ?? data.attributes ?? []);
+
+    return prisma.$transaction(async (tx) => {
+      const createData: Prisma.ProductUncheckedCreateInput = {
         name: data.name,
         description: data.description,
         category: data.category,
-        productType: data.productType,
+        productType: data.productType ?? 'DYNAMIC',
         basePrice: data.basePrice,
-        isActive: true,
+        isActive: data.isActive ?? true,
         createdBy: data.createdBy,
         minQuantity: data.minQuantity,
         maxQuantity: data.maxQuantity ?? null,
-      },
+      };
+      if (data.imageUrl !== undefined) {
+        createData.imageUrl = data.imageUrl;
+      }
+      const createdProduct = await tx.product.create({
+        data: createData,
+      });
+
+      for (const def of rawDefinitions) {
+        const attribute = await tx.productAttributeDefinition.create({
+          data: {
+            productId: createdProduct.id,
+            attributeName: def.attributeName,
+            attributeType: def.attributeType,
+            displayStyle: getDefaultDisplayStyle(def.attributeType, def.displayStyle),
+            isRequired: def.isRequired ?? false,
+            displayOrder: def.displayOrder ?? 0,
+            pricingRule: def.pricingRule ?? 'NONE',
+            unitPrice: def.unitPrice ?? null,
+            minValue: def.minValue ?? null,
+            maxValue: def.maxValue ?? null,
+          },
+        });
+
+        if (def.options && def.options.length > 0) {
+          await tx.productAttributeOption.createMany({
+            data: def.options.map((opt, idx) => ({
+              attributeDefinitionId: attribute.id,
+              optionLabel: opt.optionLabel,
+              optionValue: opt.optionValue,
+              priceModifier: opt.priceModifier ?? 0,
+              priceModifierType: opt.priceModifierType ?? 'FIXED_ADD',
+              displayOrder: opt.displayOrder ?? idx,
+              isPerUnit: opt.isPerUnit ?? false,
+            })),
+          });
+        }
+      }
+
+      return tx.product.findUniqueOrThrow({
+        where: { id: createdProduct.id },
+      });
     });
   }
 
   /**
-   * Updates an existing product.
+   * Updates an existing product (and optionally its attribute definitions and options).
    */
-  public static async updateProduct(
-    id: string,
-    data: {
-      name?: string;
-      description?: string;
-      category?: string;
-      productType?: ProductType;
-      basePrice?: number;
-      minQuantity?: number;
-      maxQuantity?: number | null;
-    }
-  ): Promise<Product> {
+  public static async updateProduct(id: string, data: UpdateProductInput): Promise<Product> {
+    const suppliedDefinitions = data.definitions ?? data.attributes;
+
+    const rawDefinitions =
+      suppliedDefinitions !== undefined
+        ? normalizeProductDefinitions(suppliedDefinitions)
+        : undefined;
+
     const existingProduct = await prisma.product.findUnique({
       where: { id },
-      select: {
-        minQuantity: true,
-        maxQuantity: true,
-      },
     });
 
     if (!existingProduct) {
       throw new Error('Product not found');
     }
 
-    const finalMinQuantity = data.minQuantity ?? existingProduct.minQuantity;
+    const effectiveMinQuantity = data.minQuantity ?? existingProduct.minQuantity;
 
-    const finalMaxQuantity =
+    const effectiveMaxQuantity =
       data.maxQuantity !== undefined ? data.maxQuantity : existingProduct.maxQuantity;
 
-    if (finalMaxQuantity !== null && finalMaxQuantity < finalMinQuantity) {
+    if (effectiveMaxQuantity !== null && effectiveMaxQuantity < effectiveMinQuantity) {
       throw new Error('Maximum quantity cannot be less than minimum quantity');
     }
 
-    return prisma.product.update({
-      where: {
-        id,
-      },
-      data,
+    const productUpdateData: Prisma.ProductUpdateInput = {};
+    if (data.name !== undefined) productUpdateData.name = data.name;
+    if (data.description !== undefined) productUpdateData.description = data.description;
+    if (data.category !== undefined) productUpdateData.category = data.category;
+    if (data.productType !== undefined) productUpdateData.productType = data.productType;
+    if (data.basePrice !== undefined) productUpdateData.basePrice = data.basePrice;
+    if (data.isActive !== undefined) productUpdateData.isActive = data.isActive;
+    if (data.imageUrl !== undefined) productUpdateData.imageUrl = data.imageUrl;
+    if (data.minQuantity !== undefined) productUpdateData.minQuantity = data.minQuantity;
+    if (data.maxQuantity !== undefined) productUpdateData.maxQuantity = data.maxQuantity;
+
+    if (!rawDefinitions) {
+      return prisma.product.update({
+        where: { id },
+        data: productUpdateData,
+      });
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: productUpdateData,
+      });
+
+      // Soft delete existing attribute definitions and their options
+      await tx.productAttributeDefinition.updateMany({
+        where: { productId: id, isDeleted: false },
+        data: { isDeleted: true },
+      });
+
+      // Re-create new definitions
+      for (const def of rawDefinitions) {
+        const attribute = await tx.productAttributeDefinition.create({
+          data: {
+            productId: id,
+            attributeName: def.attributeName,
+            attributeType: def.attributeType,
+            displayStyle: getDefaultDisplayStyle(def.attributeType, def.displayStyle),
+            isRequired: def.isRequired ?? false,
+            displayOrder: def.displayOrder ?? 0,
+            pricingRule: def.pricingRule ?? 'NONE',
+            unitPrice: def.unitPrice ?? null,
+            minValue: def.minValue ?? null,
+            maxValue: def.maxValue ?? null,
+          },
+        });
+
+        if (def.options && def.options.length > 0) {
+          await tx.productAttributeOption.createMany({
+            data: def.options.map((opt, idx) => ({
+              attributeDefinitionId: attribute.id,
+              optionLabel: opt.optionLabel,
+              optionValue: opt.optionValue,
+              priceModifier: opt.priceModifier ?? 0,
+              priceModifierType: opt.priceModifierType ?? 'FIXED_ADD',
+              displayOrder: opt.displayOrder ?? idx,
+              isPerUnit: opt.isPerUnit ?? false,
+            })),
+          });
+        }
+      }
+
+      return tx.product.findUniqueOrThrow({
+        where: { id },
+      });
     });
   }
 
   /**
-   * Soft-deletes a product.
-   * The database record is preserved so existing orders can continue to reference the product.
+   * Soft-deletes a product by setting its isDeleted flag and deactivating it.
    */
   public static async softDeleteProduct(id: string): Promise<Product> {
     return prisma.product.update({
-      where: {
-        id,
-      },
+      where: { id },
       data: {
         isDeleted: true,
         isActive: false,
@@ -147,14 +338,10 @@ export class CatalogService {
 
   /**
    * Activates a product.
-   * This does not restore a soft-deleted product.
    */
   public static async activateProduct(id: string): Promise<Product> {
     return prisma.product.update({
-      where: {
-        id,
-        isDeleted: false,
-      },
+      where: { id, isDeleted: false },
       data: {
         isActive: true,
       },
@@ -166,10 +353,7 @@ export class CatalogService {
    */
   public static async deactivateProduct(id: string): Promise<Product> {
     return prisma.product.update({
-      where: {
-        id,
-        isDeleted: false,
-      },
+      where: { id, isDeleted: false },
       data: {
         isActive: false,
       },
@@ -181,7 +365,7 @@ export class CatalogService {
   // ============================================================
 
   /**
-   * Creates an attribute definition for a product with full validation and optional options.
+   * Creates a new attribute definition for a product with full DTO validation.
    */
   public static async createAttributeDefinition(
     productId: string,

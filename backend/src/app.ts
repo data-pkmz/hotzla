@@ -1,41 +1,41 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
-// Test workspace reference imports
 import { User, OrderStatus } from 'shared-types';
-import { testDbConnection } from './config/db';
 import logger from './utils/logger';
+
 import authRoutes from './routes/auth.routes';
 import pricingRoutes from './routes/pricing.routes';
-import { authMiddleware } from './middlewares/auth.middleware';
-
-// 1. Import Catalog Routes
+import managerRoutes from './routes/manager.routes';
 import catalogRouter from './routes/catalog.routes';
 import adminCatalogRouter from './routes/admin-catalog.routes';
 import fileRouter from './routes/file.routes';
-
-// Import Cart & Order Routes (DPS-025)
 import cartRoutes from './routes/cart.routes';
 import orderRoutes from './routes/order.routes';
+import publicRoutes from './routes/public.routes';
+import workerRoutes from './routes/worker.routes';
 
 const app = express();
-const port = process.env.PORT || 3001;
 
 app.use(express.json());
 
-// Authentication routes
-app.use('/api/auth', authRoutes);
+// API routes
+app.use('/api', authRoutes);
+app.use('/api/pricing', pricingRoutes);
+app.use('/api/public', publicRoutes);
 
-// File routes
+app.use('/api/products', catalogRouter);
+app.use('/api/admin/products', adminCatalogRouter);
 app.use('/api/files', fileRouter);
 
-// Cart & Order routes
 app.use('/api/cart', cartRoutes);
-app.use('/api/cart', orderRoutes); // for /api/cart/checkout
-app.use('/api/orders', orderRoutes); // for /api/orders/:id/history
+app.use('/api/orders', orderRoutes);
+app.use('/api/orders', managerRoutes);
+app.use('/api/orders', workerRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
   logger.info('Health check endpoint requested');
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -54,6 +54,7 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
     phone: '050-1234567',
     role: 'REQUESTER',
     createdAt: new Date(),
+    isDeleted: false,
   };
 
   const initialStatus: OrderStatus = 'PENDING_BUDGET';
@@ -62,25 +63,6 @@ app.get('/api/demo-user', (_req: Request, res: Response) => {
     user: demoUser,
     defaultStatus: initialStatus,
   });
-});
-
-// 2. Register Catalog routes
-app.use('/api/products', catalogRouter);
-app.use('/api/admin/products', adminCatalogRouter);
-
-// 3. Register Pricing routes
-app.use('/api/pricing', pricingRoutes);
-
-// 4. Order routes
-app.use('/api/orders', authMiddleware, orderRoutes);
-
-app.listen(port, async () => {
-  logger.info(`Backend server is running on port ${port}`);
-  try {
-    await testDbConnection();
-  } catch (err) {
-    logger.error('Startup database connection test failed', { error: err });
-  }
 });
 
 export default app;

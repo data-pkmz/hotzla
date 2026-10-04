@@ -10,6 +10,8 @@ export * from './order.types.js';
 
 export * from './email.types.js';
 
+export * from './status.types.js';
+
 export {
   AttributeType,
   PricingImpactType,

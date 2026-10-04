@@ -769,12 +769,13 @@ async function main() {
       orderNumber: 'ORD-1002',
       requesterId: requester.id,
       unit: requester.unit ?? 'יחידת פיתוח',
-      status: 'IN_PRINTING',
+      status: 'IN_PRODUCTION',
       budgetOfficerName: 'קצין תקציבים',
       budgetOfficerEmail: 'budget@example.com',
       totalPrice: 220,
       approvedByManagerId: manager.id,
       approvedByManagerAt: new Date('2026-08-15T10:30:00.000Z'),
+      approvedByBudgetAt: new Date('2026-08-14T10:30:00.000Z'),
       workerId: worker.id,
       createdAt: new Date('2026-08-14T08:00:00.000Z'),
     },
@@ -852,7 +853,7 @@ async function main() {
       id: '90000000-0000-0000-0000-000000000011',
       orderId: printingOrder.id,
       fromStatus: 'PENDING_BUDGET',
-      toStatus: 'BUDGET_APPROVED',
+      toStatus: 'PENDING_MANAGER_APPROVAL',
       changedByUserId: null,
       changedBySource: 'EMAIL_BUDGET_OFFICER',
       changedAt: new Date('2026-08-14T12:00:00.000Z'),
@@ -868,7 +869,7 @@ async function main() {
     create: {
       id: '90000000-0000-0000-0000-000000000030',
       orderId: requesterTwoOrder.id,
-      fromStatus: 'IN_PRINTING',
+      fromStatus: 'IN_PRODUCTION',
       toStatus: 'READY_FOR_PICKUP',
       changedByUserId: worker.id,
       changedBySource: 'WORKER_UI',
@@ -885,7 +886,7 @@ async function main() {
     create: {
       id: '90000000-0000-0000-0000-000000000012',
       orderId: printingOrder.id,
-      fromStatus: 'BUDGET_APPROVED',
+      fromStatus: 'PENDING_MANAGER_APPROVAL',
       toStatus: 'APPROVED_FOR_PRODUCTION',
       changedByUserId: manager.id,
       changedBySource: 'MANAGER_UI',
@@ -903,7 +904,7 @@ async function main() {
       id: '90000000-0000-0000-0000-000000000013',
       orderId: printingOrder.id,
       fromStatus: 'APPROVED_FOR_PRODUCTION',
-      toStatus: 'IN_PRINTING',
+      toStatus: 'IN_PRODUCTION',
       changedByUserId: worker.id,
       changedBySource: 'WORKER_UI',
       changedAt: new Date('2026-08-16T07:30:00.000Z'),
@@ -940,6 +941,7 @@ async function main() {
       totalPrice: 195,
       approvedByManagerId: manager.id,
       approvedByManagerAt: new Date('2026-08-06T11:00:00.000Z'),
+      approvedByBudgetAt: new Date('2026-08-05T10:30:00.000Z'),
       workerId: worker.id,
       completedAt: new Date('2026-08-10T14:30:00.000Z'),
       createdAt: new Date('2026-08-05T08:30:00.000Z'),
@@ -1018,7 +1020,7 @@ async function main() {
       id: '90000000-0000-0000-0000-000000000021',
       orderId: completedOrder.id,
       fromStatus: 'PENDING_BUDGET',
-      toStatus: 'BUDGET_APPROVED',
+      toStatus: 'PENDING_MANAGER_APPROVAL',
       changedByUserId: null,
       changedBySource: 'EMAIL_BUDGET_OFFICER',
       changedAt: new Date('2026-08-05T13:00:00.000Z'),
@@ -1034,7 +1036,7 @@ async function main() {
     create: {
       id: '90000000-0000-0000-0000-000000000022',
       orderId: completedOrder.id,
-      fromStatus: 'BUDGET_APPROVED',
+      fromStatus: 'PENDING_MANAGER_APPROVAL',
       toStatus: 'APPROVED_FOR_PRODUCTION',
       changedByUserId: manager.id,
       changedBySource: 'MANAGER_UI',
@@ -1052,7 +1054,7 @@ async function main() {
       id: '90000000-0000-0000-0000-000000000023',
       orderId: completedOrder.id,
       fromStatus: 'APPROVED_FOR_PRODUCTION',
-      toStatus: 'IN_PRINTING',
+      toStatus: 'IN_PRODUCTION',
       changedByUserId: worker.id,
       changedBySource: 'WORKER_UI',
       changedAt: new Date('2026-08-07T07:30:00.000Z'),
@@ -1068,7 +1070,7 @@ async function main() {
     create: {
       id: '90000000-0000-0000-0000-000000000024',
       orderId: completedOrder.id,
-      fromStatus: 'IN_PRINTING',
+      fromStatus: 'IN_PRODUCTION',
       toStatus: 'READY_FOR_PICKUP',
       changedByUserId: worker.id,
       changedBySource: 'WORKER_UI',
@@ -1094,9 +1096,125 @@ async function main() {
     },
   });
 
+  // ------------------------------------------------------------
+  // Order 4: Pending Manager Approval (for playing with approvals)
+  // ------------------------------------------------------------
+  const pendingManagerOrder = await prisma.order.upsert({
+    where: { orderNumber: 'ORD-1004' },
+    update: {},
+    create: {
+      id: '60000000-0000-0000-0000-000000000005',
+      orderNumber: 'ORD-1004',
+      requesterId: requester.id,
+      unit: requester.unit ?? 'ממד',
+      status: 'PENDING_MANAGER_APPROVAL',
+      budgetOfficerName: 'קצין תקציב',
+      budgetOfficerEmail: 'budget@example.com',
+      totalPrice: 250,
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    },
+  });
+
+  await prisma.orderItem.upsert({
+    where: { id: '70000000-0000-0000-0000-000000000010' },
+    update: {},
+    create: {
+      id: '70000000-0000-0000-0000-000000000010',
+      orderId: pendingManagerOrder.id,
+      productId: businessCards.id,
+      quantity: 5,
+      uploadedFilePath: '',
+      computedUnitPrice: 50,
+      computedTotalPrice: 250,
+    },
+  });
+
+  await prisma.orderStatusHistory.upsert({
+    where: { id: '90000000-0000-0000-0000-000000000031' },
+    update: {},
+    create: {
+      id: '90000000-0000-0000-0000-000000000031',
+      orderId: pendingManagerOrder.id,
+      fromStatus: 'PENDING_BUDGET',
+      toStatus: 'PENDING_MANAGER_APPROVAL',
+      changedByUserId: null,
+      changedBySource: 'EMAIL_BUDGET_OFFICER',
+      changedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      note: 'אושר תקציבית.',
+    },
+  });
+
+  // ------------------------------------------------------------
+  // Order 5: Approved For Production (ready for worker)
+  // ------------------------------------------------------------
+  const approvedOrder = await prisma.order.upsert({
+    where: { orderNumber: 'ORD-1005' },
+    update: {},
+    create: {
+      id: '60000000-0000-0000-0000-000000000006',
+      orderNumber: 'ORD-1005',
+      requesterId: requester.id,
+      unit: requester.unit ?? 'ממד',
+      status: 'APPROVED_FOR_PRODUCTION',
+      approvedByManagerId: manager.id,
+      approvedByManagerAt: new Date(),
+      budgetOfficerName: 'קצין תקציב',
+      budgetOfficerEmail: 'budget@example.com',
+      totalPrice: 500,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    },
+  });
+
+  await prisma.orderItem.upsert({
+    where: { id: '70000000-0000-0000-0000-000000000011' },
+    update: {},
+    create: {
+      id: '70000000-0000-0000-0000-000000000011',
+      orderId: approvedOrder.id,
+      productId: businessCards.id,
+      quantity: 10,
+      uploadedFilePath: '',
+      computedUnitPrice: 50,
+      computedTotalPrice: 500,
+    },
+  });
+
+  await prisma.orderStatusHistory.upsert({
+    where: { id: '90000000-0000-0000-0000-000000000032' },
+    update: {},
+    create: {
+      id: '90000000-0000-0000-0000-000000000032',
+      orderId: approvedOrder.id,
+      fromStatus: 'PENDING_MANAGER_APPROVAL',
+      toStatus: 'APPROVED_FOR_PRODUCTION',
+      changedByUserId: manager.id,
+      changedBySource: 'MANAGER_UI',
+      changedAt: new Date(),
+      note: 'אושר להדפסה.',
+    },
+  });
+
   // --------------------
   // Seed summary
   // --------------------
+
+  // ------------------------------------------------------------
+  // Test Approval Token for DPS-035
+  // ------------------------------------------------------------
+  await prisma.approvalToken.upsert({
+    where: { token: 'TEST-TOKEN-123' },
+    update: {
+      isUsed: false,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    },
+    create: {
+      id: '80000000-0000-0000-0000-000000000001',
+      orderId: pendingOrder.id,
+      token: 'TEST-TOKEN-123',
+      isUsed: false,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
 
   logger.info('Seeded development data', {
     users: {

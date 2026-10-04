@@ -10,4 +10,5 @@ export interface User {
   phone: string | null;
   role: UserRole;
   createdAt: Date | string;
+  isDeleted: boolean;
 }

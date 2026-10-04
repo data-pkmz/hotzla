@@ -36,21 +36,39 @@ const attribute: ProductAttributeDefinition = {
   isDeleted: false,
 };
 
-jest.mock('../../config/db', () => ({
-  prisma: {
+jest.mock('../../config/db.js', () => {
+  const prismaMock = {
     product: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      findUnique: jest.fn(),
     },
     productAttributeDefinition: {
       create: jest.fn(),
       update: jest.fn(),
+      deleteMany: jest.fn(),
     },
-  },
-}));
+    productAttributeOption: {
+      create: jest.fn(),
+      update: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  };
+
+  prismaMock.$transaction.mockImplementation(
+    async (callback: (tx: typeof prismaMock) => Promise<unknown>) => {
+      return callback(prismaMock);
+    }
+  );
+
+  return {
+    prisma: prismaMock,
+  };
+});
 
 describe('CatalogService', () => {
   beforeEach(() => {
@@ -159,6 +177,7 @@ describe('getProductById', () => {
       const createdProduct = products[0];
 
       jest.mocked(prisma.product.create).mockResolvedValue(createdProduct);
+      jest.mocked(prisma.product.findUniqueOrThrow).mockResolvedValue(createdProduct);
 
       const result = await CatalogService.createProduct(input);
 
@@ -191,6 +210,7 @@ describe('getProductById', () => {
       };
 
       jest.mocked(prisma.product.create).mockResolvedValue(products[0]);
+      jest.mocked(prisma.product.findUniqueOrThrow).mockResolvedValue(products[0]);
 
       await CatalogService.createProduct(input);
 

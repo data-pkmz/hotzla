@@ -8,6 +8,7 @@ import type {
   EmailType,
   OrderConfirmationEmailData,
   ReadyForPickupEmailData,
+  BudgetDecisionConfirmationEmailData,
 } from 'shared-types';
 
 import { prisma } from '../config/db';
@@ -19,6 +20,8 @@ interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
+  inReplyTo?: string;
+  references?: string[];
 }
 
 export class EmailService {
@@ -138,6 +141,35 @@ export class EmailService {
     });
   }
 
+  static async sendBudgetDecisionConfirmation(
+    data: BudgetDecisionConfirmationEmailData
+  ): Promise<void> {
+    const template = await this.loadTemplate('budget-decision-confirmation.html');
+
+    const decisionText = data.decision === 'APPROVED' ? 'מאושר' : 'נדחה';
+
+    const html = this.renderTemplate(template, {
+      orderNumber: this.escapeHtml(data.orderNumber),
+      decisionText: this.escapeHtml(decisionText),
+    });
+
+    const subject = data.originalSubject
+      ? data.originalSubject.toLowerCase().startsWith('re:')
+        ? data.originalSubject
+        : `RE: ${data.originalSubject}`
+      : `RE: ${data.orderNumber}`;
+
+    await this.sendEmail({
+      orderId: data.orderId,
+      type: 'BUDGET_DECISION_CONFIRMATION',
+      to: data.budgetOfficerEmail,
+      subject,
+      html,
+      inReplyTo: data.inReplyTo,
+      references: data.references,
+    });
+  }
+
   /**
    * Sends the email through SMTP and records the result in EMAIL_LOG.
    */
@@ -147,6 +179,8 @@ export class EmailService {
     to,
     subject,
     html,
+    inReplyTo,
+    references,
   }: SendEmailParams): Promise<void> {
     const from = this.getFromAddress();
 
@@ -156,6 +190,8 @@ export class EmailService {
         to,
         subject,
         html,
+        inReplyTo,
+        references,
       });
 
       await prisma.emailLog.create({

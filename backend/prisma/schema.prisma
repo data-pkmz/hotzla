@@ -14,12 +14,14 @@ enum Role {
 
 enum OrderStatus {
   PENDING_BUDGET
-  BUDGET_APPROVED
+  PENDING_MANAGER_APPROVAL
   APPROVED_FOR_PRODUCTION
-  IN_PRINTING
+  IN_PRODUCTION
   READY_FOR_PICKUP
   COMPLETED
-  REJECTED
+  REJECTED_BUDGET
+  REJECTED_MANAGER
+  CANCELLED
 }
 
 enum ChangeSource {
@@ -89,6 +91,7 @@ enum ProcessedStatus {
 enum EmailType {
   BUDGET_APPROVAL
   ORDER_CONFIRMATION
+  BUDGET_DECISION_CONFIRMATION
   READY_FOR_PICKUP
   INBOUND_REPLY
   INBOUND_OTHER
@@ -225,6 +228,7 @@ model Order {
   approvedByManagerId String?        @map("approved_by_manager_id") @db.Uuid
   approvedByManager   User?          @relation("orderApprover", fields: [approvedByManagerId], references: [id])
   approvedByManagerAt DateTime?      @map("approved_by_manager_at")
+  approvedByBudgetAt  DateTime?      @map("approved_by_budget_at")
   workerId            String?        @map("worker_id") @db.Uuid
   worker              User?          @relation("orderWorker", fields: [workerId], references: [id])
   completedAt         DateTime?      @map("completed_at")

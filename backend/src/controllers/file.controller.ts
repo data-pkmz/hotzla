@@ -29,6 +29,40 @@ export class FileController {
   }
 
   /**
+   * Handles product catalog image downloads.
+   * Only serves files that are referenced by a product's imageUrl.
+   */
+  static async downloadProductImage(req: Request, res: Response): Promise<void> {
+    const filePath = req.query.path as string | undefined;
+
+    if (!filePath) {
+      res.status(400).json({ error: 'Missing path parameter' });
+      return;
+    }
+
+    try {
+      const product = await prisma.product.findFirst({
+        where: {
+          imageUrl: filePath,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!product) {
+        res.status(404).json({ error: 'Product image not found' });
+        return;
+      }
+
+      return FileController.sendFile(filePath, res);
+    } catch (error) {
+      logger.error('Error downloading product image:', error);
+      res.status(500).json({ error: 'Internal server error while processing product image' });
+    }
+  }
+
+  /**
    * Handles secure file downloads.
    * Verifies if the requester has permission to access the file based on the database ownership.
    */

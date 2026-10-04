@@ -10,12 +10,14 @@ interface DynamicAttributeInputProps {
   attributeDefinition: ProductAttributeDefinition;
   value?: SelectedAttributeInput;
   onChange: (value: SelectedAttributeInput, isValid: boolean) => void;
+  onFileChange?: (file: File | null) => void;
 }
 
 export default function DynamicAttributeInput({
   attributeDefinition,
   value,
   onChange,
+  onFileChange,
 }: DynamicAttributeInputProps) {
   const { id, attributeName, attributeType, displayStyle, isRequired } = attributeDefinition;
 
@@ -144,6 +146,7 @@ export default function DynamicAttributeInput({
           attributeDefinition={attributeDefinition}
           value={value}
           onChange={onChange}
+          onFileChange={onFileChange}
         />
       );
 

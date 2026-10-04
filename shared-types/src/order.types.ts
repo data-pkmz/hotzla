@@ -1,14 +1,6 @@
 import type { Product } from './product.types.js';
 import type { User, UserRole } from './user.types.js';
-
-export type OrderStatus =
-  | 'PENDING_BUDGET'
-  | 'BUDGET_APPROVED'
-  | 'APPROVED_FOR_PRODUCTION'
-  | 'IN_PRINTING'
-  | 'READY_FOR_PICKUP'
-  | 'COMPLETED'
-  | 'REJECTED';
+import type { OrderStatus } from './status.types.js';
 
 export type ChangeSource = 'SYSTEM' | 'EMAIL_BUDGET_OFFICER' | 'MANAGER_UI' | 'WORKER_UI';
 
@@ -63,6 +55,7 @@ export interface Order {
   budgetOfficerName: string;
   budgetOfficerEmail: string;
   totalPrice: number;
+  approvedByBudgetAt?: Date | string | null;
   approvedByManagerId?: string | null;
   approvedByManager?: Partial<User> | null;
   approvedByManagerAt?: Date | string | null;
@@ -100,7 +93,7 @@ export interface OrderQueryParams {
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'orderNumber' | 'totalPrice' | 'status';
+  sortBy?: 'createdAt' | 'orderNumber' | 'totalPrice' | 'status' | 'requesterName' | 'unit';
   sortOrder?: 'asc' | 'desc';
 }
 

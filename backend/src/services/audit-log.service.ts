@@ -1,9 +1,12 @@
-import type { OrderStatusHistory, LogStatusChangeParams } from 'shared-types';
 import type { Prisma } from '@prisma/client';
+import type { OrderStatusHistory, LogStatusChangeParams } from 'shared-types';
+
 import { prisma } from '../config/db';
 import logger from '../utils/logger';
 
 export type { LogStatusChangeParams };
+
+type PrismaClientOrTransaction = typeof prisma | Prisma.TransactionClient;
 
 export class AuditLogService {
   /**
@@ -11,7 +14,7 @@ export class AuditLogService {
    */
   public static async logStatusChange(
     params: LogStatusChangeParams,
-    tx?: Prisma.TransactionClient
+    db: PrismaClientOrTransaction = prisma
   ): Promise<OrderStatusHistory> {
     const { orderId, fromStatus, toStatus, changedByUserId, changedBySource, note } = params;
 
@@ -28,9 +31,7 @@ export class AuditLogService {
       }
     );
 
-    const client = tx || prisma;
-
-    const record = await client.orderStatusHistory.create({
+    return db.orderStatusHistory.create({
       data: {
         orderId,
         fromStatus,
@@ -40,8 +41,6 @@ export class AuditLogService {
         note,
       },
     });
-
-    return record;
   }
 
   /**

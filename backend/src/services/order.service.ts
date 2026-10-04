@@ -235,6 +235,33 @@ export class OrderService {
       }
     }
 
+    try {
+      await EmailService.sendBudgetApproval({
+        orderId: newOrder.id,
+        orderNumber: newOrder.orderNumber,
+        requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
+        budgetOfficerEmail: newOrder.budgetOfficerEmail,
+        totalPrice: Number(newOrder.totalPrice),
+        approvalUrl: `${process.env.APP_BASE_URL}/orders/${newOrder.id}`,
+        items: newOrder.itemEntries.map((item) => ({
+          productName: item.product.name,
+          quantity: Number(item.quantity),
+          price: Number(item.computedTotalPrice),
+          specifications: item.itemAttributeEntries.map((attribute) => ({
+            name: attribute.attributeDefinition.attributeName,
+            value: attribute.selectedOption?.optionLabel ?? attribute.valueText ?? '',
+          })),
+        })),
+      });
+    } catch (error) {
+      logger.error('Failed to send budget approval email', {
+        orderId: newOrder.id,
+        orderNumber: newOrder.orderNumber,
+        budgetOfficerEmail: newOrder.budgetOfficerEmail,
+        error,
+      });
+    }
+
     return newOrder;
   }
 
@@ -339,18 +366,42 @@ export class OrderService {
       where.requesterId = currentUser.id;
     }
 
-    if (params?.status) {
-      where.status = params.status;
+    if (currentUser.role === Role.WORKER) {
+      const allowedWorkerStatuses: OrderStatus[] = [
+        OrderStatus.APPROVED_FOR_PRODUCTION,
+        OrderStatus.IN_PRODUCTION,
+        OrderStatus.READY_FOR_PICKUP,
+        OrderStatus.COMPLETED,
+      ];
+      if (params?.status && allowedWorkerStatuses.includes(params.status)) {
+        where.status = params.status;
+      } else {
+        where.status = { in: allowedWorkerStatuses };
+      }
+    } else {
+      if (params?.status) {
+        where.status = params.status;
+      }
     }
 
     if (params?.search && params.search.trim()) {
       const search = params.search.trim();
+
       where.OR = [
-        { orderNumber: { contains: search, mode: 'insensitive' } },
-        { unit: { contains: search, mode: 'insensitive' } },
-        { budgetOfficerName: { contains: search, mode: 'insensitive' } },
-        { budgetOfficerEmail: { contains: search, mode: 'insensitive' } },
-        { requester: { fullName: { contains: search, mode: 'insensitive' } } },
+        {
+          orderNumber: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          requester: {
+            fullName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
       ];
     }
 
@@ -358,19 +409,35 @@ export class OrderService {
     const limit = Math.max(1, Math.min(100, params?.limit ?? 10));
     const skip = (page - 1) * limit;
 
-    const allowedSortFields = ['createdAt', 'orderNumber', 'totalPrice', 'status'];
+    const allowedSortFields = [
+      'createdAt',
+      'orderNumber',
+      'totalPrice',
+      'status',
+      'requesterName',
+      'unit',
+    ];
     const sortBy =
       params?.sortBy && allowedSortFields.includes(params.sortBy) ? params.sortBy : 'createdAt';
     const sortOrder = params?.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    const orderBy: Prisma.OrderOrderByWithRelationInput =
+      sortBy === 'requesterName'
+        ? {
+            requester: {
+              fullName: sortOrder,
+            },
+          }
+        : {
+            [sortBy]: sortOrder,
+          };
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
+        orderBy,
         include: {
           requester: {
             select: {
