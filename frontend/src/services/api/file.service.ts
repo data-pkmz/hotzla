@@ -1,4 +1,5 @@
 import { apiFetch } from '../api';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface UploadFileResponse {
   filePath: string;
@@ -24,6 +25,18 @@ export const uploadFile = async (file: File): Promise<string> => {
   return data.filePath;
 };
 
+const appendMockAuth = (url: string): string => {
+  const isMockAuthEnabled = import.meta.env.VITE_ENABLE_MOCK_AUTH !== 'false';
+  if (isMockAuthEnabled) {
+    const { currentUser } = useAuthStore.getState();
+    if (currentUser?.adUsername) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}mockUser=${encodeURIComponent(currentUser.adUsername)}`;
+    }
+  }
+  return url;
+};
+
 export const getProductImageUrl = (filePath?: string | null): string => {
   if (!filePath) return '';
 
@@ -31,7 +44,12 @@ export const getProductImageUrl = (filePath?: string | null): string => {
     return filePath;
   }
 
-  return `/api/files/product-image?path=${encodeURIComponent(filePath)}`;
+  return appendMockAuth(`/api/files/product-image?path=${encodeURIComponent(filePath)}`);
+};
+
+export const getDownloadFileUrl = (filePath?: string | null): string => {
+  if (!filePath) return '';
+  return appendMockAuth(`/api/files/download?path=${encodeURIComponent(filePath)}`);
 };
 
 export const downloadFile = async (filePath: string, fileName: string): Promise<void> => {
