@@ -10,7 +10,10 @@ import {
   Typography,
 } from '@mui/material';
 import type { AttributeDisplayStyle, PricingImpactType } from 'shared-types';
-import type { BuilderAttribute, BuilderOption } from '../../pages/admin/ProductBuilderPage';
+import type {
+  BuilderAttribute,
+  BuilderOption,
+} from '../../pages/admin/product-builder/ProductBuilderPage';
 import { AttributeOptionForm } from './AttributeOptionForm';
 
 interface AttributeDefinitionFormProps {
@@ -22,6 +25,22 @@ export const AttributeDefinitionForm: React.FC<AttributeDefinitionFormProps> = (
   attribute,
   onChange,
 }) => {
+  const minValueInvalid =
+    attribute.minValue !== null && attribute.minValue !== undefined && attribute.minValue < 0;
+
+  const maxValueInvalid =
+    attribute.maxValue !== null && attribute.maxValue !== undefined && attribute.maxValue < 0;
+
+  const minMaxInvalid =
+    attribute.minValue !== null &&
+    attribute.minValue !== undefined &&
+    attribute.maxValue !== null &&
+    attribute.maxValue !== undefined &&
+    attribute.maxValue < attribute.minValue;
+
+  const unitPriceInvalid =
+    attribute.unitPrice !== null && attribute.unitPrice !== undefined && attribute.unitPrice < 0;
+
   const updateOption = (optionId: string, patch: Partial<BuilderOption>) => {
     onChange({
       options: (attribute.options || []).map((option) =>
@@ -135,36 +154,62 @@ export const AttributeDefinitionForm: React.FC<AttributeDefinitionFormProps> = (
         )}
 
         {attribute.attributeType === 'NUMBER' && (
-          <Stack direction="row" gap={1}>
+          <Stack direction={{ xs: 'column', md: 'row' }} gap={1} sx={{ width: '100%' }}>
             <TextField
+              fullWidth
               size="small"
               label="ערך מינימלי"
               type="number"
+              inputProps={{
+                min: 0,
+              }}
               value={attribute.minValue ?? ''}
+              error={minValueInvalid}
+              helperText={minValueInvalid ? 'הערך המינימלי לא יכול להיות שלילי' : undefined}
               onChange={(event) =>
                 onChange({
                   minValue: event.target.value === '' ? null : Number(event.target.value),
                 })
               }
             />
+
             <TextField
+              fullWidth
               size="small"
               label="ערך מקסימלי"
               type="number"
+              inputProps={{
+                min: 0,
+              }}
               value={attribute.maxValue ?? ''}
+              error={maxValueInvalid || minMaxInvalid}
+              helperText={
+                maxValueInvalid
+                  ? 'הערך המקסימלי לא יכול להיות שלילי'
+                  : minMaxInvalid
+                    ? 'הערך המקסימלי חייב להיות גדול או שווה לערך המינימלי'
+                    : undefined
+              }
               onChange={(event) =>
                 onChange({
                   maxValue: event.target.value === '' ? null : Number(event.target.value),
                 })
               }
             />
+
             {attribute.pricingRule === 'PER_UNIT_MULTIPLIER' && (
               <TextField
+                fullWidth
                 size="small"
                 label="מחיר ליחידה (₪)"
                 type="number"
-                inputProps={{ step: '0.01' }}
+                inputProps={{
+                  min: 0,
+                  step: '0.01',
+                }}
                 value={attribute.unitPrice ?? ''}
+                error={unitPriceInvalid}
+                helperText={unitPriceInvalid ? 'מחיר ליחידה לא יכול להיות שלילי' : undefined}
                 onChange={(event) =>
                   onChange({
                     unitPrice: event.target.value === '' ? null : Number(event.target.value),

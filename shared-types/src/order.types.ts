@@ -55,6 +55,7 @@ export interface Order {
   budgetOfficerName: string;
   budgetOfficerEmail: string;
   totalPrice: number;
+  approvedByBudgetAt?: Date | string | null;
   approvedByManagerId?: string | null;
   approvedByManager?: Partial<User> | null;
   approvedByManagerAt?: Date | string | null;
@@ -68,9 +69,22 @@ export interface Order {
 }
 
 export interface CreateOrderInput {
-  budgetOfficerName: string;
-  budgetOfficerEmail: string;
+  requesterId?: string;
+  cartId?: string;
+  customer?: {
+    name: string;
+    phone: string;
+    orgEmail: string;
+    unit: string;
+  };
+  budgetOfficer?: {
+    fullName: string;
+    militaryEmail: string;
+  };
+  budgetOfficerName?: string;
+  budgetOfficerEmail?: string;
   unit?: string;
+  deliveryDueDate?: string;
   notes?: string;
 }
 
@@ -79,7 +93,7 @@ export interface OrderQueryParams {
   search?: string;
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'orderNumber' | 'totalPrice' | 'status';
+  sortBy?: 'createdAt' | 'orderNumber' | 'totalPrice' | 'status' | 'requesterName' | 'unit';
   sortOrder?: 'asc' | 'desc';
 }
 

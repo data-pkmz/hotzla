@@ -1,4 +1,4 @@
-import { ChangeSource } from '@prisma/client';
+import { ChangeSource, OrderStatus as PrismaOrderStatus } from '@prisma/client';
 import { prisma } from '../config/db';
 import { AuditLogService } from './audit-log.service';
 import { isOrderStatusTransitionAllowed, type OrderStatus } from 'shared-types';
@@ -73,12 +73,49 @@ export class ApprovalService {
         throw new Error(`Invalid order status transition: ${currentStatus} -> ${toStatus}`);
       }
 
+      /**
+       * Budget approval:
+       *
+       * PENDING_BUDGET -> PENDING_MANAGER_APPROVAL
+       *
+       * Store the approval time directly on the order.
+       */
+      const isBudgetApproval =
+        currentStatus === PrismaOrderStatus.PENDING_BUDGET &&
+        toStatus === PrismaOrderStatus.PENDING_MANAGER_APPROVAL;
+
+      /**
+       * Manager approval:
+       *
+       * PENDING_MANAGER_APPROVAL -> APPROVED_FOR_PRODUCTION
+       *
+       * Store both the approving manager and approval time.
+       */
+      const isManagerApproval =
+        currentStatus === PrismaOrderStatus.PENDING_MANAGER_APPROVAL &&
+        toStatus === PrismaOrderStatus.APPROVED_FOR_PRODUCTION &&
+        changedBySource === ChangeSource.MANAGER_UI &&
+        changedByUserId !== null;
+
       const updatedOrder = await tx.order.update({
         where: {
           id: orderId,
         },
         data: {
           status: toStatus,
+
+          ...(isBudgetApproval
+            ? {
+                approvedByBudgetAt: new Date(),
+              }
+            : {}),
+
+          ...(isManagerApproval
+            ? {
+                approvedByManagerId: changedByUserId,
+                approvedByManagerAt: new Date(),
+              }
+            : {}),
         },
       });
 

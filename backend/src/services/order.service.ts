@@ -32,16 +32,21 @@ export class OrderService {
       throw new Error('מזהה משתמש חסר');
     }
 
-    if (!input.budgetOfficerName || !input.budgetOfficerName.trim()) {
+    const budgetOfficerName =
+      input.budgetOfficerName?.trim() || input.budgetOfficer?.fullName?.trim() || '';
+    const budgetOfficerEmail =
+      input.budgetOfficerEmail?.trim() || input.budgetOfficer?.militaryEmail?.trim() || '';
+
+    if (!budgetOfficerName) {
       throw new Error('שם קצין תקציב הוא שדה חובה');
     }
 
-    if (!input.budgetOfficerEmail || !input.budgetOfficerEmail.trim()) {
+    if (!budgetOfficerEmail) {
       throw new Error('כתובת מייל קצין תקציב היא שדה חובה');
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(input.budgetOfficerEmail.trim())) {
+    if (!emailRegex.test(budgetOfficerEmail)) {
       throw new Error('כתובת מייל קצין תקציב אינה תקינה');
     }
 
@@ -145,8 +150,8 @@ export class OrderService {
           requesterId: userId,
           unit: input.unit?.trim() || user.unit || '',
           status: OrderStatus.PENDING_BUDGET,
-          budgetOfficerName: input.budgetOfficerName.trim(),
-          budgetOfficerEmail: input.budgetOfficerEmail.trim(),
+          budgetOfficerName,
+          budgetOfficerEmail,
           totalPrice: totalOrderPrice,
           itemEntries: {
             create: orderItemsCreateData,
@@ -361,18 +366,42 @@ export class OrderService {
       where.requesterId = currentUser.id;
     }
 
-    if (params?.status) {
-      where.status = params.status;
+    if (currentUser.role === Role.WORKER) {
+      const allowedWorkerStatuses: OrderStatus[] = [
+        OrderStatus.APPROVED_FOR_PRODUCTION,
+        OrderStatus.IN_PRODUCTION,
+        OrderStatus.READY_FOR_PICKUP,
+        OrderStatus.COMPLETED,
+      ];
+      if (params?.status && allowedWorkerStatuses.includes(params.status)) {
+        where.status = params.status;
+      } else {
+        where.status = { in: allowedWorkerStatuses };
+      }
+    } else {
+      if (params?.status) {
+        where.status = params.status;
+      }
     }
 
     if (params?.search && params.search.trim()) {
       const search = params.search.trim();
+
       where.OR = [
-        { orderNumber: { contains: search, mode: 'insensitive' } },
-        { unit: { contains: search, mode: 'insensitive' } },
-        { budgetOfficerName: { contains: search, mode: 'insensitive' } },
-        { budgetOfficerEmail: { contains: search, mode: 'insensitive' } },
-        { requester: { fullName: { contains: search, mode: 'insensitive' } } },
+        {
+          orderNumber: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          requester: {
+            fullName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
       ];
     }
 
@@ -380,19 +409,35 @@ export class OrderService {
     const limit = Math.max(1, Math.min(100, params?.limit ?? 10));
     const skip = (page - 1) * limit;
 
-    const allowedSortFields = ['createdAt', 'orderNumber', 'totalPrice', 'status'];
+    const allowedSortFields = [
+      'createdAt',
+      'orderNumber',
+      'totalPrice',
+      'status',
+      'requesterName',
+      'unit',
+    ];
     const sortBy =
       params?.sortBy && allowedSortFields.includes(params.sortBy) ? params.sortBy : 'createdAt';
     const sortOrder = params?.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    const orderBy: Prisma.OrderOrderByWithRelationInput =
+      sortBy === 'requesterName'
+        ? {
+            requester: {
+              fullName: sortOrder,
+            },
+          }
+        : {
+            [sortBy]: sortOrder,
+          };
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
+        orderBy,
         include: {
           requester: {
             select: {

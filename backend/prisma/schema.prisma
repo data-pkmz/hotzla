@@ -228,6 +228,7 @@ model Order {
   approvedByManagerId String?        @map("approved_by_manager_id") @db.Uuid
   approvedByManager   User?          @relation("orderApprover", fields: [approvedByManagerId], references: [id])
   approvedByManagerAt DateTime?      @map("approved_by_manager_at")
+  approvedByBudgetAt  DateTime?      @map("approved_by_budget_at")
   workerId            String?        @map("worker_id") @db.Uuid
   worker              User?          @relation("orderWorker", fields: [workerId], references: [id])
   completedAt         DateTime?      @map("completed_at")

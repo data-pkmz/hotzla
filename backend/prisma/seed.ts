@@ -775,6 +775,7 @@ async function main() {
       totalPrice: 220,
       approvedByManagerId: manager.id,
       approvedByManagerAt: new Date('2026-08-15T10:30:00.000Z'),
+      approvedByBudgetAt: new Date('2026-08-14T10:30:00.000Z'),
       workerId: worker.id,
       createdAt: new Date('2026-08-14T08:00:00.000Z'),
     },
@@ -940,6 +941,7 @@ async function main() {
       totalPrice: 195,
       approvedByManagerId: manager.id,
       approvedByManagerAt: new Date('2026-08-06T11:00:00.000Z'),
+      approvedByBudgetAt: new Date('2026-08-05T10:30:00.000Z'),
       workerId: worker.id,
       completedAt: new Date('2026-08-10T14:30:00.000Z'),
       createdAt: new Date('2026-08-05T08:30:00.000Z'),
@@ -1091,6 +1093,104 @@ async function main() {
       changedBySource: 'WORKER_UI',
       changedAt: new Date('2026-08-10T14:30:00.000Z'),
       note: 'ההזמנה נאספה והושלמה.',
+    },
+  });
+
+  // ------------------------------------------------------------
+  // Order 4: Pending Manager Approval (for playing with approvals)
+  // ------------------------------------------------------------
+  const pendingManagerOrder = await prisma.order.upsert({
+    where: { orderNumber: 'ORD-1004' },
+    update: {},
+    create: {
+      id: '60000000-0000-0000-0000-000000000005',
+      orderNumber: 'ORD-1004',
+      requesterId: requester.id,
+      unit: requester.unit ?? 'ממד',
+      status: 'PENDING_MANAGER_APPROVAL',
+      budgetOfficerName: 'קצין תקציב',
+      budgetOfficerEmail: 'budget@example.com',
+      totalPrice: 250,
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    },
+  });
+
+  await prisma.orderItem.upsert({
+    where: { id: '70000000-0000-0000-0000-000000000010' },
+    update: {},
+    create: {
+      id: '70000000-0000-0000-0000-000000000010',
+      orderId: pendingManagerOrder.id,
+      productId: businessCards.id,
+      quantity: 5,
+      uploadedFilePath: '',
+      computedUnitPrice: 50,
+      computedTotalPrice: 250,
+    },
+  });
+
+  await prisma.orderStatusHistory.upsert({
+    where: { id: '90000000-0000-0000-0000-000000000031' },
+    update: {},
+    create: {
+      id: '90000000-0000-0000-0000-000000000031',
+      orderId: pendingManagerOrder.id,
+      fromStatus: 'PENDING_BUDGET',
+      toStatus: 'PENDING_MANAGER_APPROVAL',
+      changedByUserId: null,
+      changedBySource: 'EMAIL_BUDGET_OFFICER',
+      changedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      note: 'אושר תקציבית.',
+    },
+  });
+
+  // ------------------------------------------------------------
+  // Order 5: Approved For Production (ready for worker)
+  // ------------------------------------------------------------
+  const approvedOrder = await prisma.order.upsert({
+    where: { orderNumber: 'ORD-1005' },
+    update: {},
+    create: {
+      id: '60000000-0000-0000-0000-000000000006',
+      orderNumber: 'ORD-1005',
+      requesterId: requester.id,
+      unit: requester.unit ?? 'ממד',
+      status: 'APPROVED_FOR_PRODUCTION',
+      approvedByManagerId: manager.id,
+      approvedByManagerAt: new Date(),
+      budgetOfficerName: 'קצין תקציב',
+      budgetOfficerEmail: 'budget@example.com',
+      totalPrice: 500,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    },
+  });
+
+  await prisma.orderItem.upsert({
+    where: { id: '70000000-0000-0000-0000-000000000011' },
+    update: {},
+    create: {
+      id: '70000000-0000-0000-0000-000000000011',
+      orderId: approvedOrder.id,
+      productId: businessCards.id,
+      quantity: 10,
+      uploadedFilePath: '',
+      computedUnitPrice: 50,
+      computedTotalPrice: 500,
+    },
+  });
+
+  await prisma.orderStatusHistory.upsert({
+    where: { id: '90000000-0000-0000-0000-000000000032' },
+    update: {},
+    create: {
+      id: '90000000-0000-0000-0000-000000000032',
+      orderId: approvedOrder.id,
+      fromStatus: 'PENDING_MANAGER_APPROVAL',
+      toStatus: 'APPROVED_FOR_PRODUCTION',
+      changedByUserId: manager.id,
+      changedBySource: 'MANAGER_UI',
+      changedAt: new Date(),
+      note: 'אושר להדפסה.',
     },
   });
 

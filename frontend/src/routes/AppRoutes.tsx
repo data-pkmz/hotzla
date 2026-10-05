@@ -3,14 +3,17 @@ import { Routes, Route } from 'react-router-dom';
 import { CatalogPage } from '../pages/catalog';
 import { ProductDetailPage } from '../pages/product-detail';
 import { CartPage } from '../pages/cart';
-import { CheckoutPage } from '../pages/checkout';
+import CheckoutPage from '../pages/checkout';
+import { OrderSuccessPage } from '../pages/checkout/OrderSuccessPage';
 import { MyOrdersPage } from '../pages/my-orders';
 import { OrdersTablePage } from '../pages/admin/orders-table';
-import { OrderDetailPage } from '../pages/admin/order-detail';
+import { OrderDetails } from '../pages/admin/order-detail';
 import { ProductBuilderPage } from '../pages/admin/product-builder';
 import { OrderDetailsPage } from '../pages/order-details-page';
 import { PublicApprovalPage } from '../pages/public/PublicApprovalPage';
+import { WorkerQueuePage } from '../pages/worker/WorkerQueuePage';
 
+// Main application route configuration for the checkout feature and related pages.
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
@@ -19,12 +22,14 @@ export const AppRoutes: React.FC = () => {
       <Route path="/product/:id" element={<ProductDetailPage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/checkout/success" element={<OrderSuccessPage />} />
       <Route path="/my-orders" element={<MyOrdersPage />} />
       <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
       <Route path="/admin/orders" element={<OrdersTablePage />} />
-      <Route path="/admin/order/:id" element={<OrderDetailPage />} />
+      <Route path="/admin/order/:id" element={<OrderDetails />} />
       <Route path="/admin/builder" element={<ProductBuilderPage />} />
       <Route path="/admin/builder/:id" element={<ProductBuilderPage />} />
+      <Route path="/worker/queue" element={<WorkerQueuePage />} />
     </Routes>
   );
 };

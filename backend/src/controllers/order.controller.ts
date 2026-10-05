@@ -4,6 +4,7 @@ import { OrderService } from '../services/order.service';
 import { AuthService } from '../services/auth.service';
 import { checkoutSchema } from '../validations/order.validation';
 import logger from '../utils/logger';
+import type { OrderQueryParams } from 'shared-types';
 
 const authService = new AuthService();
 
@@ -127,6 +128,42 @@ export class OrderController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       logger.error('Error getting order details:', errorMessage);
+
+      return res.status(500).json({
+        error: errorMessage,
+      });
+    }
+  }
+
+  static async getOrders(req: Request, res: Response) {
+    try {
+      const user = await getCurrentUser(req);
+
+      const params: OrderQueryParams = {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 100,
+        status: req.query.status as OrderQueryParams['status'],
+        search: req.query.search as string | undefined,
+        sortBy: req.query.sortBy as OrderQueryParams['sortBy'],
+        sortOrder: req.query.sortOrder === 'asc' ? 'asc' : 'desc',
+      };
+
+      const result = await OrderService.getOrders(
+        {
+          id: user.id,
+          role: user.role,
+        },
+        params
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      logger.error('Error getting orders:', errorMessage);
 
       return res.status(500).json({
         error: errorMessage,
