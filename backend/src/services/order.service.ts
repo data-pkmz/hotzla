@@ -32,16 +32,21 @@ export class OrderService {
       throw new Error('מזהה משתמש חסר');
     }
 
-    if (!input.budgetOfficerName || !input.budgetOfficerName.trim()) {
+    const budgetOfficerName =
+      input.budgetOfficerName?.trim() || input.budgetOfficer?.fullName?.trim() || '';
+    const budgetOfficerEmail =
+      input.budgetOfficerEmail?.trim() || input.budgetOfficer?.militaryEmail?.trim() || '';
+
+    if (!budgetOfficerName) {
       throw new Error('שם קצין תקציב הוא שדה חובה');
     }
 
-    if (!input.budgetOfficerEmail || !input.budgetOfficerEmail.trim()) {
+    if (!budgetOfficerEmail) {
       throw new Error('כתובת מייל קצין תקציב היא שדה חובה');
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(input.budgetOfficerEmail.trim())) {
+    if (!emailRegex.test(budgetOfficerEmail)) {
       throw new Error('כתובת מייל קצין תקציב אינה תקינה');
     }
 
@@ -145,8 +150,8 @@ export class OrderService {
           requesterId: userId,
           unit: input.unit?.trim() || user.unit || '',
           status: OrderStatus.PENDING_BUDGET,
-          budgetOfficerName: input.budgetOfficerName.trim(),
-          budgetOfficerEmail: input.budgetOfficerEmail.trim(),
+          budgetOfficerName,
+          budgetOfficerEmail,
           totalPrice: totalOrderPrice,
           itemEntries: {
             create: orderItemsCreateData,
