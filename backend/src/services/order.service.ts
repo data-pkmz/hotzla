@@ -3,7 +3,7 @@ import { prisma } from '../config/db';
 import { OrderNumberGenerator } from '../utils/order-number-generator';
 import { PricingEngineService } from './pricing-engine.service';
 import { AuditLogService } from './audit-log.service';
-import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 import { TokenService } from './token.service';
 import logger from '../utils/logger';
 import type {
@@ -280,7 +280,7 @@ export class OrderService {
 
       const approvalUrl = `${process.env.APP_BASE_URL}/public/approval/${approvalToken}`;
 
-      await EmailService.sendBudgetApproval({
+      await NotificationService.notifyBudgetOfficer({
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
         requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',

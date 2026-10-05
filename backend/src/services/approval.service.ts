@@ -1,6 +1,9 @@
 import { ChangeSource, OrderStatus as PrismaOrderStatus } from '@prisma/client';
+
 import { prisma } from '../config/db';
 import { AuditLogService } from './audit-log.service';
+import { NotificationService } from './notification.service';
+
 import { isOrderStatusTransitionAllowed, type OrderStatus } from 'shared-types';
 
 /**
@@ -59,6 +62,8 @@ export class ApprovalService {
    * - Updates the order's current status.
    * - Creates the matching OrderStatusHistory record through AuditLogService
    *   using the same transaction.
+   * - Sends requester notifications after the transaction commits when
+   *   required by the resulting status.
    *
    * Returns:
    * - The updated order after the transaction successfully commits.
@@ -73,6 +78,8 @@ export class ApprovalService {
    * Transaction behavior:
    * - The order update and its OrderStatusHistory record are written in the
    *   same transaction, so they either both succeed or both roll back.
+   * - External notification work is performed only after the transaction
+   *   commits so SMTP work never holds the order row lock.
    */
   public static async transitionOrderStatus({
     orderId,
@@ -189,6 +196,40 @@ export class ApprovalService {
         toStatus,
       };
     });
+
+    /**
+     * Transition-related notifications are triggered after the transaction
+     * commits so external SMTP work never holds the order row lock and no
+     * notification is sent for a rolled-back status transition.
+     */
+    if (result.toStatus === 'READY_FOR_PICKUP') {
+      const order = await prisma.order.findUnique({
+        where: {
+          id: orderId,
+        },
+        include: {
+          requester: {
+            select: {
+              militaryEmail: true,
+            },
+          },
+        },
+      });
+
+      /**
+       * A missing requester email is not considered a delivery attempt.
+       * The status transition remains successful and no invalid email is sent.
+       */
+      if (order?.requester.militaryEmail) {
+        await NotificationService.notifyRequesterStatusChange({
+          status: result.toStatus,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          requesterEmail: order.requester.militaryEmail,
+          trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
+        });
+      }
+    }
 
     return result.order;
   }

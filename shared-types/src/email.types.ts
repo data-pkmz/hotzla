@@ -2,6 +2,8 @@ export type EmailDirection = 'OUTBOUND' | 'INBOUND';
 
 export type EmailProcessedStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ERROR';
 
+// Every outbound notification type must have a matching value in the
+// backend Prisma EmailType enum so TypeScript and EMAIL_LOG stay aligned.
 export type EmailType =
   | 'BUDGET_APPROVAL'
   | 'ORDER_CONFIRMATION'
