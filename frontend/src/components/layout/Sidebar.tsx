@@ -84,9 +84,10 @@ export const Sidebar: React.FC = () => {
                   onClick={() => navigate(item.path)}
                   sx={{
                     '&.Mui-selected': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.contrastText',
-                      '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
+                      bgcolor: 'secondary.light',
+                      color: 'secondary.contrastText',
+                      '& .MuiListItemIcon-root': { color: 'secondary.contrastText' },
+                      '& .MuiListItemText-primary': { color: 'inherit' },
                     },
                   }}
                 >
