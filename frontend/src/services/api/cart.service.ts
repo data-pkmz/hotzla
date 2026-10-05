@@ -82,8 +82,8 @@ export const checkoutCart = async (input: CreateOrderInput): Promise<Order> => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to checkout');
+    const errorData: { error?: string } | null = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `Failed to checkout (${response.status})`);
   }
 
   const result: CheckoutResponse = await response.json();
