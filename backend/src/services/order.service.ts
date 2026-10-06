@@ -3,7 +3,7 @@ import { prisma } from '../config/db';
 import { OrderNumberGenerator } from '../utils/order-number-generator';
 import { PricingEngineService } from './pricing-engine.service';
 import { AuditLogService } from './audit-log.service';
-import { EmailService } from './email.service';
+import { NotificationService } from './notification.service';
 import logger from '../utils/logger';
 import type {
   CreateOrderInput,
@@ -32,16 +32,21 @@ export class OrderService {
       throw new Error('מזהה משתמש חסר');
     }
 
-    if (!input.budgetOfficerName || !input.budgetOfficerName.trim()) {
+    const budgetOfficerName =
+      input.budgetOfficerName?.trim() || input.budgetOfficer?.fullName?.trim() || '';
+    const budgetOfficerEmail =
+      input.budgetOfficerEmail?.trim() || input.budgetOfficer?.militaryEmail?.trim() || '';
+
+    if (!budgetOfficerName) {
       throw new Error('שם קצין תקציב הוא שדה חובה');
     }
 
-    if (!input.budgetOfficerEmail || !input.budgetOfficerEmail.trim()) {
+    if (!budgetOfficerEmail) {
       throw new Error('כתובת מייל קצין תקציב היא שדה חובה');
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(input.budgetOfficerEmail.trim())) {
+    if (!emailRegex.test(budgetOfficerEmail)) {
       throw new Error('כתובת מייל קצין תקציב אינה תקינה');
     }
 
@@ -145,8 +150,8 @@ export class OrderService {
           requesterId: userId,
           unit: input.unit?.trim() || user.unit || '',
           status: OrderStatus.PENDING_BUDGET,
-          budgetOfficerName: input.budgetOfficerName.trim(),
-          budgetOfficerEmail: input.budgetOfficerEmail.trim(),
+          budgetOfficerName,
+          budgetOfficerEmail,
           totalPrice: totalOrderPrice,
           itemEntries: {
             create: orderItemsCreateData,
@@ -206,6 +211,9 @@ export class OrderService {
       return newOrder;
     });
 
+    // Notifications are intentionally sent after the database transaction.
+    // A failed transaction must not produce an email for an order that was
+    // never committed.
     if (!newOrder.requester.militaryEmail) {
       logger.error('Requester email is missing', {
         orderId: newOrder.id,
@@ -213,8 +221,10 @@ export class OrderService {
         requesterId: newOrder.requester.id,
       });
     } else {
+      // Notify the budget officer with the existing approval template and all
+      // product details required to make an approval decision.
       try {
-        await EmailService.sendOrderConfirmation({
+        await NotificationService.notifyRequesterOrderReceived({
           orderId: newOrder.id,
           orderNumber: newOrder.orderNumber,
           requesterEmail: newOrder.requester.militaryEmail,
@@ -231,7 +241,7 @@ export class OrderService {
     }
 
     try {
-      await EmailService.sendBudgetApproval({
+      await NotificationService.notifyBudgetOfficer({
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
         requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
