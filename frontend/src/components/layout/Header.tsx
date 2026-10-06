@@ -57,15 +57,19 @@ export const Header: React.FC = () => {
           </Box>
 
           {/* כפתור עגלת קניות */}
-          <IconButton color="inherit" onClick={() => setIsDrawerOpen(true)}>
-            <Badge badgeContent={cartItemsCount} color="error">
-              <ShoppingCartIcon color="action" />
-            </Badge>
-          </IconButton>
+          {currentUser.role === 'REQUESTER' && (
+            <IconButton color="inherit" onClick={() => setIsDrawerOpen(true)}>
+              <Badge badgeContent={cartItemsCount} color="error">
+                <ShoppingCartIcon color="action" />
+              </Badge>
+            </IconButton>
+          )}
         </Toolbar>
       </AppBar>
 
-      <QuickCartDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      {currentUser.role === 'REQUESTER' && (
+        <QuickCartDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      )}
     </>
   );
 };

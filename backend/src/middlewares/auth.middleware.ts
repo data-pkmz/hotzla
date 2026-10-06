@@ -6,7 +6,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
   switch (mode) {
     case 'mock':
-      adUsername = req.headers['x-mock-user'] as string;
+      adUsername = (req.headers['x-mock-user'] as string) || (req.query.mockUser as string);
       break;
 
     case 'iwa':

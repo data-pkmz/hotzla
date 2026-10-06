@@ -16,6 +16,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import type { CartItem } from 'shared-types';
 import QuantityControl from './QuantityControl';
+import { getProductImageUrl, getDownloadFileUrl } from '../../services/api/file.service';
 
 interface CartItemRowProps {
   item: CartItem;
@@ -27,7 +28,14 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   // Safe defaults in case product data is missing
   const productName = item.product?.name || 'מוצר לא ידוע';
-  const productImage = item.product?.imageUrl || 'https://via.placeholder.com/80';
+  const rawImageUrl = item.product?.imageUrl;
+
+  // If the user uploaded a file, we prioritize showing their uploaded design
+  const productImage = item.uploadedFilePath
+    ? getDownloadFileUrl(item.uploadedFilePath)
+    : rawImageUrl
+      ? getProductImageUrl(rawImageUrl)
+      : 'https://via.placeholder.com/80';
 
   // Format the selected attributes into a readable string
   const attributesText = (item.selectedAttributes ?? [])
