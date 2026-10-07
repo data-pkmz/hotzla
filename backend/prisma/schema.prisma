@@ -97,6 +97,20 @@ enum EmailType {
   INBOUND_OTHER
 }
 
+enum NotificationJobStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum NotificationJobType {
+  ORDER_CONFIRMATION
+  BUDGET_APPROVAL
+  BUDGET_DECISION_CONFIRMATION
+  READY_FOR_PICKUP
+}
+
 model User {
   id            String   @id @default(uuid()) @db.Uuid
   fullName      String?  @map("full_name")
@@ -238,6 +252,7 @@ model Order {
   emailLogEntries EmailLog[]
   approvedTokenEntries ApprovalToken[]
   orderStatus OrderStatusHistory[]
+  notificationJobs NotificationJob[]
   @@map("orders")
 }
 
@@ -301,4 +316,20 @@ model ApprovalToken {
   usedAt               DateTime?       @map("used_at")    
   isDeleted            Boolean         @default(false) @map("is_deleted")
   @@map("approval_tokens")        
+}
+
+model NotificationJob {
+  id          String                @id @default(uuid()) @db.Uuid
+  orderId     String                @map("order_id") @db.Uuid
+  type        NotificationJobType
+  status      NotificationJobStatus @default(PENDING)
+  payload     Json
+  attempts    Int                   @default(0)
+  lastError   String?               @map("last_error")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  processedAt DateTime?             @map("processed_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("notification_jobs")
 }

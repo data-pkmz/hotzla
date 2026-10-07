@@ -24,6 +24,9 @@ interface TransitionOrderStatusInput {
 
   /** Optional explanation or additional information about the transition. */
   note?: string | null;
+
+  /** Optional pick up instructions. */
+  pickupInstructions?: string;
 }
 
 /**
@@ -87,6 +90,7 @@ export class ApprovalService {
     changedByUserId = null,
     changedBySource,
     note = null,
+    pickupInstructions,
   }: TransitionOrderStatusInput) {
     if (!orderId) {
       throw new Error('Order ID is required');
@@ -227,6 +231,7 @@ export class ApprovalService {
           orderNumber: order.orderNumber,
           requesterEmail: order.requester.militaryEmail,
           trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
+          pickupInstructions,
         });
       }
     }

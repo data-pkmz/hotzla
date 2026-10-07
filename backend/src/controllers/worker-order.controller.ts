@@ -2,8 +2,6 @@ import { Request, Response } from 'express';
 import { ChangeSource, OrderStatus, Role } from '@prisma/client';
 
 import { ApprovalService } from '../services/approval.service';
-import { EmailService } from '../services/email.service';
-import { OrderService } from '../services/order.service';
 import logger from '../utils/logger';
 
 export class WorkerOrderController {
@@ -124,35 +122,8 @@ export class WorkerOrderController {
         note: req.body.note || null,
       });
 
-      const order = await OrderService.getOrderById(orderId, {
-        id: user.id,
-        role: user.role,
-      });
-
-      if (order.requester?.militaryEmail) {
-        await EmailService.sendReadyForPickup({
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          requesterEmail: order.requester.militaryEmail,
-          pickupInstructions:
-            req.body.pickupInstructions || 'ההזמנה שלך מוכנה לאיסוף במרכז ההדפסה.',
-          trackingUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders/${order.id}`,
-        });
-
-        res.status(200).json({
-          message: 'Order status updated to READY_FOR_PICKUP and email sent',
-        });
-
-        return;
-      }
-
-      logger.warn('Could not send ready-for-pickup email: missing requester email', {
-        orderId,
-      });
-
       res.status(200).json({
-        message:
-          'Order status updated to READY_FOR_PICKUP ' + '(no email sent due to missing address)',
+        message: 'Order status updated to READY_FOR_PICKUP',
       });
     } catch (error) {
       logger.error('Error marking order as ready for pickup', {

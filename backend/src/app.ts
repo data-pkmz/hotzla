@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
-import { User, OrderStatus } from 'shared-types';
 import logger from './utils/logger';
 
 import authRoutes from './routes/auth.routes';
@@ -40,28 +39,6 @@ app.get('/api/health', (_req: Request, res: Response) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'backend',
-  });
-});
-
-// Demo route using shared types
-app.get('/api/demo-user', (_req: Request, res: Response) => {
-  const demoUser: User = {
-    id: '123e4567-e89b-12d3-a456-426614174000',
-    fullName: 'Amit Israeli',
-    militaryEmail: 'amit.israeli@mail.idf.il',
-    adUsername: 'amit_israeli',
-    unit: 'Development Center',
-    phone: '050-1234567',
-    role: 'REQUESTER',
-    createdAt: new Date(),
-    isDeleted: false,
-  };
-
-  const initialStatus: OrderStatus = 'PENDING_BUDGET';
-
-  res.json({
-    user: demoUser,
-    defaultStatus: initialStatus,
   });
 });
 

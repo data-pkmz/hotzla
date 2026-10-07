@@ -78,6 +78,8 @@ export class OrderService {
       throw new Error('כתובת מייל קצין תקציב אינה תקינה');
     }
 
+    const orderNumber = await OrderNumberGenerator.generateNextOrderNumber();
+
     const newOrder = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findFirst({
         where: {
@@ -123,11 +125,14 @@ export class OrderService {
           : [];
 
         // Authoritative server-side price calculation
-        const priceResult = await PricingEngineService.calculatePrice({
-          productId: item.productId,
-          quantity: quantityNum,
-          selectedAttributes: selectedAttributesArray,
-        });
+        const priceResult = await PricingEngineService.calculatePrice(
+          {
+            productId: item.productId,
+            quantity: quantityNum,
+            selectedAttributes: selectedAttributesArray,
+          },
+          tx
+        );
 
         const computedTotalPrice = new Prisma.Decimal(priceResult.totalPrice);
         const computedUnitPrice = computedTotalPrice.div(new Prisma.Decimal(quantityNum));
@@ -169,8 +174,6 @@ export class OrderService {
               : undefined,
         });
       }
-
-      const orderNumber = await OrderNumberGenerator.generateNextOrderNumber(tx);
 
       const newOrder = await tx.order.create({
         data: {
@@ -238,30 +241,6 @@ export class OrderService {
 
       return newOrder;
     });
-
-    if (!newOrder.requester.militaryEmail) {
-      logger.error('Requester email is missing', {
-        orderId: newOrder.id,
-        orderNumber: newOrder.orderNumber,
-        requesterId: newOrder.requester.id,
-      });
-    } else {
-      try {
-        await EmailService.sendOrderConfirmation({
-          orderId: newOrder.id,
-          orderNumber: newOrder.orderNumber,
-          requesterEmail: newOrder.requester.militaryEmail,
-          trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
-        });
-      } catch (error) {
-        logger.error('Failed to send order confirmation email', {
-          orderId: newOrder.id,
-          orderNumber: newOrder.orderNumber,
-          requesterEmail: newOrder.requester.militaryEmail,
-          error,
-        });
-      }
-    }
 
     /**
      * Sends the budget approval request after the order transaction commits.

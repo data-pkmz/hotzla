@@ -1,11 +1,22 @@
-import { AttributeType, Prisma, PricingRule, PriceModifierType } from '@prisma/client';
+import {
+  AttributeType,
+  Prisma,
+  PrismaClient,
+  PricingRule,
+  PriceModifierType,
+} from '@prisma/client';
 
 import { prisma } from '../config/db';
 
 import type { CalculatePriceParams, PriceBreakdownLine, PriceResult } from 'shared-types';
 
+export type DbClient = Prisma.TransactionClient | PrismaClient;
+
 export class PricingEngineService {
-  public static async calculatePrice(params: CalculatePriceParams): Promise<PriceResult> {
+  public static async calculatePrice(
+    params: CalculatePriceParams,
+    dbClient: DbClient = prisma
+  ): Promise<PriceResult> {
     const { productId, quantity, selectedAttributes = [] } = params;
 
     /**
@@ -16,9 +27,11 @@ export class PricingEngineService {
     }
 
     /**
-     * Loads the active, non-deleted product.
+     * Load the active, non-deleted product.
+     *
+     * Query 1.
      */
-    const product = await prisma.product.findFirst({
+    const product = await dbClient.product.findFirst({
       where: {
         id: productId,
         isDeleted: false,
@@ -64,16 +77,104 @@ export class PricingEngineService {
     let totalAdditionalPrice = new Prisma.Decimal(0);
 
     /**
-     * Calculates every selected attribute independently.
+     * Load all requested attribute definitions in one query instead of
+     * performing one database lookup per selected attribute.
+     */
+    const attributeDefinitionIds = [
+      ...new Set(
+        selectedAttributes.map((selectedAttribute) => selectedAttribute.attributeDefinitionId)
+      ),
+    ];
+
+    /**
+     * Query 2.
+     *
+     * If no attributes were supplied, there is no reason to query the
+     * attribute-definition table.
+     */
+    const attributeDefinitions =
+      attributeDefinitionIds.length > 0
+        ? await dbClient.productAttributeDefinition.findMany({
+            where: {
+              id: {
+                in: attributeDefinitionIds,
+              },
+              productId,
+              isDeleted: false,
+            },
+          })
+        : [];
+
+    /**
+     * Create an in-memory lookup so the pricing loop does not need any
+     * additional database queries for attribute definitions.
+     */
+    const attributeDefinitionById = new Map(
+      attributeDefinitions.map((definition) => [definition.id, definition])
+    );
+
+    /**
+     * Collect every selected option ID used by SELECT attributes.
+     *
+     * Attribute definitions have already been loaded, so invalid attribute
+     * IDs are ignored here and will produce the normal validation error
+     * later in the pricing loop.
+     */
+    const allSelectedOptionIds = new Set<string>();
+    const selectAttributeDefinitionIds = new Set<string>();
+
+    for (const selectedAttribute of selectedAttributes) {
+      const attributeDefinition = attributeDefinitionById.get(
+        selectedAttribute.attributeDefinitionId
+      );
+
+      if (attributeDefinition?.attributeType !== AttributeType.SELECT) {
+        continue;
+      }
+
+      selectAttributeDefinitionIds.add(attributeDefinition.id);
+
+      for (const optionId of selectedAttribute.selectedOptionIds ?? []) {
+        allSelectedOptionIds.add(optionId);
+      }
+    }
+
+    /**
+     * Load all selected options in one query instead of one query for every
+     * SELECT attribute.
+     *
+     * Query 3.
+     */
+    const selectedOptions =
+      allSelectedOptionIds.size > 0
+        ? await dbClient.productAttributeOption.findMany({
+            where: {
+              id: {
+                in: [...allSelectedOptionIds],
+              },
+              attributeDefinitionId: {
+                in: [...selectAttributeDefinitionIds],
+              },
+              isDeleted: false,
+            },
+          })
+        : [];
+
+    /**
+     * Create an in-memory lookup for selected options.
+     */
+    const selectedOptionById = new Map(selectedOptions.map((option) => [option.id, option]));
+
+    /**
+     * Calculate every selected attribute independently.
+     *
+     * All required database records have already been loaded, so this loop
+     * performs pricing and validation entirely in memory.
      */
     for (const selectedAttribute of selectedAttributes) {
-      const attributeDefinition = await prisma.productAttributeDefinition.findFirst({
-        where: {
-          id: selectedAttribute.attributeDefinitionId,
-          productId,
-          isDeleted: false,
-        },
-      });
+      const attributeDefinition = attributeDefinitionById.get(
+        selectedAttribute.attributeDefinitionId
+      );
 
       if (!attributeDefinition) {
         throw new Error(
@@ -141,12 +242,12 @@ export class PricingEngineService {
         /**
          * Calculates SELECT attribute pricing.
          *
-         * Pricing comes from
-         * ProductAttributeOption.priceModifier.
+         * All options have already been loaded in a single database query.
          *
-         * When isPerUnit is true, priceModifier is
-         * multiplied by the product quantity.
-         * Otherwise, priceModifier is added once.
+         * Pricing comes from ProductAttributeOption.priceModifier.
+         *
+         * When isPerUnit is true, priceModifier is multiplied by the
+         * product quantity. Otherwise, priceModifier is added once.
          */
         case AttributeType.SELECT: {
           const selectedOptionIds = selectedAttribute.selectedOptionIds ?? [];
@@ -157,25 +258,29 @@ export class PricingEngineService {
 
           const uniqueSelectedOptionIds = [...new Set(selectedOptionIds)];
 
-          const selectedOptions = await prisma.productAttributeOption.findMany({
-            where: {
-              id: {
-                in: uniqueSelectedOptionIds,
-              },
-              attributeDefinitionId: attributeDefinition.id,
-              isDeleted: false,
-            },
-          });
+          const optionsForAttribute = uniqueSelectedOptionIds.map((optionId) => {
+            const option = selectedOptionById.get(optionId);
 
-          if (selectedOptions.length !== uniqueSelectedOptionIds.length) {
-            throw new Error(
-              `אפשרות אחת או יותר שנבחרו אינן תקינות עבור המאפיין ${attributeDefinition.id}`
-            );
-          }
+            /**
+             * An option must exist and must belong to the current attribute.
+             *
+             * Checking attributeDefinitionId preserves the validation that
+             * previously came from querying with:
+             *
+             * attributeDefinitionId: attributeDefinition.id
+             */
+            if (!option || option.attributeDefinitionId !== attributeDefinition.id) {
+              throw new Error(
+                `אפשרות אחת או יותר שנבחרו אינן תקינות עבור המאפיין ${attributeDefinition.id}`
+              );
+            }
+
+            return option;
+          });
 
           additionalPrice = new Prisma.Decimal(0);
 
-          for (const option of selectedOptions) {
+          for (const option of optionsForAttribute) {
             if (option.priceModifierType !== PriceModifierType.FIXED_ADD) {
               throw new Error(`האפשרות ${option.id} חייבת להשתמש בתמחור FIXED_ADD`);
             }
@@ -193,7 +298,7 @@ export class PricingEngineService {
             additionalPrice = additionalPrice.add(optionPrice);
           }
 
-          selectedValue = selectedOptions.map((option) => option.optionLabel).join(', ');
+          selectedValue = optionsForAttribute.map((option) => option.optionLabel).join(', ');
 
           break;
         }
@@ -278,8 +383,8 @@ export class PricingEngineService {
       totalAdditionalPrice = totalAdditionalPrice.add(additionalPrice);
 
       /**
-       * Only attributes that actually change the price
-       * belong in the visible price breakdown.
+       * Only attributes that actually change the price belong in the
+       * visible price breakdown.
        */
       if (!additionalPrice.isZero()) {
         breakdown.push({
