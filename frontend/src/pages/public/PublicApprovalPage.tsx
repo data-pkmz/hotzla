@@ -13,7 +13,6 @@ import {
   Divider,
   Container,
   Stack,
-  Chip,
   Paper,
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -116,8 +115,10 @@ export const PublicApprovalPage: React.FC = () => {
     <Container maxWidth="md" sx={{ mt: 5, mb: 10 }} dir="rtl">
       <Card elevation={4} sx={{ borderRadius: 3 }}>
         <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 3, textAlign: 'center' }}>
-          <Typography variant="h4">אישור תקציב להזמנה</Typography>
-          <Typography variant="subtitle1" sx={{ mt: 1, opacity: 0.9 }}>
+          <Typography variant="h4" sx={{ color: 'grey.200', fontWeight: 'bold' }}>
+            אישור תקציב להזמנה
+          </Typography>
+          <Typography variant="h5" sx={{ mt: 1, color: 'warning.main', fontWeight: 'bold' }}>
             מספר הזמנה: {order?.orderNumber}
           </Typography>
         </Box>
@@ -154,24 +155,62 @@ export const PublicApprovalPage: React.FC = () => {
                       id?: string;
                       product?: { name: string };
                       quantity: number;
-                      computedPrice: number;
+                      computedTotalPrice: number;
                     },
                     idx: number
                   ) => (
                     <Paper
                       key={item.id || idx}
                       variant="outlined"
-                      sx={{ p: 2, bgcolor: 'grey.50' }}
+                      sx={{
+                        p: 2.5,
+                        bgcolor: 'background.paper',
+                        borderColor: 'grey.300',
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        justifyContent: 'space-between',
+                        gap: 2,
+                      }}
                     >
-                      <Box display="flex" justifyContent="space-between" alignItems="center">
-                        <Typography variant="subtitle1" fontWeight="bold">
+                      {/* Partie Droite (Infos Produit) */}
+                      <Box>
+                        <Typography variant="h5" color="primary.main" fontWeight="bold">
                           {item.product?.name}
                         </Typography>
-                        <Chip label={`כמות: ${item.quantity}`} color="primary" variant="outlined" />
+                        <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+                          מחיר ליחידה: ₪{Number(item.computedTotalPrice / item.quantity).toFixed(2)}
+                        </Typography>
                       </Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        מחיר משוער: ₪{item.computedPrice}
-                      </Typography>
+
+                      {/* Partie Gauche (Chiffres et Total) */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {/* Bloc Quantité */}
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="body1" color="text.secondary" display="block">
+                            כמות
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold">
+                            {item.quantity}
+                          </Typography>
+                        </Box>
+
+                        <Divider
+                          orientation="vertical"
+                          flexItem
+                          sx={{ display: { xs: 'none', sm: 'block' } }}
+                        />
+
+                        {/* Bloc Prix Total */}
+                        <Box sx={{ textAlign: 'center', minWidth: '80px' }}>
+                          <Typography variant="body1" color="text.secondary" display="block">
+                            סה״כ
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold" color="primary.main">
+                            ₪{Number(item.computedTotalPrice).toFixed(2)}
+                          </Typography>
+                        </Box>
+                      </Box>
                     </Paper>
                   )
                 )}

@@ -19,6 +19,8 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { getProductImageUrl, getDownloadFileUrl } from '../../services/api/file.service';
+
 import type { CartItem } from 'shared-types';
 import QuantityControl from './QuantityControl';
 import { getActiveCart, updateCartItem, removeCartItem } from '../../services/api/cart.service';
@@ -119,7 +121,13 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
                 <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
                   <Box
                     component="img"
-                    src={item.product?.imageUrl || 'https://via.placeholder.com/50'}
+                    src={
+                      item.uploadedFilePath
+                        ? getDownloadFileUrl(item.uploadedFilePath)
+                        : item.product?.imageUrl
+                          ? getProductImageUrl(item.product.imageUrl)
+                          : 'https://via.placeholder.com/50'
+                    }
                     alt={item.product?.name}
                     sx={{ width: 50, height: 50, borderRadius: 1, objectFit: 'cover' }}
                   />
