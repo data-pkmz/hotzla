@@ -9,6 +9,7 @@ import type {
 
 import { prisma } from '../config/db';
 import { EmailService } from '../services/email.service';
+import { TokenService } from '../services/token.service';
 import logger from '../utils/logger';
 
 export class NotificationWorker {
@@ -179,7 +180,7 @@ export class NotificationWorker {
         return;
 
       case NotificationJobType.BUDGET_APPROVAL:
-        await EmailService.sendBudgetApproval(job.payload as unknown as BudgetApprovalEmailData);
+        await this.deliverBudgetApproval(job);
         return;
 
       case NotificationJobType.BUDGET_DECISION_CONFIRMATION:
@@ -195,5 +196,107 @@ export class NotificationWorker {
       default:
         throw new Error(`Unsupported notification job type: ${job.type}`);
     }
+  }
+
+  /**
+   * Builds and sends the initial budget-approval email.
+   *
+   * Checkout stores only a lightweight notification job. The more expensive
+   * order-detail lookup, approval-token creation, and email-payload construction
+   * happen here in the asynchronous worker instead of blocking checkout.
+   */
+  private static async deliverBudgetApproval(job: NotificationJob): Promise<void> {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: job.orderId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        budgetOfficerEmail: true,
+        totalPrice: true,
+
+        requester: {
+          select: {
+            fullName: true,
+          },
+        },
+
+        itemEntries: {
+          where: {
+            isDeleted: false,
+          },
+          select: {
+            quantity: true,
+            computedTotalPrice: true,
+
+            product: {
+              select: {
+                name: true,
+              },
+            },
+
+            itemAttributeEntries: {
+              where: {
+                isDeleted: false,
+              },
+              select: {
+                valueText: true,
+
+                attributeDefinition: {
+                  select: {
+                    attributeName: true,
+                  },
+                },
+
+                selectedOption: {
+                  select: {
+                    optionLabel: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new Error(`Order not found for budget approval notification: ${job.orderId}`);
+    }
+
+    const approvalToken = await TokenService.getOrCreateApprovalToken(order.id);
+
+    const approvalUrl = `${process.env.APP_BASE_URL}/approve-order?token=${approvalToken}`;
+
+    const emailData: BudgetApprovalEmailData = {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+
+      requesterName: order.requester.fullName ?? 'לא צוין שם מזמין',
+
+      budgetOfficerEmail: order.budgetOfficerEmail,
+
+      totalPrice: Number(order.totalPrice),
+
+      approvalUrl,
+
+      items: order.itemEntries.map((item) => ({
+        productName: item.product.name,
+
+        quantity: Number(item.quantity),
+
+        price: Number(item.computedTotalPrice),
+
+        specifications: item.itemAttributeEntries.map((attribute) => ({
+          name: attribute.attributeDefinition.attributeName,
+
+          value: attribute.selectedOption?.optionLabel ?? attribute.valueText ?? '',
+        })),
+      })),
+    };
+
+    await EmailService.sendBudgetApproval(emailData);
   }
 }

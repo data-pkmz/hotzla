@@ -43,7 +43,18 @@ export const requireRoles = (allowedRoles: Role[]) => {
     try {
       const authService = new AuthService();
 
+      const authStart = performance.now();
+
       const dbUser = await authService.getOrCreateUser(req.user.adUsername);
+
+      const authMs = performance.now() - authStart;
+
+      if (authMs >= 300) {
+        logger.warn('Slow RBAC user lookup', {
+          authMs: Math.round(authMs),
+          adUsername: req.user.adUsername,
+        });
+      }
 
       if (dbUser.isDeleted) {
         return res.status(401).json({

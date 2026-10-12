@@ -111,7 +111,7 @@ export class CartService {
    *   or creating the cart item.
    */
   static async addItemToCart(userId: string, input: AddToCartInput) {
-    const cart = await this.getActiveCart(userId);
+    const cart = await this.getOrCreateActiveCart(userId);
 
     // Recalculate the authoritative price on the server instead of trusting
     // price information supplied by the frontend.
@@ -265,7 +265,7 @@ export class CartService {
    * - Prisma's updateMany result containing the number of cart items updated.
    */
   static async clearCart(userId: string) {
-    const activeCart = await this.getActiveCart(userId);
+    const activeCart = await this.getOrCreateActiveCart(userId);
 
     return prisma.cartItem.updateMany({
       where: {
@@ -274,6 +274,34 @@ export class CartService {
       },
       data: {
         isDeleted: true,
+      },
+    });
+  }
+
+  private static async getOrCreateActiveCart(userId: string) {
+    const existingCart = await prisma.cart.findFirst({
+      where: {
+        userId,
+        status: Status.ACTIVE,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingCart) {
+      return existingCart;
+    }
+
+    return prisma.cart.create({
+      data: {
+        userId,
+        status: Status.ACTIVE,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
       },
     });
   }

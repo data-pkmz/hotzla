@@ -1,11 +1,5 @@
-import { ChangeSource, OrderStatus, Prisma, Role, Status } from '@prisma/client';
-import { prisma } from '../config/db';
-import { OrderNumberGenerator } from '../utils/order-number-generator';
-import { PricingEngineService } from './pricing-engine.service';
-import { AuditLogService } from './audit-log.service';
-import { NotificationService } from './notification.service';
-import { TokenService } from './token.service';
-import logger from '../utils/logger';
+import { performance } from 'node:perf_hooks';
+
 import type {
   CreateOrderInput,
   Order,
@@ -14,54 +8,62 @@ import type {
   SelectedAttributeInput,
 } from 'shared-types';
 
+import {
+  ChangeSource,
+  NotificationJobType,
+  OrderStatus,
+  Prisma,
+  Role,
+  Status,
+} from '@prisma/client';
+
+import { prisma } from '../config/db';
+import logger from '../utils/logger';
+import { OrderNumberGenerator } from '../utils/order-number-generator';
+
+import { AuditLogService } from './audit-log.service';
+import { PricingEngineService } from './pricing-engine.service';
+
 export class OrderService {
   /**
-   * Converts the authenticated user's active cart into a new order.
+   * Converts an active cart into a new order.
    *
-   * Expects:
-   * - userId: Database ID of the requester creating the order.
-   * - input.budgetOfficerName: Name of the budget officer responsible for approval.
-   * - input.budgetOfficerEmail: Valid email address of the budget officer.
-   * - input.unit: Optional requesting unit. Falls back to the user's stored unit.
-   * - input.notes: Optional note recorded with the initial order status history entry.
+   * 1. Validates the requester and checkout information.
+   * 2. Generates a unique sequential order number outside the main
+   *    checkout transaction.
+   * 3. Retrieves the active cart and validates its items.
+   * 4. Recalculates authoritative prices on the server.
+   * 5. Creates the Order, OrderItems, and attribute-value records.
+   * 6. Creates the initial order-status history entry.
+   * 7. Marks the active Cart as CONVERTED.
+   * 8. After the transaction commits, creates the budget-approval token
+   *    and queues the budget-officer notification.
    *
-   * Does:
-   * - Validates the requester ID and required budget officer information.
-   * - Verifies that the requester exists and is not deleted.
-   * - Retrieves the requester's active cart and verifies that it contains items.
-   * - Recalculates every cart item's authoritative price using PricingEngineService
-   *   instead of trusting the price previously stored in the cart.
-   * - Converts selected product attributes into OrderItemAttributeValue records.
-   * - Calculates the total order price.
-   * - Generates the next sequential order number.
-   * - Creates the Order with initial status PENDING_BUDGET.
-   * - Creates the corresponding OrderItem and attribute-value records.
-   * - Records the initial status change through AuditLogService.
-   * - Marks the active cart as CONVERTED.
-   * - Performs the database changes inside a single Prisma transaction.
-   * - After the transaction succeeds, attempts to send:
-   *   - an order confirmation email to the requester.
-   *   - a budget approval email to the budget officer.
-   * - Email failures are logged but do not roll back the successfully created order.
-   *
-   * Returns:
-   * - The newly created order including requester information, order items,
-   *   products, and selected item attributes.
-   *
-   * Throws:
-   * - If required requester or budget officer information is missing or invalid.
-   * - If the requester does not exist.
-   * - If no active cart with items exists.
-   * - If a cart item's quantity or pricing data is invalid.
-   * - Any error produced while creating the order or related database records.
+   * The order number is intentionally allocated before the main transaction
+   * so the yearly order-number counter does not become a lock held for the
+   * entire checkout transaction.
    */
   public static async createOrderFromCart(userId: string, input: CreateOrderInput) {
+    const checkoutStartedAt = performance.now();
+
+    const slowCheckoutThresholdMs = Number(process.env.SLOW_CHECKOUT_THRESHOLD_MS ?? 500);
+
+    let cartLookupMs = 0;
+    let itemPreparationMs = 0;
+    let repricingMs = 0;
+    let orderCreateMs = 0;
+    let auditMs = 0;
+    let cartUpdateMs = 0;
+
+    let cartItemCount = 0;
+
     if (!userId) {
       throw new Error('מזהה משתמש חסר');
     }
 
     const budgetOfficerName =
       input.budgetOfficerName?.trim() || input.budgetOfficer?.fullName?.trim() || '';
+
     const budgetOfficerEmail =
       input.budgetOfficerEmail?.trim() || input.budgetOfficer?.militaryEmail?.trim() || '';
 
@@ -74,23 +76,34 @@ export class OrderService {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(budgetOfficerEmail)) {
       throw new Error('כתובת מייל קצין תקציב אינה תקינה');
     }
 
+    /**
+     * Generate the order number before the main checkout transaction.
+     */
+    const orderNumberStartedAt = performance.now();
+
     const orderNumber = await OrderNumberGenerator.generateNextOrderNumber();
 
-    const newOrder = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findFirst({
-        where: {
-          id: userId,
-          isDeleted: false,
-        },
-      });
+    const orderNumberMs = performance.now() - orderNumberStartedAt;
 
-      if (!user) {
-        throw new Error('המשתמש לא נמצא');
-      }
+    /**
+     * Main checkout transaction.
+     */
+    const transactionStartedAt = performance.now();
+
+    let transactionWorkMs = 0;
+
+    const newOrder = await prisma.$transaction(async (tx) => {
+      const transactionWorkStartedAt = performance.now();
+
+      /**
+       * Load active cart and its items.
+       */
+      const cartLookupStartedAt = performance.now();
 
       const activeCart = await tx.cart.findFirst({
         where: {
@@ -107,15 +120,26 @@ export class OrderService {
         },
       });
 
+      cartLookupMs = performance.now() - cartLookupStartedAt;
+
       if (!activeCart || !activeCart.cartItemEntries || activeCart.cartItemEntries.length === 0) {
         throw new Error('לא נמצאה עגלת קניות פעילה עם פריטים');
       }
 
+      cartItemCount = activeCart.cartItemEntries.length;
+
       let totalOrderPrice = new Prisma.Decimal(0);
+
       const orderItemsCreateData: Prisma.OrderItemCreateWithoutOrderInput[] = [];
+
+      /**
+       * Reprice cart items and build the nested create input.
+       */
+      const itemPreparationStartedAt = performance.now();
 
       for (const item of activeCart.cartItemEntries) {
         const quantityNum = Number(item.quantity);
+
         if (isNaN(quantityNum) || quantityNum <= 0) {
           throw new Error('כמות פריט בעגלה אינה תקינה');
         }
@@ -124,7 +148,13 @@ export class OrderService {
           ? (item.selectedAttributes as unknown as SelectedAttributeInput[])
           : [];
 
-        // Authoritative server-side price calculation
+        /**
+         * Measure only the authoritative pricing call.
+         *
+         * repricingMs is a subset of itemPreparationMs.
+         */
+        const pricingStartedAt = performance.now();
+
         const priceResult = await PricingEngineService.calculatePrice(
           {
             productId: item.productId,
@@ -134,7 +164,10 @@ export class OrderService {
           tx
         );
 
+        repricingMs += performance.now() - pricingStartedAt;
+
         const computedTotalPrice = new Prisma.Decimal(priceResult.totalPrice);
+
         const computedUnitPrice = computedTotalPrice.div(new Prisma.Decimal(quantityNum));
 
         totalOrderPrice = totalOrderPrice.add(computedTotalPrice);
@@ -146,22 +179,42 @@ export class OrderService {
           if (attr.selectedOptionIds && attr.selectedOptionIds.length > 0) {
             for (const optId of attr.selectedOptionIds) {
               attributeValuesCreate.push({
-                attributeDefinition: { connect: { id: attr.attributeDefinitionId } },
-                selectedOption: { connect: { id: optId } },
+                attributeDefinition: {
+                  connect: {
+                    id: attr.attributeDefinitionId,
+                  },
+                },
+                selectedOption: {
+                  connect: {
+                    id: optId,
+                  },
+                },
                 valueText: String(attr.value ?? optId),
               });
             }
           } else if (attr.selectedOptionId) {
             attributeValuesCreate.push({
-              attributeDefinition: { connect: { id: attr.attributeDefinitionId } },
-              selectedOption: { connect: { id: attr.selectedOptionId } },
+              attributeDefinition: {
+                connect: {
+                  id: attr.attributeDefinitionId,
+                },
+              },
+              selectedOption: {
+                connect: {
+                  id: attr.selectedOptionId,
+                },
+              },
               valueText: String(attr.value ?? ''),
             });
           }
         }
 
         orderItemsCreateData.push({
-          product: { connect: { id: item.productId } },
+          product: {
+            connect: {
+              id: item.productId,
+            },
+          },
           uploadedFilePath: item.uploadedFilePath || '',
           quantity: item.quantity,
           computedUnitPrice,
@@ -175,46 +228,49 @@ export class OrderService {
         });
       }
 
-      const newOrder = await tx.order.create({
+      itemPreparationMs = performance.now() - itemPreparationStartedAt;
+
+      /**
+       * Create the order and all nested order-item records.
+       *
+       * The include also reads the requester, products, attributes,
+       * and selected options back from the database.
+       */
+      const orderCreateStartedAt = performance.now();
+
+      const createdOrder = await tx.order.create({
         data: {
           orderNumber,
           requesterId: userId,
-          unit: input.unit?.trim() || user.unit || '',
+          unit: input.unit?.trim() || '',
           status: OrderStatus.PENDING_BUDGET,
           budgetOfficerName,
           budgetOfficerEmail,
           totalPrice: totalOrderPrice,
+
           itemEntries: {
             create: orderItemsCreateData,
           },
-        },
-        include: {
-          requester: {
-            select: {
-              id: true,
-              fullName: true,
-              militaryEmail: true,
-              unit: true,
-              phone: true,
-            },
-          },
-          itemEntries: {
-            include: {
-              product: true,
-              itemAttributeEntries: {
-                include: {
-                  attributeDefinition: true,
-                  selectedOption: true,
-                },
-              },
+
+          notificationJobs: {
+            create: {
+              type: NotificationJobType.BUDGET_APPROVAL,
+              payload: {} as Prisma.InputJsonValue,
             },
           },
         },
       });
 
+      orderCreateMs = performance.now() - orderCreateStartedAt;
+
+      /**
+       * Initial status/audit records.
+       */
+      const auditStartedAt = performance.now();
+
       await AuditLogService.logStatusChange(
         {
-          orderId: newOrder.id,
+          orderId: createdOrder.id,
           toStatus: OrderStatus.PENDING_BUDGET,
           changedByUserId: userId,
           changedBySource: ChangeSource.SYSTEM,
@@ -222,6 +278,13 @@ export class OrderService {
         },
         tx
       );
+
+      auditMs = performance.now() - auditStartedAt;
+
+      /**
+       * Convert the active cart.
+       */
+      const cartUpdateStartedAt = performance.now();
 
       await tx.cart.update({
         where: {
@@ -233,55 +296,57 @@ export class OrderService {
         },
       });
 
+      cartUpdateMs = performance.now() - cartUpdateStartedAt;
+
       AuditLogService.logSystemEvent('OrderCreated', {
-        orderId: newOrder.id,
-        orderNumber: newOrder.orderNumber,
+        orderId: createdOrder.id,
+        orderNumber: createdOrder.orderNumber,
         userId,
       });
 
-      return newOrder;
+      transactionWorkMs = performance.now() - transactionWorkStartedAt;
+      return createdOrder;
     });
 
+    const transactionMs = performance.now() - transactionStartedAt;
+    const transactionOverheadMs = transactionMs - transactionWorkMs;
+
+    const totalMs = performance.now() - checkoutStartedAt;
+
     /**
-     * Sends the budget approval request after the order transaction commits.
+     * Only log checkouts that fail the performance target.
      *
-     * The approval email contains a public, token-based link so the budget
-     * officer can review and approve or reject the order without having an
-     * authenticated application user.
-     *
-     * The approval token is valid for seven days and may only be used once.
-     *
-     * Email or token-generation failures are logged but do not roll back the
-     * already-created order.
+     * repricingMs is included for diagnostic purposes but is already
+     * contained inside itemPreparationMs, so it should not be added
+     * again when comparing totals.
      */
-    try {
-      const approvalToken = await TokenService.generateApprovalToken(newOrder.id);
-
-      const approvalUrl = `${process.env.APP_BASE_URL}/public/approval/${approvalToken}`;
-
-      await NotificationService.notifyBudgetOfficer({
+    if (totalMs >= slowCheckoutThresholdMs) {
+      logger.warn('Slow checkout', {
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
-        requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
-        budgetOfficerEmail: newOrder.budgetOfficerEmail,
-        totalPrice: Number(newOrder.totalPrice),
-        approvalUrl,
-        items: newOrder.itemEntries.map((item) => ({
-          productName: item.product.name,
-          quantity: Number(item.quantity),
-          price: Number(item.computedTotalPrice),
-          specifications: item.itemAttributeEntries.map((attribute) => ({
-            name: attribute.attributeDefinition.attributeName,
-            value: attribute.selectedOption?.optionLabel ?? attribute.valueText ?? '',
-          })),
-        })),
-      });
-    } catch (error) {
-      logger.error('Failed to send budget approval email', {
-        orderId: newOrder.id,
-        orderNumber: newOrder.orderNumber,
-        budgetOfficerEmail: newOrder.budgetOfficerEmail,
-        error,
+        cartItemCount,
+
+        totalMs: Math.round(totalMs),
+
+        orderNumberMs: Math.round(orderNumberMs),
+
+        transactionMs: Math.round(transactionMs),
+        transactionWorkMs: Math.round(transactionWorkMs),
+        transactionOverheadMs: Math.round(transactionOverheadMs),
+
+        transactionBreakdown: {
+          cartLookupMs: Math.round(cartLookupMs),
+
+          itemPreparationMs: Math.round(itemPreparationMs),
+
+          repricingMs: Math.round(repricingMs),
+
+          orderCreateMs: Math.round(orderCreateMs),
+
+          auditMs: Math.round(auditMs),
+
+          cartUpdateMs: Math.round(cartUpdateMs),
+        },
       });
     }
 
@@ -289,30 +354,17 @@ export class OrderService {
   }
 
   /**
-   * Retrieves a single order and enforces role-based access to it.
-   *
-   * Expects:
-   * - orderId: UUID of the order to retrieve.
-   * - currentUser.id: Database ID of the authenticated user.
-   * - currentUser.role: Application role of the authenticated user.
-   *
-   * Does:
-   * - Retrieves the non-deleted order and its related requester information.
-   * - Loads assigned manager and worker information when available.
-   * - Loads non-deleted order items, their products, and configured attributes.
-   * - Loads the complete non-deleted status history in chronological order.
-   * - For REQUESTER users, verifies that the requested order belongs to them.
-   * - MANAGER and WORKER users are allowed to retrieve any matching order.
-   *
-   * Returns:
-   * - The complete order with its related user, item, attribute, and status data.
-   *
-   * Throws:
-   * - If the order ID is missing.
-   * - If the order does not exist or has been deleted.
-   * - If a REQUESTER attempts to access another requester's order.
+   * Fetches an order by its ID with role-based access validation.
+   * Requesters can only view their own orders.
+   * Managers and workers can view any order.
    */
-  public static async getOrderById(orderId: string, currentUser: { id: string; role: Role }) {
+  public static async getOrderById(
+    orderId: string,
+    currentUser: {
+      id: string;
+      role: Role;
+    }
+  ) {
     if (!orderId) {
       throw new Error('מזהה הזמנה חסר');
     }
@@ -395,43 +447,14 @@ export class OrderService {
   }
 
   /**
-   * Retrieves a paginated, searchable, and sortable list of orders while
-   * applying visibility rules based on the authenticated user's role.
-   *
-   * Expects:
-   * - currentUser.id: Database ID of the authenticated user.
-   * - currentUser.role: Application role used to determine order visibility.
-   * - params.page: Optional page number.
-   * - params.limit: Optional number of orders per page.
-   * - params.status: Optional order-status filter.
-   * - params.search: Optional search term for order number or requester name.
-   * - params.sortBy: Optional supported field used to sort the results.
-   * - params.sortOrder: Optional "asc" or "desc" sorting direction.
-   *
-   * Does:
-   * - Excludes soft-deleted orders.
-   * - Restricts REQUESTER users to orders that they created.
-   * - Restricts WORKER users to production-related order statuses.
-   * - Allows status filtering when permitted by the user's role.
-   * - Applies a case-insensitive search against order number and requester name.
-   * - Ensures page is at least 1.
-   * - Restricts page size to between 1 and 100.
-   * - Allows sorting only by supported fields and defaults to createdAt.
-   * - Retrieves the requested page and total matching order count in parallel.
-   *
-   * Returns:
-   * - An OrderListResponse containing:
-   *   - orders: The orders visible on the requested page.
-   *   - total: Total number of matching orders.
-   *   - page: Current page number.
-   *   - limit: Number of orders per page.
-   *   - totalPages: Total number of available pages.
-   *
-   * Throws:
-   * - Any database error encountered while retrieving or counting orders.
+   * Fetches orders list with role-based filtering, search,
+   * pagination, and sorting.
    */
   public static async getOrders(
-    currentUser: { id: string; role: Role },
+    currentUser: {
+      id: string;
+      role: Role;
+    },
     params?: OrderQueryParams
   ): Promise<OrderListResponse> {
     const where: Prisma.OrderWhereInput = {
@@ -449,15 +472,16 @@ export class OrderService {
         OrderStatus.READY_FOR_PICKUP,
         OrderStatus.COMPLETED,
       ];
+
       if (params?.status && allowedWorkerStatuses.includes(params.status)) {
         where.status = params.status;
       } else {
-        where.status = { in: allowedWorkerStatuses };
+        where.status = {
+          in: allowedWorkerStatuses,
+        };
       }
-    } else {
-      if (params?.status) {
-        where.status = params.status;
-      }
+    } else if (params?.status) {
+      where.status = params.status;
     }
 
     if (params?.search && params.search.trim()) {
@@ -482,7 +506,9 @@ export class OrderService {
     }
 
     const page = Math.max(1, params?.page ?? 1);
+
     const limit = Math.max(1, Math.min(100, params?.limit ?? 10));
+
     const skip = (page - 1) * limit;
 
     const allowedSortFields = [
@@ -493,8 +519,10 @@ export class OrderService {
       'requesterName',
       'unit',
     ];
+
     const sortBy =
       params?.sortBy && allowedSortFields.includes(params.sortBy) ? params.sortBy : 'createdAt';
+
     const sortOrder = params?.sortOrder === 'asc' ? 'asc' : 'desc';
 
     const orderBy: Prisma.OrderOrderByWithRelationInput =
@@ -525,19 +553,28 @@ export class OrderService {
             },
           },
           itemEntries: {
-            where: { isDeleted: false },
+            where: {
+              isDeleted: false,
+            },
             include: {
               product: true,
             },
           },
           orderStatus: {
-            where: { isDeleted: false },
-            orderBy: { changedAt: 'desc' },
+            where: {
+              isDeleted: false,
+            },
+            orderBy: {
+              changedAt: 'desc',
+            },
             take: 1,
           },
         },
       }),
-      prisma.order.count({ where }),
+
+      prisma.order.count({
+        where,
+      }),
     ]);
 
     return {

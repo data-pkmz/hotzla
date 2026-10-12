@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+
 import { CatalogService } from '../services/catalog.service';
 import {
   createProductSchema,
@@ -58,9 +59,9 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
  * - req.params.id: ID of the product to retrieve.
  *
  * Does:
- * - Calls CatalogService.getProductById to retrieve the product.
- * - Returns 404 if no matching product exists.
- * - Retrieves the product's attribute definitions and their available options.
+ * - Calls CatalogService.getProductDetails to retrieve the product together
+ *   with its non-deleted attribute definitions and available options.
+ * - Returns 404 if no matching active product exists.
  * - Converts Prisma Decimal values such as prices and numeric limits into
  *   regular JavaScript numbers before sending them to the frontend.
  * - Builds the product attributes structure expected by the frontend.
@@ -77,7 +78,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
 
-    const product = await CatalogService.getProductById(id);
+    const product = await CatalogService.getProductDetails(id);
 
     if (!product) {
       res.status(404).json({
@@ -87,9 +88,9 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const attributeDefinitions = await CatalogService.getAttributeDefinitions(id);
+    const { attributeDefinitionEntries, ...productData } = product;
 
-    const attributes = attributeDefinitions.map((attribute) => ({
+    const attributes = attributeDefinitionEntries.map((attribute) => ({
       id: attribute.id,
       productId: attribute.productId,
       attributeName: attribute.attributeName,
@@ -116,7 +117,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
     res.status(200).json({
       success: true,
       data: {
-        ...product,
+        ...productData,
         basePrice: product.basePrice.toNumber(),
         attributes,
       },

@@ -183,49 +183,64 @@ model ProductAttributeDefinition {
   minValue      Decimal?                 @map("min_value")
   maxValue      Decimal?                 @map("max_value")
   isDeleted     Boolean                  @default(false) @map("is_deleted")
+
   attributeOptionEntries ProductAttributeOption[]
-  orderAttributeEntries OrderItemAttributeValue[]
+  orderAttributeEntries  OrderItemAttributeValue[]
+
+  @@index([productId, isDeleted])
+
   @@map("product_attribute_definition")
 }
 
 model ProductAttributeOption {
-  id                      String                     @id @default(uuid()) @db.Uuid
-  attributeDefinitionId   String                     @map("attribute_definition_id") @db.Uuid
-  attributeDefinition     ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
-  optionLabel             String                     @map("option_label")
-  optionValue             String                     @map("option_value")
-  priceModifier           Decimal                    @map("price_modifier")
-  priceModifierType       PriceModifierType          @map("price_modifier_type")
-  displayOrder            Int                        @map("display_order")
-  isDeleted               Boolean                    @default(false) @map("is_deleted")
-  isPerUnit               Boolean                    @default(false) @map("is_per_unit")
+  id                    String                     @id @default(uuid()) @db.Uuid
+  attributeDefinitionId String                     @map("attribute_definition_id") @db.Uuid
+  attributeDefinition   ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
+  optionLabel           String                     @map("option_label")
+  optionValue           String                     @map("option_value")
+  priceModifier         Decimal                    @map("price_modifier")
+  priceModifierType     PriceModifierType          @map("price_modifier_type")
+  displayOrder          Int                        @map("display_order")
+  isDeleted             Boolean                    @default(false) @map("is_deleted")
+  isPerUnit             Boolean                    @default(false) @map("is_per_unit")
+
   orderAttributeEntries OrderItemAttributeValue[]
+
+  @@index([attributeDefinitionId, isDeleted])
+
   @@map("product_attribute_options")
 }
 
 model Cart {
-  id                String         @id @default(uuid()) @db.Uuid
-  userId            String         @map("user_id") @db.Uuid
-  user              User           @relation(fields: [userId], references: [id])
-  status            Status
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @map("updated_at")
-  isDeleted         Boolean        @default(false) @map("is_deleted")
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id])
+  status    Status
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @map("updated_at")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+
   cartItemEntries CartItem[]
+
+  @@index([userId, status, isDeleted])
+
   @@map("carts")
 }
 
 model CartItem {
-  id                  String         @id @default(uuid()) @db.Uuid
-  cartId              String         @map("cart_id") @db.Uuid
-  cart                Cart           @relation(fields: [cartId], references: [id])
-  productId           String         @map("product_id") @db.Uuid
-  product             Product        @relation(fields: [productId], references: [id])
-  quantity            Decimal
-  uploadedFilePath    String         @map("uploaded_file_path")
-  computedPrice       Decimal        @map("computed_price")
-  selectedAttributes  Json           @map("selected_attributes")
-  isDeleted           Boolean        @default(false) @map("is_deleted")
+  id                 String  @id @default(uuid()) @db.Uuid
+  cartId             String  @map("cart_id") @db.Uuid
+  cart               Cart    @relation(fields: [cartId], references: [id])
+  productId          String  @map("product_id") @db.Uuid
+  product            Product @relation(fields: [productId], references: [id])
+  quantity           Decimal
+  uploadedFilePath   String  @map("uploaded_file_path")
+  computedPrice      Decimal @map("computed_price")
+  selectedAttributes Json    @map("selected_attributes")
+  isDeleted          Boolean @default(false) @map("is_deleted")
+
+  @@index([cartId, isDeleted])
+
   @@map("cart_items")
 }
 

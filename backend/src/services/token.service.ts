@@ -47,6 +47,36 @@ export class TokenService {
   }
 
   /**
+   * Returns an existing valid approval token for an order when one is
+   * available, otherwise creates a new one.
+   *
+   * The notification worker may retry a failed email delivery. Reusing
+   * the existing token prevents each retry from creating another valid
+   * approval link for the same order.
+   */
+  public static async getOrCreateApprovalToken(orderId: string): Promise<string> {
+    const existingToken = await prisma.approvalToken.findFirst({
+      where: {
+        orderId,
+        isUsed: false,
+        isDeleted: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      select: {
+        token: true,
+      },
+    });
+
+    if (existingToken) {
+      return existingToken.token;
+    }
+
+    return this.generateApprovalToken(orderId);
+  }
+
+  /**
    * Retrieves the approval-token record and order information required
    * by the public approval page.
    *

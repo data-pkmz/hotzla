@@ -1,41 +1,35 @@
 import { Request, Response } from 'express';
+
 import { CartService } from '../services/cart.service';
-import { AuthService } from '../services/auth.service';
 import logger from '../utils/logger';
 
-const authService = new AuthService();
-
 /**
- * Resolves the authenticated application's database user ID from the
- * Active Directory username stored on the request.
+ * Resolves the authenticated application's database user ID from req.dbUser.
  *
  * Expects:
- * - req.user.adUsername: The authenticated user's AD username, populated
- *   by authMiddleware before this helper is called.
+ * - req.dbUser: The authenticated application user populated by
+ *   requireRoles middleware before this controller is called.
  *
  * Does:
- * - Reads the AD username from req.user.
- * - Throws an "Unauthorized" error if no authenticated username is available.
- * - Calls AuthService.getOrCreateUser to retrieve the corresponding database
- *   user, creating one if necessary.
+ * - Verifies that the database user is available on the request.
+ * - Returns the already-resolved database user ID.
  *
  * Returns:
  * - The database ID of the authenticated user.
  *
  * Throws:
- * - An Error with message "Unauthorized" when req.user.adUsername is missing.
- * - Any error produced while retrieving or creating the database user.
+ * - An Error with message "Unauthorized" when req.dbUser is missing.
+ *
+ * Note:
+ * - No additional database lookup is performed here because the RBAC
+ *   middleware has already resolved the application user.
  */
-const getUserId = async (req: Request) => {
-  const adUsername = req.user?.adUsername;
-
-  if (!adUsername) {
+const getUserId = (req: Request): string => {
+  if (!req.dbUser) {
     throw new Error('Unauthorized');
   }
 
-  const user = await authService.getOrCreateUser(adUsername);
-
-  return user.id;
+  return req.dbUser.id;
 };
 
 export class CartController {
@@ -43,10 +37,10 @@ export class CartController {
    * Retrieves the authenticated user's active cart.
    *
    * Expects:
-   * - req.user.adUsername: The authenticated user's AD username.
+   * - req.dbUser: The authenticated database user populated by RBAC middleware.
    *
    * Does:
-   * - Resolves the authenticated user's database ID.
+   * - Reads the authenticated user's database ID from req.dbUser.
    * - Calls CartService.getActiveCart to retrieve the user's active cart
    *   and its associated cart items.
    * - CartService creates a new active cart if the user does not already
@@ -54,15 +48,15 @@ export class CartController {
    *
    * Sends:
    * - 200 with a success message and the active cart on success.
-   * - 500 with an error message if the user cannot be resolved or the cart
-   *   cannot be retrieved.
+   * - 500 with an error message if the cart cannot be retrieved.
    *
    * Route:
    * - GET /api/cart
    */
   static async getActiveCart(req: Request, res: Response) {
     try {
-      const userId = await getUserId(req);
+      const userId = getUserId(req);
+
       const cart = await CartService.getActiveCart(userId);
 
       return res.status(200).json({
@@ -84,13 +78,13 @@ export class CartController {
    * Adds a new item to the authenticated user's active cart.
    *
    * Expects:
-   * - req.user.adUsername: The authenticated user's AD username.
+   * - req.dbUser: The authenticated database user populated by RBAC middleware.
    * - req.body: The cart item data required by CartService.addItemToCart,
    *   including the product ID, quantity, selected attributes, and optional
    *   uploaded file path.
    *
    * Does:
-   * - Resolves the authenticated user's database ID.
+   * - Reads the authenticated user's database ID from req.dbUser.
    * - Passes the user ID and submitted item data to CartService.
    * - CartService retrieves or creates the user's active cart.
    * - CartService recalculates the item's authoritative price and stores
@@ -105,7 +99,7 @@ export class CartController {
    */
   static async addItem(req: Request, res: Response) {
     try {
-      const userId = await getUserId(req);
+      const userId = getUserId(req);
       const itemData = req.body;
 
       const newItem = await CartService.addItemToCart(userId, itemData);
@@ -129,11 +123,11 @@ export class CartController {
    * Removes a specific item from the authenticated user's active cart.
    *
    * Expects:
-   * - req.user.adUsername: The authenticated user's AD username.
+   * - req.dbUser: The authenticated database user populated by RBAC middleware.
    * - req.params.id: ID of the cart item that should be removed.
    *
    * Does:
-   * - Resolves the authenticated user's database ID.
+   * - Reads the authenticated user's database ID from req.dbUser.
    * - Passes both the user ID and cart item ID to CartService.removeItem.
    * - CartService verifies that the item belongs to the user's active cart.
    * - CartService soft-deletes the item by setting isDeleted to true.
@@ -148,7 +142,7 @@ export class CartController {
    */
   static async removeItem(req: Request, res: Response) {
     try {
-      const userId = await getUserId(req);
+      const userId = getUserId(req);
       const { id } = req.params;
 
       await CartService.removeItem(userId, id);
@@ -171,13 +165,13 @@ export class CartController {
    * Updates an existing item in the authenticated user's active cart.
    *
    * Expects:
-   * - req.user.adUsername: The authenticated user's AD username.
+   * - req.dbUser: The authenticated database user populated by RBAC middleware.
    * - req.params.id: ID of the cart item that should be updated.
    * - req.body: The cart item fields to update, such as quantity or
    *   selected product attributes.
    *
    * Does:
-   * - Resolves the authenticated user's database ID.
+   * - Reads the authenticated user's database ID from req.dbUser.
    * - Passes the user ID, cart item ID, and submitted changes to CartService.
    * - CartService verifies that the item belongs to the user's active cart.
    * - CartService recalculates the item's authoritative price using the
@@ -194,7 +188,7 @@ export class CartController {
    */
   static async updateItem(req: Request, res: Response) {
     try {
-      const userId = await getUserId(req);
+      const userId = getUserId(req);
       const { id } = req.params;
       const itemData = req.body;
 
@@ -219,24 +213,23 @@ export class CartController {
    * Removes all items from the authenticated user's active cart.
    *
    * Expects:
-   * - req.user.adUsername: The authenticated user's AD username.
+   * - req.dbUser: The authenticated database user populated by RBAC middleware.
    *
    * Does:
-   * - Resolves the authenticated user's database ID.
+   * - Reads the authenticated user's database ID from req.dbUser.
    * - Calls CartService.clearCart for that user.
    * - CartService soft-deletes all non-deleted items in the user's active cart.
    *
    * Sends:
    * - 200 with a success message after the cart is cleared.
-   * - 500 with an error message if the user cannot be resolved or the cart
-   *   cannot be cleared.
+   * - 500 with an error message if the cart cannot be cleared.
    *
    * Route:
    * - DELETE /api/cart/items
    */
   static async clearCart(req: Request, res: Response) {
     try {
-      const userId = await getUserId(req);
+      const userId = getUserId(req);
 
       await CartService.clearCart(userId);
 

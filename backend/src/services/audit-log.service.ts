@@ -1,5 +1,7 @@
+import { performance } from 'node:perf_hooks';
+
 import type { Prisma } from '@prisma/client';
-import type { OrderStatusHistory, LogStatusChangeParams } from 'shared-types';
+import type { LogStatusChangeParams, OrderStatusHistory } from 'shared-types';
 
 import { prisma } from '../config/db';
 import logger from '../utils/logger';
@@ -33,6 +35,7 @@ export class AuditLogService {
    * - Creates a corresponding OrderStatusHistory record in the database.
    * - Uses the provided Prisma transaction when one is supplied so the
    *   history record can participate in the caller's database transaction.
+   * - Temporarily records timing information for slow audit operations.
    *
    * Returns:
    * - The newly created OrderStatusHistory record.
@@ -45,6 +48,8 @@ export class AuditLogService {
     db: PrismaClientOrTransaction = prisma
   ): Promise<OrderStatusHistory> {
     const { orderId, fromStatus, toStatus, changedByUserId, changedBySource, note } = params;
+
+    const logStartedAt = performance.now();
 
     logger.info(
       `AuditLog: Order ${orderId} status changed from ${fromStatus ?? 'NONE'} to ${toStatus}`,
@@ -59,7 +64,11 @@ export class AuditLogService {
       }
     );
 
-    return db.orderStatusHistory.create({
+    const loggerMs = performance.now() - logStartedAt;
+
+    const historyStartedAt = performance.now();
+
+    const history = await db.orderStatusHistory.create({
       data: {
         orderId,
         fromStatus,
@@ -69,6 +78,18 @@ export class AuditLogService {
         note,
       },
     });
+
+    const historyCreateMs = performance.now() - historyStartedAt;
+
+    if (loggerMs + historyCreateMs >= 50) {
+      logger.warn('Slow audit status change', {
+        orderId,
+        loggerMs: Math.round(loggerMs),
+        historyCreateMs: Math.round(historyCreateMs),
+      });
+    }
+
+    return history;
   }
 
   /**
