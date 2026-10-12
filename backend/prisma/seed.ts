@@ -1,5 +1,6 @@
 import logger from '../src/utils/logger';
 import { prisma } from '../src/config/db';
+import { hashToken } from '../src/utils/crypto.utils';
 
 async function main() {
   logger.info('Starting database seed...');
@@ -1201,8 +1202,11 @@ async function main() {
   // ------------------------------------------------------------
   // Test Approval Token for DPS-035
   // ------------------------------------------------------------
+  const testTokenStr = 'TEST-TOKEN-123';
+  const testTokenHash = hashToken(testTokenStr);
+
   await prisma.approvalToken.upsert({
-    where: { token: 'TEST-TOKEN-123' },
+    where: { token: testTokenHash },
     update: {
       isUsed: false,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
@@ -1210,7 +1214,7 @@ async function main() {
     create: {
       id: '80000000-0000-0000-0000-000000000001',
       orderId: pendingOrder.id,
-      token: 'TEST-TOKEN-123',
+      token: testTokenHash,
       isUsed: false,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     },
