@@ -4,6 +4,7 @@ import { ChangeSource } from '@prisma/client';
 import { OrderStatus } from 'shared-types';
 import { ApprovalService } from './approval.service';
 import logger from '../utils/logger';
+import { hashToken } from '../utils/crypto.utils';
 
 export class TokenService {
   /**
@@ -12,12 +13,13 @@ export class TokenService {
    */
   public static async generateApprovalToken(orderId: string): Promise<string> {
     const tokenStr = randomUUID();
+    const tokenHash = hashToken(tokenStr);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await prisma.approvalToken.create({
       data: {
         orderId,
-        token: tokenStr,
+        token: tokenHash,
         isUsed: false,
         expiresAt,
       },
@@ -32,8 +34,9 @@ export class TokenService {
    * Returns the token record with deep nested order relations.
    */
   public static async getApprovalInfo(tokenStr: string) {
+    const tokenHash = hashToken(tokenStr);
     return prisma.approvalToken.findUnique({
-      where: { token: tokenStr },
+      where: { token: tokenHash },
       include: {
         order: {
           include: {
@@ -72,8 +75,9 @@ export class TokenService {
     rejectReason?: string
   ) {
     // 1. Fetch and validate the token
+    const tokenHash = hashToken(tokenStr);
     const tokenRecord = await prisma.approvalToken.findUnique({
-      where: { token: tokenStr },
+      where: { token: tokenHash },
     });
 
     if (!tokenRecord || tokenRecord.isDeleted) {

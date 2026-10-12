@@ -4,6 +4,7 @@ import { OrderNumberGenerator } from '../utils/order-number-generator';
 import { PricingEngineService } from './pricing-engine.service';
 import { AuditLogService } from './audit-log.service';
 import { NotificationService } from './notification.service';
+import { TokenService } from './token.service';
 import logger from '../utils/logger';
 import type {
   CreateOrderInput,
@@ -241,13 +242,15 @@ export class OrderService {
     }
 
     try {
+      const approvalToken = await TokenService.generateApprovalToken(newOrder.id);
+
       await NotificationService.notifyBudgetOfficer({
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
         requesterName: newOrder.requester.fullName ?? 'לא צוין שם מזמין',
         budgetOfficerEmail: newOrder.budgetOfficerEmail,
         totalPrice: Number(newOrder.totalPrice),
-        approvalUrl: `${process.env.APP_BASE_URL}/orders/${newOrder.id}`,
+        approvalUrl: `${process.env.APP_BASE_URL}/approve-order?token=${approvalToken}`,
         items: newOrder.itemEntries.map((item) => ({
           productName: item.product.name,
           quantity: Number(item.quantity),
