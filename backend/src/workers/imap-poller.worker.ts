@@ -23,9 +23,15 @@ export class ImapPollingWorker {
       return;
     }
 
-    // Do not start automated budget decisions unless sender
-    // authentication is explicitly and safely configured.
-    this.validateAuthenticationConfig();
+    try {
+      this.validateAuthenticationConfig();
+    } catch (error) {
+      logger.warn('IMAP polling worker disabled: sender authentication is not configured', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      return;
+    }
 
     logger.info('Starting IMAP polling worker', {
       intervalMs: this.pollIntervalMs,
