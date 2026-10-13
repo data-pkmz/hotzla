@@ -24,9 +24,7 @@ interface TransitionOrderStatusInput {
 
   /** Optional explanation or additional information about the transition. */
   note?: string | null;
-
-  /** Optional pick up instructions. */
-  pickupInstructions?: string;
+  pickupInstructions?: string | null;
 }
 
 /**
@@ -90,7 +88,7 @@ export class ApprovalService {
     changedByUserId = null,
     changedBySource,
     note = null,
-    pickupInstructions,
+    pickupInstructions = null,
   }: TransitionOrderStatusInput) {
     if (!orderId) {
       throw new Error('Order ID is required');
@@ -156,6 +154,8 @@ export class ApprovalService {
         changedBySource === ChangeSource.MANAGER_UI &&
         changedByUserId !== null;
 
+      const isReadyForPickup = toStatus === PrismaOrderStatus.READY_FOR_PICKUP;
+
       const updatedOrder = await tx.order.update({
         where: {
           id: orderId,
@@ -173,6 +173,12 @@ export class ApprovalService {
             ? {
                 approvedByManagerId: changedByUserId,
                 approvedByManagerAt: new Date(),
+              }
+            : {}),
+
+          ...(isReadyForPickup && pickupInstructions
+            ? {
+                pickupInstructions,
               }
             : {}),
         },
@@ -231,7 +237,7 @@ export class ApprovalService {
           orderNumber: order.orderNumber,
           requesterEmail: order.requester.militaryEmail,
           trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
-          pickupInstructions,
+          pickupInstructions: order.pickupInstructions ?? undefined,
         });
       }
     }

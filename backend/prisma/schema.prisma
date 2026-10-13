@@ -260,6 +260,7 @@ model Order {
   approvedByBudgetAt  DateTime?      @map("approved_by_budget_at")
   workerId            String?        @map("worker_id") @db.Uuid
   worker              User?          @relation("orderWorker", fields: [workerId], references: [id])
+  pickupInstructions  String?        @map("pickup_instructions") @db.Text
   completedAt         DateTime?      @map("completed_at")
   createdAt           DateTime       @default(now()) @map("created_at")
   isDeleted           Boolean        @default(false) @map("is_deleted")

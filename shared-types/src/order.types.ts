@@ -61,6 +61,7 @@ export interface Order {
   approvedByManagerAt?: Date | string | null;
   workerId?: string | null;
   worker?: Partial<User> | null;
+  pickupInstructions?: string | null;
   completedAt?: Date | string | null;
   createdAt: Date | string;
   isDeleted?: boolean;
@@ -169,6 +170,7 @@ export interface OrderDetails {
   requester: OrderDetailsUser;
   approvedByManager?: OrderDetailsUser | null;
   worker?: OrderDetailsUser | null;
+  pickupInstructions?: string | null;
 
   itemEntries: OrderDetailsItem[];
   orderStatus: OrderDetailsStatusHistory[];

@@ -110,9 +110,18 @@ export const startPrinting = async (orderId: string): Promise<void> => {
   }
 };
 
-export const readyForPickup = async (orderId: string): Promise<void> => {
+export const readyForPickup = async (
+  orderId: string,
+  pickupInstructions?: string
+): Promise<void> => {
   const response = await apiFetch(`/api/orders/${orderId}/ready-for-pickup`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      pickupInstructions: pickupInstructions?.trim() || undefined,
+    }),
   });
 
   if (!response.ok) {

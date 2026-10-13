@@ -191,6 +191,45 @@ export default function OrderDetailsPage() {
               <StatusBadge status={order.status} />
             </Box>
 
+            {/* Pickup Instructions Banner */}
+            {order.pickupInstructions && (
+              <Alert
+                severity="info"
+                variant="outlined"
+                dir="rtl"
+                style={{ direction: 'rtl', textAlign: 'right' }}
+                sx={{
+                  mb: 3,
+                  p: 2,
+                  bgcolor: '#ffffff',
+                  borderRadius: 3,
+                  borderWidth: 1.5,
+                  width: '100%',
+                  borderColor: 'info.main',
+                  '& .MuiAlert-icon': {
+                    mt: 0.5,
+                  },
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight={700}
+                  gutterBottom
+                  dir="rtl"
+                  style={{ direction: 'rtl', textAlign: 'right' }}
+                >
+                  <bdi dir="rtl">הנחיות איסוף:</bdi>
+                </Typography>
+                <Typography
+                  variant="body1"
+                  dir="rtl"
+                  style={{ direction: 'rtl', textAlign: 'right' }}
+                >
+                  {order.pickupInstructions}
+                </Typography>
+              </Alert>
+            )}
+
             <Box
               sx={{
                 display: 'grid',

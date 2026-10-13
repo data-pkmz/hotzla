@@ -56,23 +56,15 @@ export class TokenService {
    * approval link for the same order.
    */
   public static async getOrCreateApprovalToken(orderId: string): Promise<string> {
-    const existingToken = await prisma.approvalToken.findFirst({
+    // Approval tokens are stored as irreversible SHA-256 hashes in the database.
+    // If a retry happens before the token was used, we delete any existing unused token
+    // for this order and generate a fresh one, returning the new plaintext token for the email link.
+    await prisma.approvalToken.deleteMany({
       where: {
         orderId,
         isUsed: false,
-        isDeleted: false,
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
-      select: {
-        token: true,
       },
     });
-
-    if (existingToken) {
-      return existingToken.token;
-    }
 
     return this.generateApprovalToken(orderId);
   }
