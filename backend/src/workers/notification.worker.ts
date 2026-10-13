@@ -23,7 +23,17 @@ export class NotificationWorker {
   private static readonly maxAttempts = Number(process.env.NOTIFICATION_MAX_ATTEMPTS ?? 5);
 
   /**
-   * Starts polling for pending notification jobs.
+   * Jobs that remain PROCESSING longer than this timeout are
+   * considered abandoned and become eligible for recovery.
+   *
+   * Default: 5 minutes.
+   */
+  private static readonly processingTimeoutMs = Number(
+    process.env.NOTIFICATION_PROCESSING_TIMEOUT_MS ?? 5 * 60 * 1000
+  );
+
+  /**
+   * Starts polling for pending and abandoned notification jobs.
    */
   static start(): void {
     if (this.timer) {
@@ -34,6 +44,7 @@ export class NotificationWorker {
       intervalMs: this.intervalMs,
       batchSize: this.batchSize,
       maxAttempts: this.maxAttempts,
+      processingTimeoutMs: this.processingTimeoutMs,
     });
 
     void this.runOnce();
@@ -58,9 +69,16 @@ export class NotificationWorker {
   }
 
   /**
-   * Processes one batch of pending notification jobs.
+   * Processes one batch of available notification jobs.
    *
-   * The isRunning guard prevents overlapping polling cycles inside
+   * Eligible jobs:
+   * - PENDING jobs with remaining attempts.
+   * - PROCESSING jobs whose processing timeout has expired.
+   *
+   * Also marks abandoned PROCESSING jobs as FAILED if they
+   * have already exhausted their maximum allowed attempts.
+   *
+   * isRunning prevents overlapping polling cycles within
    * the same backend process.
    */
   static async runOnce(): Promise<void> {
@@ -71,12 +89,74 @@ export class NotificationWorker {
     this.isRunning = true;
 
     try {
+      const staleProcessingCutoff = new Date(Date.now() - this.processingTimeoutMs);
+
+      /**
+       * First, finalize abandoned jobs that have already exhausted
+       * their allowed attempts.
+       *
+       * This handles crashes during the final delivery attempt.
+       */
+      const exhaustedJobs = await prisma.notificationJob.updateMany({
+        where: {
+          status: NotificationJobStatus.PROCESSING,
+          attempts: {
+            gte: this.maxAttempts,
+          },
+          OR: [
+            {
+              processingStartedAt: {
+                lt: staleProcessingCutoff,
+              },
+            },
+            {
+              processingStartedAt: null,
+            },
+          ],
+        },
+        data: {
+          status: NotificationJobStatus.FAILED,
+          processingStartedAt: null,
+          lastError: 'Notification processing interrupted after maximum attempts',
+        },
+      });
+
+      if (exhaustedJobs.count > 0) {
+        logger.warn('Marked exhausted notification jobs as failed', {
+          count: exhaustedJobs.count,
+        });
+      }
+
+      /**
+       * Find jobs that are ready to be processed.
+       *
+       * A PROCESSING job is eligible for recovery if:
+       * - Its processing timeout has expired, or
+       * - Its processing timestamp is null (legacy job).
+       */
       const jobs = await prisma.notificationJob.findMany({
         where: {
-          status: NotificationJobStatus.PENDING,
           attempts: {
             lt: this.maxAttempts,
           },
+          OR: [
+            {
+              status: NotificationJobStatus.PENDING,
+            },
+            {
+              status: NotificationJobStatus.PROCESSING,
+              OR: [
+                {
+                  processingStartedAt: {
+                    lt: staleProcessingCutoff,
+                  },
+                },
+                {
+                  processingStartedAt: null,
+                },
+              ],
+            },
+          ],
         },
         orderBy: {
           createdAt: 'asc',
@@ -85,7 +165,7 @@ export class NotificationWorker {
       });
 
       for (const job of jobs) {
-        await this.processJob(job);
+        await this.processJob(job, staleProcessingCutoff);
       }
     } catch (error) {
       logger.error('Notification worker polling failed', {
@@ -97,19 +177,48 @@ export class NotificationWorker {
   }
 
   /**
-   * Claims and processes one notification job.
+   * Atomically claims and processes one notification job.
    *
-   * updateMany is used as an atomic claim: if another worker has already
-   * changed the job from PENDING, count will be zero and this worker skips it.
+   * A claim succeeds only if the job is still PENDING or its
+   * previous PROCESSING lease has expired.
+   *
+   * Updating processingStartedAt when claiming prevents another
+   * worker from immediately reclaiming the same job.
    */
-  private static async processJob(job: NotificationJob): Promise<void> {
+  private static async processJob(
+    job: NotificationJob,
+    staleProcessingCutoff: Date
+  ): Promise<void> {
+    const wasStaleProcessing = job.status === NotificationJobStatus.PROCESSING;
+
     const claim = await prisma.notificationJob.updateMany({
       where: {
         id: job.id,
-        status: NotificationJobStatus.PENDING,
+        attempts: {
+          lt: this.maxAttempts,
+        },
+        OR: [
+          {
+            status: NotificationJobStatus.PENDING,
+          },
+          {
+            status: NotificationJobStatus.PROCESSING,
+            OR: [
+              {
+                processingStartedAt: {
+                  lt: staleProcessingCutoff,
+                },
+              },
+              {
+                processingStartedAt: null,
+              },
+            ],
+          },
+        ],
       },
       data: {
         status: NotificationJobStatus.PROCESSING,
+        processingStartedAt: new Date(),
         attempts: {
           increment: 1,
         },
@@ -122,6 +231,17 @@ export class NotificationWorker {
 
     const attemptNumber = job.attempts + 1;
 
+    if (wasStaleProcessing) {
+      logger.warn('Recovering abandoned notification job', {
+        notificationJobId: job.id,
+        orderId: job.orderId,
+        type: job.type,
+        previousAttempts: job.attempts,
+        attempt: attemptNumber,
+        previousProcessingStartedAt: job.processingStartedAt,
+      });
+    }
+
     try {
       await this.deliver(job);
 
@@ -131,6 +251,7 @@ export class NotificationWorker {
         },
         data: {
           status: NotificationJobStatus.SENT,
+          processingStartedAt: null,
           processedAt: new Date(),
           lastError: null,
         },
@@ -141,6 +262,7 @@ export class NotificationWorker {
         orderId: job.orderId,
         type: job.type,
         attempt: attemptNumber,
+        recovered: wasStaleProcessing,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown notification error';
@@ -153,6 +275,7 @@ export class NotificationWorker {
         },
         data: {
           status: permanentlyFailed ? NotificationJobStatus.FAILED : NotificationJobStatus.PENDING,
+          processingStartedAt: null,
           lastError: errorMessage,
         },
       });
@@ -163,6 +286,7 @@ export class NotificationWorker {
         type: job.type,
         attempt: attemptNumber,
         permanentlyFailed,
+        recovered: wasStaleProcessing,
         error,
       });
     }
@@ -201,9 +325,9 @@ export class NotificationWorker {
   /**
    * Builds and sends the initial budget-approval email.
    *
-   * Checkout stores only a lightweight notification job. The more expensive
-   * order-detail lookup, approval-token creation, and email-payload construction
-   * happen here in the asynchronous worker instead of blocking checkout.
+   * Checkout stores only a lightweight notification job.
+   * The order lookup, token creation, and email construction
+   * happen asynchronously instead of blocking checkout.
    */
   private static async deliverBudgetApproval(job: NotificationJob): Promise<void> {
     const order = await prisma.order.findFirst({
