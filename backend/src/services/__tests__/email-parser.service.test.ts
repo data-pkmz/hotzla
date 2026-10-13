@@ -39,7 +39,6 @@ Subject: אישור תקציבי להזמנה 2026-1004
 
       expect(result).toContain('מאושר');
       expect(result).toContain('ישראל ישראלי');
-
       expect(result).not.toContain('From:');
       expect(result).not.toContain('השב למייל זה במילה "מאושר"');
     });
@@ -56,9 +55,7 @@ Subject: אישור תקציבי להזמנה 2026-1004
 מאושר
 `;
 
-      const result = EmailParserService.cleanReplyBody(body);
-
-      expect(result).toBe('נדחה');
+      expect(EmailParserService.cleanReplyBody(body)).toBe('נדחה');
     });
 
     it('should remove lines beginning with >', () => {
@@ -70,35 +67,181 @@ approved
 
       expect(EmailParserService.cleanReplyBody(body)).toBe('approved');
     });
+
+    it('should normalize line endings', () => {
+      const body = 'מאושר\r\n\r\nFrom: Hotzla\r\nנדחה';
+
+      expect(EmailParserService.cleanReplyBody(body)).toBe('מאושר');
+    });
   });
 
   describe('detectDecision', () => {
-    it.each(['approved', 'APPROVED', 'approves', 'מאשר', 'מאושר'])(
-      'should detect approval keyword "%s"',
-      (body) => {
+    describe('approval', () => {
+      it.each([
+        'approved',
+        'APPROVED',
+        'approves',
+        'approve',
+        'I approve this order',
+        'We approved the order',
+        'מאשר',
+        'מאשרת',
+        'מאשרים',
+        'מאושר',
+        'מאושרת',
+        'אני מאשר את ההזמנה',
+        'ההזמנה מאושרת',
+      ])('should detect approval: "%s"', (body) => {
         expect(EmailParserService.detectDecision(body)).toBe('APPROVED');
-      }
-    );
+      });
+    });
 
-    it.each(['rejected', 'REJECTED', 'rejects', 'דוחה', 'נדחה'])(
-      'should detect rejection keyword "%s"',
-      (body) => {
+    describe('rejection', () => {
+      it.each([
+        'rejected',
+        'REJECTED',
+        'rejects',
+        'reject',
+        'declined',
+        'I reject this order',
+        'The order is rejected',
+        'דוחה',
+        'דוחים',
+        'נדחה',
+        'נדחתה',
+        'אני דוחה את ההזמנה',
+        'ההזמנה נדחתה',
+      ])('should detect rejection: "%s"', (body) => {
         expect(EmailParserService.detectDecision(body)).toBe('REJECTED');
-      }
-    );
-
-    it('should return UNKNOWN if neither decision is present', () => {
-      expect(EmailParserService.detectDecision('I will check this later')).toBe('UNKNOWN');
+      });
     });
 
-    it('should return UNKNOWN if both approval and rejection are present', () => {
-      expect(EmailParserService.detectDecision('Previously rejected but now approved')).toBe(
-        'UNKNOWN'
-      );
+    describe('negated approval', () => {
+      it.each([
+        'not approved',
+        'NOT APPROVED',
+        'Not Approved',
+        'not approve',
+        'do not approve',
+        "don't approve",
+        'does not approve',
+        "doesn't approve",
+        'cannot approve',
+        "can't approve",
+        'will not approve',
+        "won't approve",
+        'unable to approve',
+        'I do not approve this order',
+        'The order is not approved',
+        'לא מאשר',
+        'לא מאשרת',
+        'לא מאשרים',
+        'לא מאושר',
+        'לא מאושרת',
+        'לא לאשר',
+        'אינו מאושר',
+        'אינה מאושרת',
+        'אין אישור',
+        'לא ניתן לאשר',
+        'אני לא מאשר את ההזמנה',
+      ])('should reject negated approval: "%s"', (body) => {
+        expect(EmailParserService.detectDecision(body)).toBe('REJECTED');
+      });
+
+      it('should handle English negation across newlines', () => {
+        expect(EmailParserService.detectDecision('not\napproved')).toBe('REJECTED');
+      });
+
+      it('should handle Hebrew negation with multiple spaces', () => {
+        expect(EmailParserService.detectDecision('לא    מאשר')).toBe('REJECTED');
+      });
+
+      it('should not count the approval word inside negation', () => {
+        expect(EmailParserService.detectDecision('This order is not approved')).toBe('REJECTED');
+      });
     });
 
-    it('should not match approved as part of a larger English word', () => {
-      expect(EmailParserService.detectDecision('preapproved')).toBe('UNKNOWN');
+    describe('negated rejection', () => {
+      it.each([
+        'not rejected',
+        'not reject',
+        'do not reject',
+        "don't reject",
+        'cannot reject',
+        'לא דוחה',
+        'לא נדחה',
+        'לא נדחתה',
+        'אינו נדחה',
+      ])('should return UNKNOWN for negated rejection: "%s"', (body) => {
+        expect(EmailParserService.detectDecision(body)).toBe('UNKNOWN');
+      });
+    });
+
+    describe('contradictory decisions', () => {
+      it.each([
+        'Previously rejected but now approved',
+        'approved but rejected',
+        'rejected but approved',
+        'approved but not approved',
+        "I approved earlier but now I don't approve",
+        'approved, rejected',
+        'מאושר אבל נדחה',
+        'מאשר אבל לא מאשר',
+        'נדחה אבל מאושר',
+        'לא מאושר אבל מאשר',
+      ])('should return UNKNOWN for contradiction: "%s"', (body) => {
+        expect(EmailParserService.detectDecision(body)).toBe('UNKNOWN');
+      });
+    });
+
+    describe('questions and uncertainty', () => {
+      it.each([
+        'Can you approve this?',
+        'Approved?',
+        'Is this approved?',
+        'Do you approve?',
+        'האם ההזמנה מאושרת?',
+        'מאשר?',
+        'maybe approved',
+        'perhaps approved',
+        'probably approved',
+        'tentatively approved',
+        'approved if the price is correct',
+        'approved unless something changes',
+        'cannot approve yet',
+        'not yet approved',
+        'אולי מאושר',
+        'מאושר אם הכל תקין',
+      ])('should return UNKNOWN for uncertain message: "%s"', (body) => {
+        expect(EmailParserService.detectDecision(body)).toBe('UNKNOWN');
+      });
+
+      it.each([
+        '',
+        ' ',
+        'Hello',
+        'Thank you',
+        'I will check this later',
+        'אבדוק את הנושא',
+        'תודה רבה',
+        'Please review the order',
+      ])('should return UNKNOWN without a decision: "%s"', (body) => {
+        expect(EmailParserService.detectDecision(body)).toBe('UNKNOWN');
+      });
+    });
+
+    describe('keyword boundaries', () => {
+      it('should not match approved inside a larger word', () => {
+        expect(EmailParserService.detectDecision('preapproved')).toBe('UNKNOWN');
+      });
+
+      it('should not match rejected inside a larger word', () => {
+        expect(EmailParserService.detectDecision('unrejected')).toBe('UNKNOWN');
+      });
+
+      it('should not match Hebrew approval inside a larger word', () => {
+        expect(EmailParserService.detectDecision('ומאושר')).toBe('UNKNOWN');
+      });
     });
   });
 
@@ -127,7 +270,7 @@ Subject: אישור תקציבי
       });
     });
 
-    it('should find order number in quoted body when subject does not contain it', () => {
+    it('should find order number in quoted body', () => {
       const result = EmailParserService.parse({
         senderEmail: 'budget@example.com',
         subject: 'RE: אישור',
@@ -158,6 +301,60 @@ Subject: אישור תקציבי
       });
 
       expect(result.decision).toBe('UNKNOWN');
+    });
+
+    it('should reject despite approval in quoted content', () => {
+      const result = EmailParserService.parse({
+        senderEmail: 'budget@example.com',
+        subject: 'RE: הזמנה 2026-1004',
+        body: `
+לא מאושר
+
+From: Hotzla
+Subject: אישור תקציבי
+
+השב למייל זה במילה "מאושר"
+`,
+      });
+
+      expect(result.cleanedBody).toBe('לא מאושר');
+      expect(result.decision).toBe('REJECTED');
+    });
+
+    it('should ignore quoted rejection after new approval', () => {
+      const result = EmailParserService.parse({
+        senderEmail: 'budget@example.com',
+        subject: 'RE: Order 2026-1004',
+        body: `
+Approved
+
+> Previously rejected
+> Original message
+`,
+      });
+
+      expect(result.decision).toBe('APPROVED');
+    });
+
+    it('should not infer approval from the subject alone', () => {
+      const result = EmailParserService.parse({
+        senderEmail: 'budget@example.com',
+        subject: 'RE: Approved order 2026-1004',
+        body: 'I will review this tomorrow',
+      });
+
+      expect(result.orderNumber).toBe('2026-1004');
+      expect(result.decision).toBe('UNKNOWN');
+    });
+
+    it('should normalize sender email', () => {
+      const result = EmailParserService.parse({
+        senderEmail: ' OFFICER@IDF.IL ',
+        subject: '2026-1004',
+        body: 'approved',
+      });
+
+      expect(result.senderEmail).toBe('officer@idf.il');
     });
   });
 });

@@ -17,16 +17,22 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getActiveCart, clearActiveCart } from '../../services/api/cart.service';
 import { useCartStore } from '../../store/useCartStore';
 
+import { useAuthStore } from '../../store/useAuthStore';
+
 export default function CartRecoveryBanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isRecoveryBannerDismissed, dismissRecoveryBanner } = useCartStore();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Fetch the active cart to see if it has items
+  // Fetch the active cart to see if it has items if the user is a requester
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const isRequester = currentUser.role === 'REQUESTER';
+
   const { data: cart, isLoading } = useQuery({
     queryKey: ['activeCart'],
     queryFn: getActiveCart,
+    enabled: isRequester,
   });
 
   const items = cart?.items || cart?.cartItemEntries || [];
@@ -48,7 +54,7 @@ export default function CartRecoveryBanner() {
   };
 
   // If loading, empty, or dismissed, don't show the banner
-  if (isLoading || items.length === 0 || isRecoveryBannerDismissed) {
+  if (!isRequester || isLoading || items.length === 0 || isRecoveryBannerDismissed) {
     return null;
   }
 

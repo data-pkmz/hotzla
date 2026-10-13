@@ -12,9 +12,12 @@ export const Header: React.FC = () => {
   const currentUser = useAuthStore((state) => state.currentUser);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  const isRequester = currentUser.role === 'REQUESTER';
+
   const { data: cart } = useQuery({
-    queryKey: ['activeCart'],
+    queryKey: ['activeCart', currentUser.id],
     queryFn: getActiveCart,
+    enabled: isRequester,
   });
 
   const items = cart?.items || cart?.cartItemEntries || [];
