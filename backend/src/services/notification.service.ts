@@ -1,104 +1,109 @@
+import { NotificationJobType, Prisma, PrismaClient } from '@prisma/client';
+
 import type { OrderStatus } from 'shared-types';
 import type {
   BudgetApprovalEmailData,
   BudgetDecisionConfirmationEmailData,
-  OrderConfirmationEmailData,
   ReadyForPickupEmailData,
 } from 'shared-types';
 
-import { EmailService } from './email.service';
+import { prisma } from '../config/db';
 import logger from '../utils/logger';
+
+type DbClient = Prisma.TransactionClient | PrismaClient;
+
+type NotificationPayload =
+  BudgetApprovalEmailData | BudgetDecisionConfirmationEmailData | ReadyForPickupEmailData;
 
 export class NotificationService {
   /**
-   * Sends a requester-facing email for a status transition.
+   * Queues a requester-facing notification for a supported order
+   * status transition.
    *
-   * Only statuses with an implemented email template are sent. This keeps the
-   * method safe while the notification catalog grows and avoids pretending
-   * that every internal status has a user-facing message already.
+   * No SMTP work is performed here. The notification worker sends
+   * the actual email asynchronously.
    */
-  static async notifyRequesterStatusChange(data: {
-    status: OrderStatus;
-    orderId: string;
-    orderNumber: string;
-    requesterEmail: string;
-    trackingUrl: string;
-    pickupInstructions?: string;
-  }): Promise<void> {
-    if (data.status === 'READY_FOR_PICKUP') {
-      const email: ReadyForPickupEmailData = {
-        orderId: data.orderId,
-        orderNumber: data.orderNumber,
-        requesterEmail: data.requesterEmail,
-        pickupInstructions: data.pickupInstructions ?? 'ניתן לאסוף את ההזמנה מבית הדפוס.',
-        trackingUrl: data.trackingUrl,
-      };
-      await this.send('requester status change', data.orderId, data.orderNumber, () =>
-        EmailService.sendReadyForPickup(email)
-      );
+  static async notifyRequesterStatusChange(
+    data: {
+      status: OrderStatus;
+      orderId: string;
+      orderNumber: string;
+      requesterEmail: string;
+      trackingUrl: string;
+      pickupInstructions?: string;
+    },
+    dbClient: DbClient = prisma
+  ): Promise<void> {
+    if (data.status !== 'READY_FOR_PICKUP') {
+      return;
     }
+
+    const payload: ReadyForPickupEmailData = {
+      orderId: data.orderId,
+      orderNumber: data.orderNumber,
+      requesterEmail: data.requesterEmail,
+      pickupInstructions: data.pickupInstructions ?? 'ניתן לאסוף את ההזמנה מבית הדפוס.',
+      trackingUrl: data.trackingUrl,
+    };
+
+    await this.enqueue(
+      NotificationJobType.READY_FOR_PICKUP,
+      data.orderId,
+      data.orderNumber,
+      payload,
+      dbClient
+    );
   }
 
   /**
-   * Routes budget-related events to the matching EmailService template.
+   * Queues a budget-related notification.
    *
-   * The discriminating "decision" property distinguishes an inbound budget
-   * decision reply from a new budget approval request without duplicating the
-   * public API into two nearly identical methods.
+   * A new approval request and a budget-decision confirmation use
+   * different notification job types so the worker can route each
+   * job to the correct EmailService template.
    */
   static async notifyBudgetOfficer(
-    data: BudgetApprovalEmailData | BudgetDecisionConfirmationEmailData
+    data: BudgetApprovalEmailData | BudgetDecisionConfirmationEmailData,
+    dbClient: DbClient = prisma
   ): Promise<void> {
-    await this.send('budget officer notification', data.orderId, data.orderNumber, () =>
+    const type =
       'decision' in data
-        ? EmailService.sendBudgetDecisionConfirmation(data)
-        : EmailService.sendBudgetApproval(data)
-    );
+        ? NotificationJobType.BUDGET_DECISION_CONFIRMATION
+        : NotificationJobType.BUDGET_APPROVAL;
+
+    await this.enqueue(type, data.orderId, data.orderNumber, data, dbClient);
   }
 
   /**
-   * Sends the receipt that confirms an order was accepted by the system.
+   * Persists a notification job.
    *
-   * This method is intentionally separate from status-change notifications:
-   * order creation is an event, while a later status transition is a state
-   * update.
+   * This performs only database work. The calling HTTP request does
+   * not wait for SMTP delivery.
    */
-  static async notifyRequesterOrderReceived(data: OrderConfirmationEmailData): Promise<void> {
-    await this.send('requester order confirmation', data.orderId, data.orderNumber, () =>
-      EmailService.sendOrderConfirmation(data)
-    );
-  }
-
-  /**
-   * Executes one email delivery and applies consistent observability.
-   *
-   * EmailService remains responsible for SMTP, templates, and EMAIL_LOG.
-   * This wrapper adds the business-level event and channel context, then
-   * rethrows failures so the caller can apply its existing error policy.
-   */
-  private static async send(
-    event: string,
+  private static async enqueue(
+    type: NotificationJobType,
     orderId: string,
     orderNumber: string,
-    sendEmail: () => Promise<void>
+    payload: NotificationPayload,
+    dbClient: DbClient
   ): Promise<void> {
-    try {
-      await sendEmail();
-      logger.info('Notification sent successfully', {
-        event,
-        channel: 'email',
-        orderId,
-        orderNumber,
-      });
-    } catch (error) {
-      logger.error('Notification delivery failed', {
-        event,
-        channel: 'email',
-        orderId,
-        orderNumber,
-        error,
-      });
-      throw error;
-    }
+    await dbClient.notificationJob.create({
+      data: {
+        type,
+        status: 'PENDING',
+        payload: payload as unknown as Prisma.InputJsonValue,
+        order: {
+          connect: {
+            id: orderId,
+          },
+        },
+      },
+    });
+
+    logger.info('Notification queued', {
+      type,
+      orderId,
+      orderNumber,
+    });
   }
 }

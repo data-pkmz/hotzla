@@ -3,6 +3,7 @@ import app from './app';
 import { testDbConnection } from './config/db';
 import logger from './utils/logger';
 import { ImapPollingWorker } from './workers/imap-poller.worker';
+import { NotificationWorker } from './workers/notification.worker';
 
 const port = process.env.PORT || 3001;
 
@@ -21,5 +22,9 @@ app.listen(port, async () => {
     ImapPollingWorker.start();
   } else {
     logger.warn('IMAP_HOST not configured, skipping IMAP Polling Worker startup');
+  }
+
+  if (process.env.NODE_ENV !== 'test' && process.env.NOTIFICATION_WORKER_ENABLED !== 'false') {
+    NotificationWorker.start();
   }
 });
