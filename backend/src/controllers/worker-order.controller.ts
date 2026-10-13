@@ -120,6 +120,7 @@ export class WorkerOrderController {
         changedByUserId: user.id,
         changedBySource: WorkerOrderController.getChangeSource(user.role),
         note: req.body.note || null,
+        pickupInstructions: req.body.pickupInstructions || null,
       });
 
       res.status(200).json({
