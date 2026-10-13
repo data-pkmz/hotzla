@@ -10,6 +10,7 @@ interface TransitionOrderStatusInput {
   changedByUserId?: string | null;
   changedBySource: ChangeSource;
   note?: string | null;
+  pickupInstructions?: string | null;
 }
 
 interface LockedOrderRow {
@@ -33,6 +34,7 @@ export class ApprovalService {
     changedByUserId = null,
     changedBySource,
     note = null,
+    pickupInstructions = null,
   }: TransitionOrderStatusInput) {
     if (!orderId) {
       throw new Error('Order ID is required');
@@ -98,6 +100,8 @@ export class ApprovalService {
         changedBySource === ChangeSource.MANAGER_UI &&
         changedByUserId !== null;
 
+      const isReadyForPickup = toStatus === PrismaOrderStatus.READY_FOR_PICKUP;
+
       const updatedOrder = await tx.order.update({
         where: {
           id: orderId,
@@ -115,6 +119,12 @@ export class ApprovalService {
             ? {
                 approvedByManagerId: changedByUserId,
                 approvedByManagerAt: new Date(),
+              }
+            : {}),
+
+          ...(isReadyForPickup && pickupInstructions
+            ? {
+                pickupInstructions,
               }
             : {}),
         },
@@ -163,6 +173,7 @@ export class ApprovalService {
           orderNumber: order.orderNumber,
           requesterEmail: order.requester.militaryEmail,
           trackingUrl: `${process.env.APP_BASE_URL}/my-orders`,
+          pickupInstructions: order.pickupInstructions ?? undefined,
         });
       }
     }
