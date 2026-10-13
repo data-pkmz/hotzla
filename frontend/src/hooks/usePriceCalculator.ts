@@ -17,6 +17,14 @@ interface PricingResponse {
   message?: string;
 }
 
+interface PricingRequest {
+  productId: string;
+  quantity: number;
+  selectedAttributes: SelectedAttributeInput[];
+}
+
+const PRICING_DEBOUNCE_MS = 300;
+
 export default function usePriceCalculator({
   productId,
   quantity,
@@ -26,9 +34,7 @@ export default function usePriceCalculator({
   enabled = true,
 }: UsePriceCalculatorParams) {
   const [priceResult, setPriceResult] = useState<PriceResult | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
 
   const canCalculate =
@@ -38,6 +44,23 @@ export default function usePriceCalculator({
     quantity >= minQuantity &&
     (maxQuantity === null || quantity <= maxQuantity);
 
+  /**
+   * Creates a stable representation of the selected attributes.
+   *
+   * This prevents the debounce timer from restarting merely because
+   * React created a new array reference containing the same values.
+   */
+  const selectedAttributesKey = JSON.stringify(selectedAttributes);
+
+  /**
+   * Debounces pricing changes and performs the pricing request.
+   *
+   * Every time the product, quantity, or selected attributes change,
+   * the previous timer/request is cancelled.
+   *
+   * The request is only sent after the configuration has remained
+   * unchanged for PRICING_DEBOUNCE_MS.
+   */
   useEffect(() => {
     if (!canCalculate || !productId) {
       return;
@@ -45,53 +68,82 @@ export default function usePriceCalculator({
 
     const controller = new AbortController();
 
-    const timeoutId = window.setTimeout(async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    const timeoutId = window.setTimeout(() => {
+      const calculatePrice = async () => {
+        try {
+          setIsLoading(true);
+          setError(null);
 
-        const response = await fetch('/api/pricing/calculate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          /**
+           * Reconstruct the attributes from the stable serialized value.
+           *
+           * This allows the effect to depend on selectedAttributesKey
+           * rather than the selectedAttributes array reference itself.
+           */
+          const requestSelectedAttributes = JSON.parse(
+            selectedAttributesKey
+          ) as SelectedAttributeInput[];
+
+          const request: PricingRequest = {
             productId,
             quantity,
-            selectedAttributes,
-          }),
-          signal: controller.signal,
-        });
+            selectedAttributes: requestSelectedAttributes,
+          };
 
-        const result = (await response.json()) as PricingResponse;
+          const response = await fetch('/api/pricing/calculate', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(request),
+            signal: controller.signal,
+          });
 
-        if (!response.ok || !result.success || !result.data) {
-          throw new Error(result.message ?? 'Failed to calculate price');
+          const result = (await response.json()) as PricingResponse;
+
+          if (!response.ok || !result.success || !result.data) {
+            throw new Error(result.message ?? 'Failed to calculate price');
+          }
+
+          if (!controller.signal.aborted) {
+            setPriceResult(result.data);
+          }
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            return;
+          }
+
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          setPriceResult(null);
+
+          setError(error instanceof Error ? error.message : 'Failed to calculate price');
+        } finally {
+          if (!controller.signal.aborted) {
+            setIsLoading(false);
+          }
         }
+      };
 
-        setPriceResult(result.data);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return;
-        }
-
-        setPriceResult(null);
-
-        setError(error instanceof Error ? error.message : 'Failed to calculate price');
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    }, 300);
+      void calculatePrice();
+    }, PRICING_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [productId, quantity, selectedAttributes, canCalculate]);
+  }, [productId, quantity, selectedAttributesKey, canCalculate]);
 
   return {
+    /**
+     * Invalid/incomplete configurations should not expose an old price,
+     * loading state, or error to the UI.
+     *
+     * These values are derived here rather than being synchronously reset
+     * with setState inside useEffect.
+     */
     priceResult: canCalculate ? priceResult : null,
     isLoading: canCalculate ? isLoading : false,
     error: canCalculate ? error : null,

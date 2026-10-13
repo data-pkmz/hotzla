@@ -1,86 +1,87 @@
 /// <reference types="jest" />
+
 import { OrderNumberGenerator, type DbClient } from '../order-number-generator';
 
 describe('OrderNumberGenerator', () => {
-  it('should generate 2026-0001 when no previous orders exist for the year', async () => {
-    const mockDb = {
-      order: {
-        findFirst: jest.fn().mockResolvedValue(null),
-      },
+  /**
+   * Creates a minimal mocked Prisma client containing only the
+   * $queryRaw method used by OrderNumberGenerator.
+   */
+  const createMockDb = (lastValue: number) => {
+    return {
+      $queryRaw: jest.fn().mockResolvedValue([
+        {
+          lastValue,
+        },
+      ]),
     } as unknown as DbClient;
+  };
+
+  it('should generate 2026-0001 for the first order of the year', async () => {
+    const mockDb = createMockDb(1);
 
     const orderNumber = await OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026);
 
     expect(orderNumber).toBe('2026-0001');
-    expect(mockDb.order.findFirst).toHaveBeenCalledWith({
-      where: {
-        orderNumber: {
-          startsWith: '2026-',
-        },
-      },
-      orderBy: {
-        orderNumber: 'desc',
-      },
-      select: {
-        orderNumber: true,
-      },
-    });
+
+    expect(mockDb.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('should increment the sequence from previous order', async () => {
-    const mockDb = {
-      order: {
-        findFirst: jest.fn().mockResolvedValue({ orderNumber: '2026-0007' }),
-      },
-    } as unknown as DbClient;
+  it('should generate the next sequence returned by the database counter', async () => {
+    const mockDb = createMockDb(8);
 
     const orderNumber = await OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026);
 
     expect(orderNumber).toBe('2026-0008');
+
+    expect(mockDb.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('should reset sequence to 0001 when starting a new year', async () => {
-    const mockDb = {
-      order: {
-        findFirst: jest.fn().mockResolvedValue(null),
-      },
-    } as unknown as DbClient;
+  it('should start a new year at 0001 when the database creates a new counter', async () => {
+    const mockDb = createMockDb(1);
 
     const orderNumber = await OrderNumberGenerator.generateNextOrderNumber(mockDb, 2027);
 
     expect(orderNumber).toBe('2027-0001');
-    expect(mockDb.order.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          orderNumber: {
-            startsWith: '2027-',
-          },
-        },
-      })
-    );
+
+    expect(mockDb.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle large numbers beyond 9999 gracefully', async () => {
-    const mockDb = {
-      order: {
-        findFirst: jest.fn().mockResolvedValue({ orderNumber: '2026-9999' }),
-      },
-    } as unknown as DbClient;
+  it('should handle sequence numbers larger than 9999', async () => {
+    const mockDb = createMockDb(10000);
 
     const orderNumber = await OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026);
 
     expect(orderNumber).toBe('2026-10000');
   });
 
-  it('should fallback to 0001 if existing orderNumber is malformed', async () => {
+  it('should pass the requested year to the atomic database query', async () => {
+    const mockDb = createMockDb(15);
+
+    await OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026);
+
+    const queryCall = (mockDb.$queryRaw as jest.Mock).mock.calls[0];
+
+    expect(queryCall[1]).toBe(2026);
+  });
+
+  it('should throw if the database does not return a counter value', async () => {
     const mockDb = {
-      order: {
-        findFirst: jest.fn().mockResolvedValue({ orderNumber: '2026-INVALID' }),
-      },
+      $queryRaw: jest.fn().mockResolvedValue([]),
     } as unknown as DbClient;
 
-    const orderNumber = await OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026);
+    await expect(OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026)).rejects.toThrow(
+      'Failed to generate the next order number'
+    );
+  });
 
-    expect(orderNumber).toBe('2026-0001');
+  it('should propagate database errors', async () => {
+    const mockDb = {
+      $queryRaw: jest.fn().mockRejectedValue(new Error('Database error')),
+    } as unknown as DbClient;
+
+    await expect(OrderNumberGenerator.generateNextOrderNumber(mockDb, 2026)).rejects.toThrow(
+      'Database error'
+    );
   });
 });

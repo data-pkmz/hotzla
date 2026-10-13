@@ -1,15 +1,16 @@
 import type { Request, Response } from 'express';
-
-import { OrderService } from '../services/order.service';
-import { AuthService } from '../services/auth.service';
-import { checkoutSchema } from '../validations/order.validation';
-import logger from '../utils/logger';
 import type { OrderQueryParams } from 'shared-types';
+
+import { AuthService } from '../services/auth.service';
+import { OrderService } from '../services/order.service';
+import logger from '../utils/logger';
+import { checkoutSchema } from '../validations/order.validation';
 
 const authService = new AuthService();
 
 /**
- * Resolves the authenticated AD username to the application user.
+ * Resolves the authenticated request identity to the corresponding
+ * application user stored in the database.
  */
 const getCurrentUser = async (req: Request) => {
   const adUsername = req.user?.adUsername;
@@ -23,10 +24,10 @@ const getCurrentUser = async (req: Request) => {
 
 export class OrderController {
   /**
-   * POST /api/cart/checkout
+   * Creates an order from the authenticated user's active cart.
    *
-   * Validates checkout input and creates an order from
-   * the authenticated user's active cart.
+   * Route:
+   * POST /api/orders/checkout
    */
   static async checkout(req: Request, res: Response) {
     try {
@@ -49,8 +50,11 @@ export class OrderController {
 
       const newOrder = await OrderService.createOrderFromCart(user.id, {
         budgetOfficerName: budgetOfficer.fullName,
+
         budgetOfficerEmail: budgetOfficer.militaryEmail,
+
         unit: customer.unit,
+
         notes,
       });
 
@@ -61,7 +65,9 @@ export class OrderController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error('Error during checkout process:', errorMessage);
+      logger.error('Error during checkout process', {
+        error,
+      });
 
       return res.status(500).json({
         error: errorMessage,
@@ -70,9 +76,10 @@ export class OrderController {
   }
 
   /**
-   * GET /api/orders/my-orders
+   * Retrieves the orders visible to the authenticated requester.
    *
-   * Returns orders according to the current user's access rules.
+   * Route:
+   * GET /api/orders/my-orders
    */
   static async getMyOrders(req: Request, res: Response) {
     try {
@@ -98,7 +105,9 @@ export class OrderController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error('Error getting user orders:', errorMessage);
+      logger.error('Error getting user orders', {
+        error,
+      });
 
       return res.status(500).json({
         error: errorMessage,
@@ -107,9 +116,10 @@ export class OrderController {
   }
 
   /**
-   * GET /api/orders/:id
+   * Retrieves the details of a single order.
    *
-   * Returns one order after applying role-based access validation.
+   * Route:
+   * GET /api/orders/:id
    */
   static async getOrderById(req: Request, res: Response) {
     try {
@@ -127,7 +137,10 @@ export class OrderController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error('Error getting order details:', errorMessage);
+      logger.error('Error getting order details', {
+        error,
+        orderId: req.params.id,
+      });
 
       return res.status(500).json({
         error: errorMessage,
@@ -135,16 +148,27 @@ export class OrderController {
     }
   }
 
+  /**
+   * Retrieves a paginated and optionally filtered order list.
+   *
+   * Route:
+   * GET /api/orders
+   */
   static async getOrders(req: Request, res: Response) {
     try {
       const user = await getCurrentUser(req);
 
       const params: OrderQueryParams = {
         page: Number(req.query.page) || 1,
+
         limit: Number(req.query.limit) || 100,
+
         status: req.query.status as OrderQueryParams['status'],
+
         search: req.query.search as string | undefined,
+
         sortBy: req.query.sortBy as OrderQueryParams['sortBy'],
+
         sortOrder: req.query.sortOrder === 'asc' ? 'asc' : 'desc',
       };
 
@@ -163,7 +187,9 @@ export class OrderController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      logger.error('Error getting orders:', errorMessage);
+      logger.error('Error getting orders', {
+        error,
+      });
 
       return res.status(500).json({
         error: errorMessage,

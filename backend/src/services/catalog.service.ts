@@ -1,4 +1,3 @@
-import { prisma } from '../config/db';
 import { Prisma } from '@prisma/client';
 import type { Product, ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 import type {
@@ -10,18 +9,17 @@ import type {
   UpdateAttributeDto,
   ProductAttributeOptionDto,
 } from 'shared-types';
+import { prisma } from '../config/db';
 import {
   CreateAttributeSchema,
   UpdateAttributeSchema,
   UpdateDisplayOrderSchema,
 } from '../validations/attribute.validation';
-
 type ProductAttributeDefinitionWithOptions = Prisma.ProductAttributeDefinitionGetPayload<{
   include: {
     attributeOptionEntries: true;
   };
 }>;
-
 export interface ProductDefinitionOptionInput {
   id?: string;
   optionLabel: string;
@@ -31,7 +29,6 @@ export interface ProductDefinitionOptionInput {
   displayOrder?: number;
   isPerUnit?: boolean;
 }
-
 export interface ProductDefinitionInput {
   id?: string;
   attributeName: string;
@@ -45,7 +42,6 @@ export interface ProductDefinitionInput {
   maxValue?: number | null;
   options?: ProductDefinitionOptionInput[];
 }
-
 export interface CreateProductInput {
   name: string;
   description: string;
@@ -60,7 +56,6 @@ export interface CreateProductInput {
   definitions?: ProductDefinitionInput[];
   attributes?: ProductDefinitionInput[];
 }
-
 export interface UpdateProductInput {
   name?: string;
   description?: string;
@@ -74,18 +69,15 @@ export interface UpdateProductInput {
   definitions?: ProductDefinitionInput[];
   attributes?: ProductDefinitionInput[];
 }
-
 function normalizeProductDefinitions(
   definitions: ProductDefinitionInput[] = []
 ): ProductDefinitionInput[] {
   const regularDefinitions = definitions.filter(
     (definition) => definition.attributeType !== 'FILE_UPLOAD'
   );
-
   const existingUpload = definitions.find(
     (definition) => definition.attributeType === 'FILE_UPLOAD'
   );
-
   const uploadDefinition: ProductDefinitionInput = {
     id: existingUpload?.id,
     attributeName: 'קובץ להדפסה',
@@ -99,7 +91,6 @@ function normalizeProductDefinitions(
     maxValue: null,
     options: [],
   };
-
   return [
     ...regularDefinitions.map((definition, index) => ({
       ...definition,
@@ -108,12 +99,13 @@ function normalizeProductDefinitions(
     uploadDefinition,
   ];
 }
-
 function getDefaultDisplayStyle(
   attributeType: AttributeType,
   style?: AttributeDisplayStyle
 ): AttributeDisplayStyle {
-  if (style) return style;
+  if (style) {
+    return style;
+  }
   switch (attributeType) {
     case 'SELECT':
       return 'DROPDOWN';
@@ -129,15 +121,15 @@ function getDefaultDisplayStyle(
       return 'DROPDOWN';
   }
 }
-
 export class CatalogService {
   // ============================================================
   // PRODUCTS CRUD
   // ============================================================
-
   /**
    * Returns all products that are available in the catalogue.
+   *
    * Deleted products and inactive products are excluded.
+   *
    */
   public static async getProducts(): Promise<Product[]> {
     return prisma.product.findMany({
@@ -150,10 +142,13 @@ export class CatalogService {
       },
     });
   }
-
   /**
    * Returns a single active product by ID.
+   *
    * Deleted and inactive products are not returned.
+   *
+   * This basic method is retained because other callers may only need
+   * the product record without its attribute definitions.
    */
   public static async getProductById(id: string): Promise<Product | null> {
     return prisma.product.findFirst({
@@ -164,13 +159,49 @@ export class CatalogService {
       },
     });
   }
-
   /**
-   * Creates a new product (and optionally its attribute definitions and options).
+   * Returns an active product together with its non-deleted attribute
+   * definitions and available options.
+   *
+   * This is used by the public product-details endpoint so the controller
+   * does not need to perform one product lookup followed by a separate
+   * attribute-definition lookup.
+   */
+  public static async getProductDetails(id: string) {
+    return prisma.product.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+        isActive: true,
+      },
+      include: {
+        attributeDefinitionEntries: {
+          where: {
+            isDeleted: false,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
+          include: {
+            attributeOptionEntries: {
+              where: {
+                isDeleted: false,
+              },
+              orderBy: {
+                displayOrder: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+  /**
+   * Creates a new product and optionally its attribute definitions
+   * and options.
    */
   public static async createProduct(data: CreateProductInput): Promise<Product> {
     const rawDefinitions = normalizeProductDefinitions(data.definitions ?? data.attributes ?? []);
-
     return prisma.$transaction(async (tx) => {
       const createData: Prisma.ProductUncheckedCreateInput = {
         name: data.name,
@@ -189,7 +220,6 @@ export class CatalogService {
       const createdProduct = await tx.product.create({
         data: createData,
       });
-
       for (const def of rawDefinitions) {
         const attribute = await tx.productAttributeDefinition.create({
           data: {
@@ -205,7 +235,6 @@ export class CatalogService {
             maxValue: def.maxValue ?? null,
           },
         });
-
         if (def.options && def.options.length > 0) {
           await tx.productAttributeOption.createMany({
             data: def.options.map((opt, idx) => ({
@@ -220,72 +249,91 @@ export class CatalogService {
           });
         }
       }
-
       return tx.product.findUniqueOrThrow({
-        where: { id: createdProduct.id },
+        where: {
+          id: createdProduct.id,
+        },
       });
     });
   }
-
   /**
-   * Updates an existing product (and optionally its attribute definitions and options).
+   * Updates an existing product and optionally its attribute
+   * definitions and options.
    */
   public static async updateProduct(id: string, data: UpdateProductInput): Promise<Product> {
     const suppliedDefinitions = data.definitions ?? data.attributes;
-
     const rawDefinitions =
       suppliedDefinitions !== undefined
         ? normalizeProductDefinitions(suppliedDefinitions)
         : undefined;
-
     const existingProduct = await prisma.product.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
     });
-
     if (!existingProduct) {
       throw new Error('Product not found');
     }
-
     const effectiveMinQuantity = data.minQuantity ?? existingProduct.minQuantity;
-
     const effectiveMaxQuantity =
       data.maxQuantity !== undefined ? data.maxQuantity : existingProduct.maxQuantity;
-
     if (effectiveMaxQuantity !== null && effectiveMaxQuantity < effectiveMinQuantity) {
       throw new Error('Maximum quantity cannot be less than minimum quantity');
     }
-
     const productUpdateData: Prisma.ProductUpdateInput = {};
-    if (data.name !== undefined) productUpdateData.name = data.name;
-    if (data.description !== undefined) productUpdateData.description = data.description;
-    if (data.category !== undefined) productUpdateData.category = data.category;
-    if (data.productType !== undefined) productUpdateData.productType = data.productType;
-    if (data.basePrice !== undefined) productUpdateData.basePrice = data.basePrice;
-    if (data.isActive !== undefined) productUpdateData.isActive = data.isActive;
-    if (data.imageUrl !== undefined) productUpdateData.imageUrl = data.imageUrl;
-    if (data.minQuantity !== undefined) productUpdateData.minQuantity = data.minQuantity;
-    if (data.maxQuantity !== undefined) productUpdateData.maxQuantity = data.maxQuantity;
-
+    if (data.name !== undefined) {
+      productUpdateData.name = data.name;
+    }
+    if (data.description !== undefined) {
+      productUpdateData.description = data.description;
+    }
+    if (data.category !== undefined) {
+      productUpdateData.category = data.category;
+    }
+    if (data.productType !== undefined) {
+      productUpdateData.productType = data.productType;
+    }
+    if (data.basePrice !== undefined) {
+      productUpdateData.basePrice = data.basePrice;
+    }
+    if (data.isActive !== undefined) {
+      productUpdateData.isActive = data.isActive;
+    }
+    if (data.imageUrl !== undefined) {
+      productUpdateData.imageUrl = data.imageUrl;
+    }
+    if (data.minQuantity !== undefined) {
+      productUpdateData.minQuantity = data.minQuantity;
+    }
+    if (data.maxQuantity !== undefined) {
+      productUpdateData.maxQuantity = data.maxQuantity;
+    }
     if (!rawDefinitions) {
       return prisma.product.update({
-        where: { id },
+        where: {
+          id,
+        },
         data: productUpdateData,
       });
     }
-
     return prisma.$transaction(async (tx) => {
       await tx.product.update({
-        where: { id },
+        where: {
+          id,
+        },
         data: productUpdateData,
       });
-
-      // Soft delete existing attribute definitions and their options
+      // Soft-delete existing attribute definitions.
       await tx.productAttributeDefinition.updateMany({
-        where: { productId: id, isDeleted: false },
-        data: { isDeleted: true },
+        where: {
+          productId: id,
+          isDeleted: false,
+        },
+        data: {
+          isDeleted: true,
+        },
       });
-
-      // Re-create new definitions
+      // Re-create the supplied definitions.
       for (const def of rawDefinitions) {
         const attribute = await tx.productAttributeDefinition.create({
           data: {
@@ -301,7 +349,6 @@ export class CatalogService {
             maxValue: def.maxValue ?? null,
           },
         });
-
         if (def.options && def.options.length > 0) {
           await tx.productAttributeOption.createMany({
             data: def.options.map((opt, idx) => ({
@@ -316,63 +363,71 @@ export class CatalogService {
           });
         }
       }
-
       return tx.product.findUniqueOrThrow({
-        where: { id },
+        where: {
+          id,
+        },
       });
     });
   }
-
   /**
-   * Soft-deletes a product by setting its isDeleted flag and deactivating it.
+   * Soft-deletes a product by setting its isDeleted flag and
+   * deactivating it.
    */
   public static async softDeleteProduct(id: string): Promise<Product> {
     return prisma.product.update({
-      where: { id },
+      where: {
+        id,
+      },
       data: {
         isDeleted: true,
         isActive: false,
       },
     });
   }
-
   /**
    * Activates a product.
    */
   public static async activateProduct(id: string): Promise<Product> {
     return prisma.product.update({
-      where: { id, isDeleted: false },
+      where: {
+        id,
+        isDeleted: false,
+      },
       data: {
         isActive: true,
       },
     });
   }
-
   /**
    * Deactivates a product without deleting it.
    */
   public static async deactivateProduct(id: string): Promise<Product> {
     return prisma.product.update({
-      where: { id, isDeleted: false },
+      where: {
+        id,
+        isDeleted: false,
+      },
       data: {
         isActive: false,
       },
     });
   }
-
   // ============================================================
   // PRODUCT ATTRIBUTE DEFINITIONS
   // ============================================================
-
   /**
-   * Creates a new attribute definition for a product with full DTO validation.
+   * Creates a new attribute definition for a product with full
+   * DTO validation.
    */
   public static async createAttributeDefinition(
     productId: string,
     dto: CreateAttributeDto
   ): Promise<ProductAttributeDefinition> {
-    CreateAttributeSchema.parse({ ...dto, productId });
-
+    CreateAttributeSchema.parse({
+      ...dto,
+      productId,
+    });
     return prisma.productAttributeDefinition.create({
       data: {
         productId,
@@ -403,7 +458,6 @@ export class CatalogService {
       },
     });
   }
-
   /**
    * Basic attribute creation helper for backwards compatibility.
    */
@@ -436,25 +490,36 @@ export class CatalogService {
       },
     });
   }
-
   /**
-   * Retrieves all non-deleted attribute definitions for a product, ordered by displayOrder.
+   * Retrieves all non-deleted attribute definitions for a product,
+   * ordered by displayOrder.
+   *
+   * Retained for callers that need definitions separately from
+   * product details.
    */
   public static async getAttributeDefinitions(
     productId: string
   ): Promise<ProductAttributeDefinitionWithOptions[]> {
     return prisma.productAttributeDefinition.findMany({
-      where: { productId, isDeleted: false },
+      where: {
+        productId,
+        isDeleted: false,
+      },
       include: {
         attributeOptionEntries: {
-          where: { isDeleted: false },
-          orderBy: { displayOrder: 'asc' },
+          where: {
+            isDeleted: false,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
         },
       },
-      orderBy: { displayOrder: 'asc' },
+      orderBy: {
+        displayOrder: 'asc',
+      },
     });
   }
-
   /**
    * Updates an attribute definition with Zod validation.
    */
@@ -463,33 +528,54 @@ export class CatalogService {
     dto: UpdateAttributeDto
   ): Promise<ProductAttributeDefinition> {
     UpdateAttributeSchema.parse(dto);
-
     const dataToUpdate: Prisma.ProductAttributeDefinitionUpdateInput = {};
-
-    if (dto.attributeName !== undefined) dataToUpdate.attributeName = dto.attributeName;
-    if (dto.attributeType !== undefined) dataToUpdate.attributeType = dto.attributeType;
-    if (dto.displayStyle !== undefined) dataToUpdate.displayStyle = dto.displayStyle;
-    if (dto.isRequired !== undefined) dataToUpdate.isRequired = dto.isRequired;
-    if (dto.displayOrder !== undefined) dataToUpdate.displayOrder = dto.displayOrder;
-    if (dto.pricingRule !== undefined) dataToUpdate.pricingRule = dto.pricingRule;
-    if (dto.unitPrice !== undefined) dataToUpdate.unitPrice = dto.unitPrice;
-    if (dto.minValue !== undefined) dataToUpdate.minValue = dto.minValue;
-    if (dto.maxValue !== undefined) dataToUpdate.maxValue = dto.maxValue;
-
+    if (dto.attributeName !== undefined) {
+      dataToUpdate.attributeName = dto.attributeName;
+    }
+    if (dto.attributeType !== undefined) {
+      dataToUpdate.attributeType = dto.attributeType;
+    }
+    if (dto.displayStyle !== undefined) {
+      dataToUpdate.displayStyle = dto.displayStyle;
+    }
+    if (dto.isRequired !== undefined) {
+      dataToUpdate.isRequired = dto.isRequired;
+    }
+    if (dto.displayOrder !== undefined) {
+      dataToUpdate.displayOrder = dto.displayOrder;
+    }
+    if (dto.pricingRule !== undefined) {
+      dataToUpdate.pricingRule = dto.pricingRule;
+    }
+    if (dto.unitPrice !== undefined) {
+      dataToUpdate.unitPrice = dto.unitPrice;
+    }
+    if (dto.minValue !== undefined) {
+      dataToUpdate.minValue = dto.minValue;
+    }
+    if (dto.maxValue !== undefined) {
+      dataToUpdate.maxValue = dto.maxValue;
+    }
     return prisma.productAttributeDefinition.update({
-      where: { id },
+      where: {
+        id,
+      },
       data: dataToUpdate,
       include: {
         attributeOptionEntries: {
-          where: { isDeleted: false },
-          orderBy: { displayOrder: 'asc' },
+          where: {
+            isDeleted: false,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
         },
       },
     });
   }
-
   /**
-   * Updates an attribute definition without schema parsing (for backwards compatibility).
+   * Updates an attribute definition without schema parsing
+   * for backwards compatibility.
    */
   public static async updateAttribute(
     id: string,
@@ -505,30 +591,34 @@ export class CatalogService {
     }
   ): Promise<ProductAttributeDefinition> {
     return prisma.productAttributeDefinition.update({
-      where: { id },
+      where: {
+        id,
+      },
       data,
     });
   }
-
   /**
    * Soft-deletes an attribute definition.
    */
   public static async deleteAttributeDefinition(id: string): Promise<ProductAttributeDefinition> {
     return prisma.productAttributeDefinition.update({
-      where: { id },
-      data: { isDeleted: true },
+      where: {
+        id,
+      },
+      data: {
+        isDeleted: true,
+      },
     });
   }
-
   /**
    * Soft-deletes an attribute definition (alias).
    */
   public static async softDeleteAttribute(id: string): Promise<ProductAttributeDefinition> {
     return CatalogService.deleteAttributeDefinition(id);
   }
-
   /**
-   * Updates the display order for multiple attribute definitions in a single transaction.
+   * Updates the display order for multiple attribute definitions
+   * in a single transaction.
    */
   public static async updateAttributeDefinitionsDisplayOrder(
     orders: { id: string; displayOrder: number }[]
@@ -536,17 +626,19 @@ export class CatalogService {
     UpdateDisplayOrderSchema.parse(orders);
     const updates = orders.map((order) =>
       prisma.productAttributeDefinition.update({
-        where: { id: order.id },
-        data: { displayOrder: order.displayOrder },
+        where: {
+          id: order.id,
+        },
+        data: {
+          displayOrder: order.displayOrder,
+        },
       })
     );
     return prisma.$transaction(updates);
   }
-
   // ============================================================
   // PRODUCT ATTRIBUTE OPTIONS
   // ============================================================
-
   /**
    * Creates a new option for an attribute definition.
    */
@@ -566,7 +658,6 @@ export class CatalogService {
       },
     });
   }
-
   /**
    * Updates an existing attribute option.
    */
@@ -575,32 +666,47 @@ export class CatalogService {
     dto: Partial<ProductAttributeOptionDto>
   ): Promise<ProductAttributeOption> {
     const dataToUpdate: Prisma.ProductAttributeOptionUpdateInput = {};
-
-    if (dto.optionLabel !== undefined) dataToUpdate.optionLabel = dto.optionLabel;
-    if (dto.optionValue !== undefined) dataToUpdate.optionValue = dto.optionValue;
-    if (dto.priceModifier !== undefined) dataToUpdate.priceModifier = dto.priceModifier;
-    if (dto.priceModifierType !== undefined) dataToUpdate.priceModifierType = dto.priceModifierType;
-    if (dto.displayOrder !== undefined) dataToUpdate.displayOrder = dto.displayOrder;
-    if (dto.isPerUnit !== undefined) dataToUpdate.isPerUnit = dto.isPerUnit;
-
+    if (dto.optionLabel !== undefined) {
+      dataToUpdate.optionLabel = dto.optionLabel;
+    }
+    if (dto.optionValue !== undefined) {
+      dataToUpdate.optionValue = dto.optionValue;
+    }
+    if (dto.priceModifier !== undefined) {
+      dataToUpdate.priceModifier = dto.priceModifier;
+    }
+    if (dto.priceModifierType !== undefined) {
+      dataToUpdate.priceModifierType = dto.priceModifierType;
+    }
+    if (dto.displayOrder !== undefined) {
+      dataToUpdate.displayOrder = dto.displayOrder;
+    }
+    if (dto.isPerUnit !== undefined) {
+      dataToUpdate.isPerUnit = dto.isPerUnit;
+    }
     return prisma.productAttributeOption.update({
-      where: { id },
+      where: {
+        id,
+      },
       data: dataToUpdate,
     });
   }
-
   /**
    * Soft-deletes an attribute option.
    */
   public static async deleteAttributeOption(id: string): Promise<ProductAttributeOption> {
     return prisma.productAttributeOption.update({
-      where: { id },
-      data: { isDeleted: true },
+      where: {
+        id,
+      },
+      data: {
+        isDeleted: true,
+      },
     });
   }
-
   /**
-   * Updates the display order for multiple attribute options in a single transaction.
+   * Updates the display order for multiple attribute options
+   * in a single transaction.
    */
   public static async updateAttributeOptionsDisplayOrder(
     orders: { id: string; displayOrder: number }[]
@@ -608,12 +714,15 @@ export class CatalogService {
     UpdateDisplayOrderSchema.parse(orders);
     const updates = orders.map((order) =>
       prisma.productAttributeOption.update({
-        where: { id: order.id },
-        data: { displayOrder: order.displayOrder },
+        where: {
+          id: order.id,
+        },
+        data: {
+          displayOrder: order.displayOrder,
+        },
       })
     );
     return prisma.$transaction(updates);
   }
 }
-
 export default CatalogService;

@@ -203,7 +203,7 @@ describe('CartService', () => {
       const input = { quantity: 2, selectedAttributes: [] };
 
       // Act & Assert
-      await expect(CartService.updateItem('fake-item-id', input)).rejects.toThrow(
+      await expect(CartService.updateItem('fake-user-id', 'fake-item-id', input)).rejects.toThrow(
         'Cart item not found'
       );
 
