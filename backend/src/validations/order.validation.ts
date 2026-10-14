@@ -37,7 +37,5 @@ export const checkoutSchema = z.object({
       ),
   }),
 
-  deliveryDueDate: z.string().min(1, 'תאריך יעד מבוקש לאספקה הוא שדה חובה'),
-
   notes: z.string().optional(),
 });

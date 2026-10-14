@@ -85,7 +85,6 @@ export interface CreateOrderInput {
   budgetOfficerName?: string;
   budgetOfficerEmail?: string;
   unit?: string;
-  deliveryDueDate?: string;
   notes?: string;
 }
 
