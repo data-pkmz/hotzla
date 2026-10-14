@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { FileController } from '../controllers/file.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { requireRoles } from '../middlewares/rbac.middleware';
-import { validateFileUpload } from '../middlewares/file-validation.middleware';
+import { validateFileUpload } from '../middlewares/file-upload.middleware';
 
 const router = Router();
 

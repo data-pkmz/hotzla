@@ -15,7 +15,7 @@ export const Header: React.FC = () => {
   const isRequester = currentUser.role === 'REQUESTER';
 
   const { data: cart } = useQuery({
-    queryKey: ['activeCart', currentUser.id],
+    queryKey: ['activeCart'],
     queryFn: getActiveCart,
     enabled: isRequester,
   });

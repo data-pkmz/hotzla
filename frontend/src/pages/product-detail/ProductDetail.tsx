@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Box, Breadcrumbs, CircularProgress, Typography } from '@mui/material';
+import { Alert, Box, Breadcrumbs, CircularProgress, Snackbar, Typography } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { SelectedAttributeInput } from 'shared-types';
 
@@ -20,6 +21,7 @@ interface ProductConfiguration {
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const { product, isLoading: productIsLoading, error: productError } = useProductDetails(id);
 
@@ -35,6 +37,8 @@ export const ProductDetailPage: React.FC = () => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
+
+  const [addedSuccess, setAddedSuccess] = useState(false);
 
   const {
     priceResult,
@@ -70,6 +74,11 @@ export const ProductDetailPage: React.FC = () => {
         selectedAttributes: configuration.selectedAttributes,
         uploadedFilePath,
       });
+
+      // Instantly refresh the active cart data so the header badge and drawer update immediately
+      await queryClient.invalidateQueries({ queryKey: ['activeCart'] });
+
+      setAddedSuccess(true);
     } catch (error) {
       setAddToCartError(error instanceof Error ? error.message : 'הוספת המוצר לסל נכשלה');
     } finally {
@@ -213,6 +222,33 @@ export const ProductDetailPage: React.FC = () => {
           />
         </Box>
       </Box>
+
+      <Snackbar
+        open={addedSuccess}
+        autoHideDuration={3000}
+        onClose={() => setAddedSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setAddedSuccess(false)}
+          severity="success"
+          dir="rtl"
+          sx={{
+            minWidth: 320,
+            alignItems: 'center',
+            '& .MuiAlert-message': {
+              flexGrow: 1,
+              px: 2,
+            },
+            '& .MuiAlert-action': {
+              mr: 2,
+              ml: 0,
+            },
+          }}
+        >
+          המוצר נוסף לסל בהצלחה!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
