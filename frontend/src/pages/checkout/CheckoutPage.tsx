@@ -35,11 +35,10 @@ export interface CheckoutFormValues {
     fullName: string;
     militaryEmail: string;
   };
-  deliveryDueDate: string;
   notes?: string;
 }
 
-// Checkout flow for requester details, budget approval, and delivery requirements.
+// Checkout flow for requester details, budget approval, and optional notes.
 const checkoutSchema = z.object({
   customer: z.object({
     name: z.string().min(2, 'שם המזמין הוא שדה חובה'),
@@ -56,7 +55,6 @@ const checkoutSchema = z.object({
         message: 'יש להזין מייל צבאי תקין',
       }),
   }),
-  deliveryDueDate: z.string().min(1, 'יש להזין תאריך מבוקש'),
   notes: z.string().optional(),
 });
 
@@ -99,7 +97,6 @@ export const CheckoutPage: React.FC = () => {
         fullName: '',
         militaryEmail: '',
       },
-      deliveryDueDate: '',
       notes: '',
     };
   }, [currentUser, userProfile]);
@@ -125,7 +122,6 @@ export const CheckoutPage: React.FC = () => {
       const payload: CreateOrderInput = {
         customer: values.customer,
         budgetOfficer: values.budgetOfficer,
-        deliveryDueDate: values.deliveryDueDate,
         notes: values.notes ?? '',
       };
 
@@ -224,35 +220,18 @@ export const CheckoutPage: React.FC = () => {
 
           <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-              3. פרטי אספקה
+              3. הערות נוספות
             </Typography>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label="תאריך מבוקש"
-                  fullWidth
-                  dir="rtl"
-                  type="date"
-                  InputLabelProps={{ shrink: true }}
-                  error={Boolean(errors.deliveryDueDate)}
-                  helperText={errors.deliveryDueDate?.message || ' '}
-                  {...register('deliveryDueDate')}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  label="הערות מיוחדות לבית הדפוס"
-                  fullWidth
-                  dir="rtl"
-                  multiline
-                  minRows={4}
-                  placeholder="הערות, הוראות מיוחדות, מפגש, עיצוב, או פירוט נוסף..."
-                  {...register('notes')}
-                />
-              </Grid>
-            </Grid>
+            <TextField
+              label="הערות מיוחדות לבית הדפוס"
+              fullWidth
+              dir="rtl"
+              multiline
+              minRows={4}
+              placeholder="הערות, הוראות מיוחדות, מפגש, עיצוב, או פירוט נוסף..."
+              {...register('notes')}
+            />
           </Card>
 
           {submitMutation.isError ? (

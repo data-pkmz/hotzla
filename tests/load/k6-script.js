@@ -721,47 +721,27 @@ function removeCartItem(cartItemId) {
 function checkout() {
   const mockUsername = `${USER_PREFIX}-${__VU}`;
 
-  const deliveryDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split('T')[0];
-
   const payload = {
     customer: {
       name: `Load Test User ${__VU}`,
-
       phone: '0500000000',
-
       orgEmail: `${mockUsername}@example.test`,
-
       unit: CUSTOMER_UNIT,
     },
-
     budgetOfficer: {
       fullName: 'Load Test Budget Officer',
-
       militaryEmail: BUDGET_OFFICER_EMAIL,
     },
-
-    deliveryDueDate,
-
     notes: `k6 load test - VU ${__VU}, iteration ${__ITER}`,
   };
 
-  const response = http.post(
-    `${BASE_URL}/api/orders/checkout`,
-
-    JSON.stringify(payload),
-
-    {
-      headers: headers(),
-
-      tags: {
-        endpoint: 'checkout',
-
-        name: 'POST /api/orders/checkout',
-      },
-    }
-  );
+  const response = http.post(`${BASE_URL}/api/orders/checkout`, JSON.stringify(payload), {
+    headers: headers(),
+    tags: {
+      endpoint: 'checkout',
+      name: 'POST /api/orders/checkout',
+    },
+  });
 
   /**
    * Record checkout timing exactly once.
