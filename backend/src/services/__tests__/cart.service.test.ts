@@ -195,6 +195,45 @@ describe('CartService', () => {
     expect(result).toEqual(mockCreatedItem);
   });
 
+  it('should reject adding a file uploaded by another user', async () => {
+    const userAId = '11111111-1111-1111-1111-111111111111';
+    const userBId = '22222222-2222-2222-2222-222222222222';
+
+    const input: AddToCartInput = {
+      productId: 'prod-1',
+      quantity: 1,
+      selectedAttributes: [],
+      uploadedFilePath: `2026/10/14/${userAId}/document.pdf`,
+    };
+
+    await expect(CartService.addItemToCart(userBId, input)).rejects.toThrow(
+      'Forbidden: Cannot attach a file uploaded by another user'
+    );
+
+    expect(prisma.cartItem.create).not.toHaveBeenCalled();
+  });
+
+  it('should reject adding a file that is already active in another user cart item', async () => {
+    const input: AddToCartInput = {
+      productId: 'prod-1',
+      quantity: 1,
+      selectedAttributes: [],
+      uploadedFilePath: '2026/10/14/shared-doc.pdf',
+    };
+
+    // Simulate finding an active cart item belonging to another user
+    (prisma.cartItem.findFirst as jest.Mock).mockResolvedValue({
+      id: 'other-item-id',
+      uploadedFilePath: '2026/10/14/shared-doc.pdf',
+    });
+
+    await expect(CartService.addItemToCart('user-b', input)).rejects.toThrow(
+      'Forbidden: File is already in use by another user'
+    );
+
+    expect(prisma.cartItem.create).not.toHaveBeenCalled();
+  });
+
   describe('updateItem', () => {
     it('should throw an error if the cart item is not found in the database', async () => {
       // Arrange: Force Prisma to return null when searching for the item

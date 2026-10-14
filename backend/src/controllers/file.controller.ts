@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import path from 'path';
 import { Role } from '@prisma/client';
 import { FileStorageService } from '../services/file-storage.service';
 import { AuthService } from '../services/auth.service';
@@ -10,6 +11,7 @@ import logger from '../utils/logger';
 export class FileController {
   /**
    * Saves an uploaded file to the application's configured file storage.
+   * Associates the storage path with the authenticated uploader's userId.
    *
    * Expects:
    * - req.file: A file processed by the upload-validation/Multer middleware.
@@ -18,18 +20,15 @@ export class FileController {
    *
    * Does:
    * - Verifies that Multer placed a file on the request.
-   * - Passes the file buffer and original filename to FileStorageService.
+   * - Resolves the authenticated user ID.
+   * - Passes the file buffer, original filename, and user ID to FileStorageService.
    * - FileStorageService writes the file to disk and returns its relative
-   *   storage path.
+   *   storage path scoped to the uploader.
    *
    * Sends:
    * - 200 with the relative filePath after the file is successfully saved.
    * - 400 if no file was provided.
    * - 500 if the file cannot be saved.
-   *
-   * Note:
-   * - File type and size validation are expected to occur in middleware
-   *   before this controller is reached.
    */
   static async uploadFile(req: Request, res: Response): Promise<void> {
     if (!req.file) {
@@ -40,7 +39,16 @@ export class FileController {
     }
 
     try {
-      const filePath = await FileStorageService.saveFile(req.file.buffer, req.file.originalname);
+      const authService = new AuthService();
+      const adUsername = req.user?.adUsername;
+      const user =
+        req.dbUser || (adUsername ? await authService.getOrCreateUser(adUsername) : null);
+
+      const filePath = await FileStorageService.saveFile(
+        req.file.buffer,
+        req.file.originalname,
+        user?.id
+      );
 
       res.status(200).json({
         filePath,
@@ -62,16 +70,17 @@ export class FileController {
    *
    * Does:
    * - Verifies that a path query parameter was provided.
-   * - Searches the Product table for a product whose imageUrl matches
-   *   the requested path.
+   * - Validates that the requested path has an image extension (JPEG, PNG, WebP, SVG).
+   * - Searches the Product table for an active (non-deleted) product whose
+   *   imageUrl matches the requested path.
    * - Only allows the file to be served when the path is referenced by
-   *   an existing product.
+   *   an active product.
    * - Delegates secure path resolution and file delivery to sendFile.
    *
    * Sends:
    * - The requested image file when the product image is valid.
-   * - 400 if the path query parameter is missing.
-   * - 404 if no product references the requested image path.
+   * - 400 if the path query parameter is missing or has a non-image extension.
+   * - 404 if no active product references the requested image path.
    * - 403 if sendFile determines that the supplied path is unsafe.
    * - 404 if the referenced file does not exist on disk.
    * - 500 if an unexpected error occurs while looking up the product image.
@@ -79,9 +88,19 @@ export class FileController {
   static async downloadProductImage(req: Request, res: Response): Promise<void> {
     const filePath = req.query.path as string | undefined;
 
-    if (!filePath) {
+    if (!filePath || typeof filePath !== 'string' || filePath.includes('\0')) {
       res.status(400).json({
-        error: 'Missing path parameter',
+        error: 'Missing or invalid path parameter',
+      });
+      return;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const allowedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.svg'];
+
+    if (!allowedImageExtensions.includes(ext)) {
+      res.status(400).json({
+        error: 'Invalid product image type',
       });
       return;
     }
@@ -90,6 +109,7 @@ export class FileController {
       const product = await prisma.product.findFirst({
         where: {
           imageUrl: filePath,
+          isDeleted: false,
         },
         select: {
           id: true,
@@ -121,26 +141,27 @@ export class FileController {
    *
    * Expects:
    * - req.query.path: Relative storage path of the requested file.
-   * - req.user.adUsername: The authenticated user's AD username, populated
-   *   by authMiddleware before this controller is reached.
+   * - req.user.adUsername: The authenticated user's AD username.
    *
    * Does:
    * - Verifies that a file path was supplied.
-   * - Resolves the authenticated application user through AuthService.
+   * - Resolves the authenticated application user.
    * - Allows MANAGER and WORKER users to access uploaded files regardless
    *   of ownership.
-   * - For REQUESTER users, checks whether the requested file belongs to
-   *   one of their cart items.
-   * - If the file is no longer associated with a cart item, checks whether
-   *   it belongs to one of their order items.
+   * - For REQUESTER users:
+   *   1. Checks whether the requested file belongs to an active, non-deleted cart item.
+   *   2. Checks whether it belongs to an active, non-deleted order item.
+   *   3. Rejects with 403 if the file was in a cart item that was soft-deleted.
+   *   4. Allows access if the file was uploaded by this requester and has not been deleted.
+   *   5. Rejects any attempt to access files belonging to another user.
    * - Delegates secure path resolution and file delivery to sendFile when
    *   authorization succeeds.
    *
    * Sends:
    * - The requested file when the user is authorized to access it.
-   * - 400 if the path query parameter is missing.
+   * - 400 if the path query parameter is missing or contains invalid characters.
    * - 401 if no authenticated user identity is available.
-   * - 403 if the user does not have permission to access the file.
+   * - 403 if the user does not have permission to access the file or it was soft-deleted.
    * - 403 if sendFile determines that the supplied path is unsafe.
    * - 404 if an authorized file does not exist on disk.
    * - 500 if an unexpected error occurs while processing the download.
@@ -148,9 +169,9 @@ export class FileController {
   static async downloadFile(req: Request, res: Response): Promise<void> {
     const filePath = req.query.path as string | undefined;
 
-    if (!filePath) {
+    if (!filePath || typeof filePath !== 'string' || filePath.includes('\0')) {
       res.status(400).json({
-        error: 'Missing path parameter',
+        error: 'Missing or invalid path parameter',
       });
       return;
     }
@@ -166,42 +187,77 @@ export class FileController {
       }
 
       const authService = new AuthService();
-      const user = await authService.getOrCreateUser(adUsername);
+      const user = req.dbUser || (await authService.getOrCreateUser(adUsername));
 
       // Managers and workers are permitted to access uploaded production files.
       if (user.role === Role.MANAGER || user.role === Role.WORKER) {
         return FileController.sendFile(filePath, res);
       }
 
-      // Requesters may access files associated with their own cart items.
-      const cartItem = await prisma.cartItem.findFirst({
+      // 1. Requesters may access files associated with their own active cart items.
+      const activeCartItem = await prisma.cartItem.findFirst({
         where: {
           uploadedFilePath: filePath,
+          isDeleted: false,
+          cart: {
+            userId: user.id,
+            isDeleted: false,
+          },
         },
         include: {
           cart: true,
         },
       });
 
-      if (cartItem && cartItem.cart.userId === user.id) {
+      if (activeCartItem) {
         return FileController.sendFile(filePath, res);
       }
 
-      // After checkout, the same uploaded file may instead be associated
-      // with an order item belonging to the requester.
-      const orderItem = await prisma.orderItem.findFirst({
+      // 2. After checkout, the same uploaded file may be associated
+      // with an active order item belonging to the requester.
+      const activeOrderItem = await prisma.orderItem.findFirst({
         where: {
           uploadedFilePath: filePath,
+          isDeleted: false,
+          order: {
+            requesterId: user.id,
+            isDeleted: false,
+          },
         },
         include: {
           order: true,
         },
       });
 
-      if (orderItem && orderItem.order.requesterId === user.id) {
+      if (activeOrderItem) {
         return FileController.sendFile(filePath, res);
       }
 
+      // 3. Check for soft-delete: If the file belongs to this user but was soft-deleted in cart
+      const softDeletedCartItem = await prisma.cartItem.findFirst({
+        where: {
+          uploadedFilePath: filePath,
+          cart: {
+            userId: user.id,
+          },
+          OR: [{ isDeleted: true }, { cart: { isDeleted: true } }],
+        },
+      });
+
+      if (softDeletedCartItem) {
+        res.status(403).json({
+          error: 'Forbidden: File has been deleted or is no longer accessible',
+        });
+        return;
+      }
+
+      // 4. Initial upload: file was uploaded by this requester and not yet added to cart
+      const uploaderId = FileStorageService.extractUploaderId(filePath);
+      if (uploaderId && uploaderId === user.id) {
+        return FileController.sendFile(filePath, res);
+      }
+
+      // 5. File belongs to another user or is unauthorized
       res.status(403).json({
         error: 'Forbidden: You do not have permission to access this file',
       });

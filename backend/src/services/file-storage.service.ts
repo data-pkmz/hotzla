@@ -14,16 +14,23 @@ export class FileStorageService {
 
   /**
    * Saves a file buffer to the disk.
-   * Requirements met: Folder by date, UUID filename, original extension.
+   * Requirements met: Folder by date (and uploader userId if supplied), UUID filename, original extension.
    *
    * @param fileBuffer The binary data of the file (from Multer)
    * @param originalFilename The original name of the file (e.g., "design.pdf")
-   * @returns The relative path to save in the database (e.g., "2026-08-23/uuid.pdf")
+   * @param userId Optional database ID of the user uploading the file
+   * @returns The relative path to save in the database (e.g., "2026-08-23/userId/uuid.pdf")
    */
-  static async saveFile(fileBuffer: Buffer, originalFilename: string): Promise<string> {
-    // 1. Create a folder structure based on today's date (YYYY/MM/DD)
+  static async saveFile(
+    fileBuffer: Buffer,
+    originalFilename: string,
+    userId?: string
+  ): Promise<string> {
+    // 1. Create a folder structure based on today's date (YYYY/MM/DD) and optional userId
     const dateFolder = new Date().toISOString().split('T')[0].replace(/-/g, '/');
-    const targetDir = path.join(this.basePath, dateFolder);
+    const targetDir = userId
+      ? path.join(this.basePath, dateFolder, userId)
+      : path.join(this.basePath, dateFolder);
 
     // 2. Make sure the folder exists (recursive: true means it won't crash if it already exists)
     await fs.mkdir(targetDir, { recursive: true });
@@ -38,18 +45,69 @@ export class FileStorageService {
     // 5. Write the binary data to the hard drive
     await fs.writeFile(absolutePath, fileBuffer);
 
-    // 6. Return ONLY the relative part (e.g., "2026-08-23/a1b2c3.pdf") to store in PostgreSQL
+    // 6. Return ONLY the relative part to store in PostgreSQL
     // We replace Windows backslashes with standard forward slashes for cross-platform safety
-    return path.join(dateFolder, uniqueFileName).replace(/\\/g, '/');
+    const relativePath = userId
+      ? path.join(dateFolder, userId, uniqueFileName)
+      : path.join(dateFolder, uniqueFileName);
+
+    return relativePath.replace(/\\/g, '/');
+  }
+
+  /**
+   * Extracts the uploader's userId from a relative storage path if one was encoded.
+   *
+   * Path format:
+   * - "YYYY/MM/DD/:userId/:uuid.:ext" (5 segments)
+   * - ":userId/YYYY/MM/DD/:uuid.:ext" (fallback)
+   */
+  static extractUploaderId(relativePath: string): string | null {
+    if (!relativePath) {
+      return null;
+    }
+
+    const normalized = relativePath.replace(/\\/g, '/');
+    const segments = normalized.split('/').filter(Boolean);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    // Pattern: YYYY/MM/DD/userId/filename.ext -> segments[3] is userId
+    if (segments.length >= 5 && uuidRegex.test(segments[3])) {
+      return segments[3];
+    }
+
+    // Pattern: userId/... -> segments[0] is userId
+    if (segments.length >= 2 && uuidRegex.test(segments[0])) {
+      return segments[0];
+    }
+
+    return null;
   }
 
   /**
    * Retrieves the absolute path for a given relative path (for downloading).
-   * Includes a critical security check to prevent "Path Traversal" hacking.
+   * Includes comprehensive security checks to prevent "Path Traversal" hacking
+   * across both Windows and Unix/Docker environments.
    */
   static getSecureAbsolutePath(relativePath: string): string {
-    const absolutePath = path.resolve(this.basePath, relativePath);
+    if (!relativePath || typeof relativePath !== 'string') {
+      throw new Error('Security Error: Invalid file path.');
+    }
+
+    // Block null bytes and control characters
+    if (relativePath.includes('\0')) {
+      throw new Error('Security Error: Invalid file path.');
+    }
+
+    // Normalize forward and backward slashes for cross-platform safety
+    const normalizedRelative = relativePath.replace(/\\/g, '/');
+
+    // Reject absolute paths
+    if (path.isAbsolute(relativePath) || path.isAbsolute(normalizedRelative)) {
+      throw new Error('Security Error: Invalid file path.');
+    }
+
     const resolvedBase = path.resolve(this.basePath);
+    const absolutePath = path.resolve(resolvedBase, normalizedRelative);
 
     const relative = path.relative(resolvedBase, absolutePath);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
