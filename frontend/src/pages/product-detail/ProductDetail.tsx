@@ -40,7 +40,6 @@ export const ProductDetailPage: React.FC = () => {
   });
 
   const [formIsValid, setFormIsValid] = useState(false);
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -49,8 +48,17 @@ export const ProductDetailPage: React.FC = () => {
 
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
 
-  // Prevent repeated submissions before React has committed state updates.
+  /**
+   * Prevents duplicate submissions before React updates the loading state.
+   */
   const addToCartInProgress = useRef(false);
+
+  /**
+   * Tracks the last configuration submitted by AttributeForm.
+   * Prevents repeated onChange callbacks with identical values from
+   * clearing the Add to Cart success state.
+   */
+  const configurationSnapshot = useRef('');
 
   const {
     priceResult,
@@ -65,6 +73,13 @@ export const ProductDetailPage: React.FC = () => {
     enabled: Boolean(product),
   });
 
+  /**
+   * Uploads an optional file and adds the configured product to the cart.
+   *
+   * The success state is updated only after addItemToCart succeeds.
+   * Refreshing the active cart cache must not turn a successful
+   * addition into a failed request.
+   */
   const handleAddToCart = async () => {
     if (
       !product ||
@@ -79,8 +94,10 @@ export const ProductDetailPage: React.FC = () => {
     }
 
     addToCartInProgress.current = true;
+
     setIsAddingToCart(true);
     setAddToCartError(null);
+    setShowSuccessMessage(false);
 
     try {
       let uploadedFilePath: string | undefined;
@@ -99,8 +116,13 @@ export const ProductDetailPage: React.FC = () => {
       setWasAddedToCart(true);
       setShowSuccessMessage(true);
 
-      // Update cart summaries without treating a cache-refresh failure
-      // as a failed addition.
+      /**
+       * Refresh cart data used by the header, cart badge,
+       * recovery banner, and other cart-dependent components.
+       *
+       * We intentionally do not await this call.
+       * If the refresh fails, the product was still added successfully.
+       */
       void queryClient.invalidateQueries({
         queryKey: ['activeCart'],
       });
@@ -112,19 +134,46 @@ export const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const configurationSnapshot = useRef('');
-
+  /**
+   * Updates the product configuration and validation state.
+   *
+   * Only genuine configuration changes reset the success message
+   * and allow the requester to add the updated configuration.
+   */
   const handleConfigurationChange = (value: ProductConfiguration, isValid: boolean) => {
     const snapshot = JSON.stringify(value);
 
     if (configurationSnapshot.current !== snapshot) {
       configurationSnapshot.current = snapshot;
+
       setConfiguration(value);
       setWasAddedToCart(false);
       setAddToCartError(null);
     }
 
     setFormIsValid(isValid);
+  };
+
+  /**
+   * Updates the selected file and clears the success state,
+   * allowing a different file to be added with the product.
+   */
+  const handleFileChange = (file: File | null) => {
+    setSelectedFile(file);
+    setWasAddedToCart(false);
+    setAddToCartError(null);
+  };
+
+  /**
+   * Closes the success Snackbar.
+   * Clicking outside the Snackbar does not dismiss it.
+   */
+  const handleCloseSuccessMessage = (_event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setShowSuccessMessage(false);
   };
 
   if (productIsLoading) {
@@ -257,23 +306,16 @@ export const ProductDetailPage: React.FC = () => {
             minQuantity={product.minQuantity}
             maxQuantity={product.maxQuantity}
             onChange={handleConfigurationChange}
-            onFileChange={(file) => {
-              setSelectedFile(file);
-              setWasAddedToCart(false);
-              setAddToCartError(null);
-            }}
+            onFileChange={handleFileChange}
           />
         </Box>
       </Box>
 
+      {/* Success confirmation after adding the product to the cart. */}
       <Snackbar
         open={showSuccessMessage}
         autoHideDuration={6000}
-        onClose={(_event, reason) => {
-          if (reason !== 'clickaway') {
-            setShowSuccessMessage(false);
-          }
-        }}
+        onClose={handleCloseSuccessMessage}
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'center',
@@ -282,13 +324,30 @@ export const ProductDetailPage: React.FC = () => {
         <Alert
           severity="success"
           variant="filled"
+          dir="rtl"
           onClose={() => setShowSuccessMessage(false)}
           action={
             <Button color="inherit" size="small" onClick={() => navigate('/cart')}>
               מעבר לסל
             </Button>
           }
-          sx={{ width: '100%', direction: 'rtl' }}
+          sx={{
+            minWidth: {
+              xs: 280,
+              sm: 320,
+            },
+            alignItems: 'center',
+
+            '& .MuiAlert-message': {
+              flexGrow: 1,
+              px: 2,
+            },
+
+            '& .MuiAlert-action': {
+              mr: 2,
+              ml: 0,
+            },
+          }}
         >
           המוצר נוסף לסל בהצלחה!
         </Alert>

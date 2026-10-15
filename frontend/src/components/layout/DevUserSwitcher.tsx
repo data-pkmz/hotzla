@@ -1,10 +1,12 @@
 import React from 'react';
 import { Box, Chip, Menu, MenuItem, Typography } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore, type MockUserKey, MOCK_USERS } from '../../store/useAuthStore';
 
 export const DevUserSwitcher: React.FC = () => {
   const { currentUser, setUser } = useAuthStore();
+  const queryClient = useQueryClient();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   // בודק אם מופעל Mock Auth (ב-Vite)
@@ -19,6 +21,7 @@ export const DevUserSwitcher: React.FC = () => {
   const handleClose = (userKey?: MockUserKey) => {
     if (userKey) {
       setUser(userKey);
+      queryClient.invalidateQueries({ queryKey: ['activeCart'] });
     }
     setAnchorEl(null);
   };
