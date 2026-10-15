@@ -300,8 +300,8 @@ model OrderItemAttributeValue {
   orderItem             OrderItem                  @relation(fields: [orderItemId], references: [id])
   attributeDefinitionId String                     @map("attribute_definition_id") @db.Uuid
   attributeDefinition   ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
-  selectedOptionId      String                     @map("selected_option_id") @db.Uuid
-  selectedOption        ProductAttributeOption     @relation(fields: [selectedOptionId], references: [id])
+  selectedOptionId      String?                    @map("selected_option_id") @db.Uuid
+  selectedOption        ProductAttributeOption?    @relation(fields: [selectedOptionId], references: [id])
   valueText             String                     @map("value_text")
   isDeleted             Boolean                    @default(false) @map("is_deleted")
   @@map("order_item_attribute_values")

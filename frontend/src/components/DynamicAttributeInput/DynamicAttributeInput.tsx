@@ -1,4 +1,4 @@
-import { Checkbox, FormControlLabel, Switch, TextField, Typography } from '@mui/material';
+import { Box, Checkbox, FormControlLabel, Switch, TextField, Typography } from '@mui/material';
 
 import type { ProductAttributeDefinition, SelectedAttributeInput } from 'shared-types';
 
@@ -12,6 +12,8 @@ interface DynamicAttributeInputProps {
   onChange: (value: SelectedAttributeInput, isValid: boolean) => void;
   onFileChange?: (file: File | null) => void;
 }
+
+const formatPrice = (price: number): string => `₪${price.toFixed(2)}`;
 
 export default function DynamicAttributeInput({
   attributeDefinition,
@@ -53,6 +55,18 @@ export default function DynamicAttributeInput({
         );
       };
 
+      const unitPrice = Number(attributeDefinition.unitPrice ?? 0);
+      const pricingRule = attributeDefinition.pricingRule;
+
+      const hasAdditionalPrice =
+        pricingRule !== 'NONE' && Number.isFinite(unitPrice) && unitPrice > 0;
+
+      const priceDescription = hasAdditionalPrice
+        ? pricingRule === 'PER_UNIT_MULTIPLIER'
+          ? `תוספת ${formatPrice(unitPrice)} ליחידה`
+          : `תוספת ${formatPrice(unitPrice)} חד-פעמית`
+        : 'ללא תוספת תשלום';
+
       const control =
         displayStyle === 'SWITCH' ? (
           <Switch
@@ -69,13 +83,28 @@ export default function DynamicAttributeInput({
         );
 
       return (
-        <FormControlLabel
-          control={control}
-          label={<Typography variant="body2">{attributeName}</Typography>}
-          sx={{
-            m: 0,
-          }}
-        />
+        <Box sx={{ width: '100%' }}>
+          <FormControlLabel
+            control={control}
+            label={
+              <Box>
+                <Typography variant="body2">
+                  {attributeName}
+                  {isRequired ? ' *' : ''}
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', mt: 0.25 }}
+                >
+                  {priceDescription}
+                </Typography>
+              </Box>
+            }
+            sx={{ m: 0 }}
+          />
+        </Box>
       );
     }
 
@@ -83,7 +112,6 @@ export default function DynamicAttributeInput({
       const textValue = typeof value?.value === 'string' ? value.value : '';
 
       const hasError = isRequired && textValue.trim().length === 0;
-
       const isMultiline = displayStyle === 'MULTI_LINE';
 
       return (
@@ -110,7 +138,6 @@ export default function DynamicAttributeInput({
             helperText={hasError ? 'שדה זה הוא שדה חובה' : undefined}
             onChange={(event) => {
               const newValue = event.target.value;
-
               const isValid = !isRequired || newValue.trim().length > 0;
 
               onChange(

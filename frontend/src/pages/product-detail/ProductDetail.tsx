@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Box, Breadcrumbs, CircularProgress, Typography } from '@mui/material';
+import React, { useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  Breadcrumbs,
+  CircularProgress,
+  Snackbar,
+  Typography,
+} from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { SelectedAttributeInput } from 'shared-types';
 
@@ -20,6 +29,8 @@ interface ProductConfiguration {
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { product, isLoading: productIsLoading, error: productError } = useProductDetails(id);
 
@@ -33,8 +44,13 @@ export const ProductDetailPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [wasAddedToCart, setWasAddedToCart] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
+
+  // Prevent repeated submissions before React has committed state updates.
+  const addToCartInProgress = useRef(false);
 
   const {
     priceResult,
@@ -50,10 +66,19 @@ export const ProductDetailPage: React.FC = () => {
   });
 
   const handleAddToCart = async () => {
-    if (!product || !formIsValid || !priceResult) {
+    if (
+      !product ||
+      !formIsValid ||
+      !priceResult ||
+      priceIsLoading ||
+      priceError ||
+      addToCartInProgress.current ||
+      wasAddedToCart
+    ) {
       return;
     }
 
+    addToCartInProgress.current = true;
     setIsAddingToCart(true);
     setAddToCartError(null);
 
@@ -70,11 +95,36 @@ export const ProductDetailPage: React.FC = () => {
         selectedAttributes: configuration.selectedAttributes,
         uploadedFilePath,
       });
-    } catch (error) {
-      setAddToCartError(error instanceof Error ? error.message : 'הוספת המוצר לסל נכשלה');
+
+      setWasAddedToCart(true);
+      setShowSuccessMessage(true);
+
+      // Update cart summaries without treating a cache-refresh failure
+      // as a failed addition.
+      void queryClient.invalidateQueries({
+        queryKey: ['activeCart'],
+      });
+    } catch {
+      setAddToCartError('לא ניתן להוסיף את המוצר לסל כרגע. אנא נסה שוב.');
     } finally {
+      addToCartInProgress.current = false;
       setIsAddingToCart(false);
     }
+  };
+
+  const configurationSnapshot = useRef('');
+
+  const handleConfigurationChange = (value: ProductConfiguration, isValid: boolean) => {
+    const snapshot = JSON.stringify(value);
+
+    if (configurationSnapshot.current !== snapshot) {
+      configurationSnapshot.current = snapshot;
+      setConfiguration(value);
+      setWasAddedToCart(false);
+      setAddToCartError(null);
+    }
+
+    setFormIsValid(isValid);
   };
 
   if (productIsLoading) {
@@ -174,6 +224,7 @@ export const ProductDetailPage: React.FC = () => {
             isFormValid={formIsValid}
             onAddToCart={handleAddToCart}
             isAddingToCart={isAddingToCart}
+            wasAddedToCart={wasAddedToCart}
           />
         </Box>
 
@@ -205,14 +256,43 @@ export const ProductDetailPage: React.FC = () => {
             attributeDefinitions={product.attributes}
             minQuantity={product.minQuantity}
             maxQuantity={product.maxQuantity}
-            onChange={(value, isValid) => {
-              setConfiguration(value);
-              setFormIsValid(isValid);
+            onChange={handleConfigurationChange}
+            onFileChange={(file) => {
+              setSelectedFile(file);
+              setWasAddedToCart(false);
+              setAddToCartError(null);
             }}
-            onFileChange={setSelectedFile}
           />
         </Box>
       </Box>
+
+      <Snackbar
+        open={showSuccessMessage}
+        autoHideDuration={6000}
+        onClose={(_event, reason) => {
+          if (reason !== 'clickaway') {
+            setShowSuccessMessage(false);
+          }
+        }}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+      >
+        <Alert
+          severity="success"
+          variant="filled"
+          onClose={() => setShowSuccessMessage(false)}
+          action={
+            <Button color="inherit" size="small" onClick={() => navigate('/cart')}>
+              מעבר לסל
+            </Button>
+          }
+          sx={{ width: '100%', direction: 'rtl' }}
+        >
+          המוצר נוסף לסל בהצלחה!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -1,5 +1,6 @@
 import { Box, Button, CircularProgress, Divider, Typography } from '@mui/material';
 
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 
 import type { PriceResult } from 'shared-types';
@@ -11,17 +12,21 @@ interface PriceBreakdownProps {
   isFormValid?: boolean;
   onAddToCart?: () => void;
   isAddingToCart?: boolean;
+  wasAddedToCart?: boolean;
 }
+
+type BreakdownLine = PriceResult['breakdown'][number];
 
 interface PriceRowProps {
   label: string;
   selectedValue?: string;
   price: number;
+  calculationItems?: BreakdownLine['calculationItems'];
 }
 
 const formatPrice = (price: number): string => `₪${price.toFixed(2)}`;
 
-function PriceRow({ label, selectedValue, price }: PriceRowProps) {
+function PriceRow({ label, selectedValue, price, calculationItems }: PriceRowProps) {
   return (
     <Box
       sx={{
@@ -43,6 +48,8 @@ function PriceRow({ label, selectedValue, price }: PriceRowProps) {
           sx={{
             color: 'rgba(255,255,255,0.92)',
             fontWeight: 500,
+            direction: 'ltr',
+            textAlign: 'left',
           }}
         >
           {label}
@@ -61,6 +68,26 @@ function PriceRow({ label, selectedValue, price }: PriceRowProps) {
             {selectedValue}
           </Typography>
         ) : null}
+
+        {calculationItems?.map((item, index) => (
+          <Typography
+            key={`${item.label}-${index}`}
+            variant="caption"
+            sx={{
+              display: 'block',
+              color: 'rgba(255,255,255,0.75)',
+              mt: 0.5,
+              textAlign: 'left',
+              direction: 'ltr',
+            }}
+          >
+            {calculationItems.length > 1 ? `${item.label}: ` : ''}
+            {item.multiplierLabel === 'חד-פעמי'
+              ? `${formatPrice(item.unitPrice)} (חד-פעמי)`
+              : `${formatPrice(item.unitPrice)} × ${item.multiplier} ${item.multiplierLabel}`}
+            {` = ${formatPrice(item.contribution)}`}
+          </Typography>
+        ))}
       </Box>
 
       <Typography
@@ -85,6 +112,7 @@ export default function PriceBreakdown({
   isFormValid = false,
   onAddToCart,
   isAddingToCart = false,
+  wasAddedToCart = false,
 }: PriceBreakdownProps) {
   return (
     <Box
@@ -160,6 +188,7 @@ export default function PriceBreakdown({
                 label={line.attributeName}
                 selectedValue={shouldShowSelectedValue ? line.selectedValue : undefined}
                 price={line.contribution}
+                calculationItems={line.calculationItems}
               />
             );
           })}
@@ -225,30 +254,50 @@ export default function PriceBreakdown({
           <Button
             fullWidth
             variant="contained"
-            endIcon={!isAddingToCart ? <ShoppingCartOutlinedIcon /> : undefined}
-            disabled={!isFormValid || !result || isLoading || isAddingToCart}
+            color={wasAddedToCart ? 'success' : 'primary'}
+            endIcon={
+              wasAddedToCart ? (
+                <CheckCircleOutlineIcon />
+              ) : !isAddingToCart ? (
+                <ShoppingCartOutlinedIcon />
+              ) : undefined
+            }
+            disabled={
+              !isFormValid ||
+              !result ||
+              isLoading ||
+              isAddingToCart ||
+              wasAddedToCart ||
+              Boolean(error)
+            }
             onClick={onAddToCart}
             sx={{
               minHeight: 48,
               borderRadius: 2,
-              bgcolor: '#3a36ab',
+              bgcolor: wasAddedToCart ? 'success.main' : '#3a36ab',
               color: 'common.white',
               fontWeight: 700,
-
               '&:hover': {
-                bgcolor: 'grey.100',
+                bgcolor: wasAddedToCart ? 'success.dark' : '#302c96',
               },
+              '&.Mui-disabled': wasAddedToCart
+                ? {
+                    bgcolor: 'success.main',
+                    color: 'common.white',
+                    opacity: 0.85,
+                  }
+                : undefined,
             }}
           >
             {isAddingToCart ? (
-              <CircularProgress
-                size={22}
-                sx={{
-                  color: 'common.white',
-                }}
-              />
+              <>
+                <CircularProgress size={20} sx={{ color: 'common.white', mr: 1 }} />
+                מוסיף לסל...
+              </>
+            ) : wasAddedToCart ? (
+              'נוסף לסל בהצלחה'
             ) : (
-              'המשך לסל'
+              'הוסף לסל'
             )}
           </Button>
         </>

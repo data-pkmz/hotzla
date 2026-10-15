@@ -38,7 +38,9 @@ export interface CheckoutFormValues {
   notes?: string;
 }
 
-// Checkout flow for requester details, budget approval, and optional notes.
+const CHECKOUT_ERROR_MESSAGE =
+  'לא ניתן להשלים את ההזמנה כרגע. אנא נסה שוב. אם הבעיה נמשכת, פנה לתמיכה.';
+
 const checkoutSchema = z.object({
   customer: z.object({
     name: z.string().min(2, 'שם המזמין הוא שדה חובה'),
@@ -62,7 +64,7 @@ export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.currentUser);
 
-  // Fetch the authenticated requester profile so the form can be pre-filled with current user data.
+  // Load the requester profile to pre-fill the checkout form.
   const {
     data: userProfile,
     isLoading: isLoadingUser,
@@ -71,9 +73,11 @@ export const CheckoutPage: React.FC = () => {
     queryKey: ['auth-me'],
     queryFn: async () => {
       const response = await apiFetch('/api/auth/me');
+
       if (!response.ok) {
         throw new Error('Failed to load user profile');
       }
+
       return response.json();
     },
   });
@@ -116,7 +120,7 @@ export const CheckoutPage: React.FC = () => {
     formState: { errors, isSubmitting },
   } = form;
 
-  // Submit the order payload to the backend and redirect to the confirmation page on success.
+  // Submit checkout and redirect only after the order is created.
   const submitMutation = useMutation<Order, Error, CheckoutFormValues>({
     mutationFn: async (values: CheckoutFormValues) => {
       const payload: CreateOrderInput = {
@@ -136,7 +140,14 @@ export const CheckoutPage: React.FC = () => {
     },
   });
 
+  // Keep controls disabled for the entire network request.
+  const isCheckoutPending = isSubmitting || submitMutation.isPending;
+
   const onSubmit = (values: CheckoutFormValues) => {
+    if (submitMutation.isPending) {
+      return;
+    }
+
     submitMutation.mutate(values);
   };
 
@@ -146,6 +157,7 @@ export const CheckoutPage: React.FC = () => {
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
           קופה ופרטי מזמין
         </Typography>
+
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           כאן יוזנו פרטי המזמין ופרטי קצין התקציב לאישור.
         </Typography>
@@ -215,7 +227,7 @@ export const CheckoutPage: React.FC = () => {
           </Card>
 
           <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <BudgetOfficerForm register={register} errors={errors} disabled={isSubmitting} />
+            <BudgetOfficerForm register={register} errors={errors} disabled={isCheckoutPending} />
           </Card>
 
           <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
@@ -229,25 +241,46 @@ export const CheckoutPage: React.FC = () => {
               dir="rtl"
               multiline
               minRows={4}
+              disabled={isCheckoutPending}
               placeholder="הערות, הוראות מיוחדות, מפגש, עיצוב, או פירוט נוסף..."
               {...register('notes')}
             />
           </Card>
 
-          {submitMutation.isError ? (
+          {submitMutation.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {(submitMutation.error as Error).message || 'אירעה שגיאה בשליחת ההזמנה'}
+              {CHECKOUT_ERROR_MESSAGE}
             </Alert>
-          ) : null}
+          )}
 
           <Divider sx={{ my: 3 }} />
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
-            <Button variant="outlined" onClick={() => navigate('/cart')} disabled={isSubmitting}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/cart')}
+              disabled={isCheckoutPending}
+            >
               חזרה לעגלה
             </Button>
-            <Button type="submit" variant="contained" size="large" disabled={isSubmitting}>
-              {isSubmitting ? 'שולח...' : 'שלח לאישור תקציבי'}
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              disabled={isCheckoutPending}
+              startIcon={
+                isCheckoutPending ? <CircularProgress size={18} color="inherit" /> : undefined
+              }
+            >
+              {isCheckoutPending ? 'שולח...' : 'שלח לאישור תקציבי'}
             </Button>
           </Box>
         </Box>
