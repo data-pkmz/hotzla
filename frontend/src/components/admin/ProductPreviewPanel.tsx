@@ -35,7 +35,6 @@ export interface PreviewProduct {
 export interface ProductPreviewPanelProps {
   product: PreviewProduct;
   attributes: BuilderAttribute[];
-  price?: number;
 }
 
 export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
@@ -50,33 +49,68 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
 
   // Calculate live dynamic preview price
   const calculatedPrice = React.useMemo(() => {
-    let base = Number(product.basePrice) || 0;
-    let multiplier = 1;
+    const validQuantity = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+
+    const basePrice = Number(product.basePrice) || 0;
+    const baseTotal = basePrice * validQuantity;
+
+    let additionalTotal = 0;
 
     for (const attr of attributes) {
-      if (attr.attributeType === 'SELECT') {
-        const chosenVal = selectedValues[attr.id];
-        const chosenOpt = attr.options.find(
-          (o) => o.optionValue === chosenVal || o.optionLabel === chosenVal
-        );
-        if (chosenOpt) {
-          const mod = Number(chosenOpt.priceModifier) || 0;
-          if (chosenOpt.priceModifierType === 'MULTIPLY') {
-            multiplier *= mod > 0 ? mod : 1;
-          } else {
-            base += chosenOpt.isPerUnit ? mod * quantity : mod;
+      switch (attr.attributeType) {
+        case 'SELECT': {
+          const selectedOptionId = selectedValues[attr.id];
+
+          const selectedOption = attr.options.find((option) => option.id === selectedOptionId);
+
+          if (!selectedOption) break;
+
+          // Only FIXED_ADD is supported by the backend.
+          if (selectedOption.priceModifierType !== 'FIXED_ADD') {
+            break;
           }
+
+          const optionPrice = Number(selectedOption.priceModifier) || 0;
+
+          additionalTotal += selectedOption.isPerUnit ? optionPrice * validQuantity : optionPrice;
+
+          break;
         }
-      } else if (attr.attributeType === 'NUMBER') {
-        const num = numberValues[attr.id] || 0;
-        if (attr.pricingRule === 'PER_UNIT_MULTIPLIER' && attr.unitPrice) {
-          base += Number(attr.unitPrice) * num;
+
+        case 'NUMBER': {
+          if (attr.pricingRule !== 'PER_UNIT_MULTIPLIER') break;
+
+          const value = numberValues[attr.id] || 0;
+          const unitPrice = Number(attr.unitPrice) || 0;
+
+          // Numeric attributes are charged once per order.
+          additionalTotal += value * unitPrice;
+
+          break;
         }
+
+        case 'BOOLEAN': {
+          if (!boolValues[attr.id]) break;
+
+          const price = Number(attr.unitPrice) || 0;
+
+          if (attr.pricingRule === 'FLAT_ADD_PER_OPTION') {
+            additionalTotal += price;
+          } else if (attr.pricingRule === 'PER_UNIT_MULTIPLIER') {
+            additionalTotal += price * validQuantity;
+          }
+
+          break;
+        }
+
+        case 'TEXT':
+        case 'FILE_UPLOAD':
+          break;
       }
     }
 
-    return (base * multiplier * quantity).toFixed(2);
-  }, [product.basePrice, attributes, selectedValues, numberValues, quantity]);
+    return (baseTotal + additionalTotal).toFixed(2);
+  }, [product.basePrice, attributes, selectedValues, numberValues, boolValues, quantity]);
 
   return (
     <Paper
@@ -155,9 +189,7 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
                   {attribute.displayStyle === 'CARDS' ? (
                     <Stack direction="row" flexWrap="wrap" gap={1}>
                       {attribute.options.map((opt) => {
-                        const isSelected =
-                          selectedValues[attribute.id] === opt.optionValue ||
-                          selectedValues[attribute.id] === opt.optionLabel;
+                        const isSelected = selectedValues[attribute.id] === opt.id;
                         return (
                           <Card
                             key={opt.id}
@@ -172,10 +204,10 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
                           >
                             <CardActionArea
                               onClick={() =>
-                                setSelectedValues({
-                                  ...selectedValues,
-                                  [attribute.id]: opt.optionValue || opt.optionLabel,
-                                })
+                                setSelectedValues((current) => ({
+                                  ...current,
+                                  [attribute.id]: opt.id,
+                                }))
                               }
                               sx={{ p: 1.25, textAlign: 'center' }}
                             >
@@ -198,20 +230,21 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
                       fullWidth
                       size="small"
                       value={selectedValues[attribute.id] || ''}
-                      onChange={(e) =>
-                        setSelectedValues({
-                          ...selectedValues,
-                          [attribute.id]: e.target.value,
-                        })
+                      onChange={(event) =>
+                        setSelectedValues((current) => ({
+                          ...current,
+                          [attribute.id]: event.target.value,
+                        }))
                       }
                     >
                       <MenuItem value="" disabled>
                         בחירת {attribute.attributeName}
                       </MenuItem>
                       {attribute.options.map((opt) => (
-                        <MenuItem key={opt.id} value={opt.optionValue || opt.optionLabel}>
+                        <MenuItem key={opt.id} value={opt.id}>
                           {opt.optionLabel}
-                          {opt.priceModifier > 0 && ` (+${opt.priceModifier} ₪)`}
+                          {Number(opt.priceModifier) > 0 &&
+                            ` (+${opt.priceModifier} ₪${opt.isPerUnit ? ' ליחידה' : ''})`}
                         </MenuItem>
                       ))}
                     </TextField>

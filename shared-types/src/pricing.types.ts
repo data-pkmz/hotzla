@@ -27,6 +27,7 @@ export interface PriceBreakdownLine {
   attributeName: string;
   selectedValue: string;
   contribution: number;
+  calculationItems?: PriceCalculationItem[];
 }
 
 /**
@@ -38,4 +39,12 @@ export interface PriceResult {
   totalAdditionalPrice: number;
   totalPrice: number;
   breakdown: PriceBreakdownLine[];
+}
+
+export interface PriceCalculationItem {
+  label: string;
+  unitPrice: number;
+  multiplier: number;
+  multiplierLabel: string;
+  contribution: number;
 }

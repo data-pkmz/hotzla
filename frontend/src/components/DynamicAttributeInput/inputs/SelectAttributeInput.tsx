@@ -171,18 +171,6 @@ export default function SelectAttributeInput({
           height: 40,
         }}
       >
-        <MenuItem value="" disabled={isRequired}>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              direction: 'ltr',
-            }}
-          >
-            {isRequired ? 'בחר אפשרות' : 'ללא בחירה'}
-          </Typography>
-        </MenuItem>
-
         {sortedOptions.map((option) => (
           <MenuItem
             key={option.id}
