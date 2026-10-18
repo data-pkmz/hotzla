@@ -17,19 +17,14 @@ import logger from '../utils/logger';
  * Returns:
  * - The database ID of the authenticated user.
  *
- * Throws:
- * - An Error with message "Unauthorized" when req.dbUser is missing.
- *
  * Note:
  * - No additional database lookup is performed here because the RBAC
  *   middleware has already resolved the application user.
+ * - Returns null when the database user is missing so the controller
+ *   can respond with HTTP 401.
  */
-const getUserId = (req: Request): string => {
-  if (!req.dbUser) {
-    throw new Error('Unauthorized');
-  }
-
-  return req.dbUser.id;
+const getUserId = (req: Request): string | null => {
+  return req.dbUser?.id ?? null;
 };
 
 export class CartController {
@@ -48,15 +43,22 @@ export class CartController {
    *
    * Sends:
    * - 200 with a success message and the active cart on success.
-   * - 500 with an error message if the cart cannot be retrieved.
+   * - 401 with a safe message if the authenticated database user is missing.
+   * - 500 with a safe error message if the cart cannot be retrieved.
    *
    * Route:
    * - GET /api/cart
    */
   static async getActiveCart(req: Request, res: Response) {
-    try {
-      const userId = getUserId(req);
+    const userId = getUserId(req);
 
+    if (!userId) {
+      return res.status(401).json({
+        error: 'יש להתחבר למערכת כדי לצפות בעגלת הקניות.',
+      });
+    }
+
+    try {
       const cart = await CartService.getActiveCart(userId);
 
       return res.status(200).json({
@@ -66,10 +68,8 @@ export class CartController {
     } catch (error) {
       logger.error('Error fetching active cart:', { error });
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
       return res.status(500).json({
-        error: errorMessage,
+        error: 'לא ניתן לטעון את עגלת הקניות כרגע. אנא נסה שוב.',
       });
     }
   }
@@ -92,14 +92,22 @@ export class CartController {
    *
    * Sends:
    * - 201 with a success message and the newly created cart item.
-   * - 500 with an error message if the item cannot be added.
+   * - 401 with a safe message if the authenticated database user is missing.
+   * - 500 with a safe error message if the item cannot be added.
    *
    * Route:
    * - POST /api/cart/items
    */
   static async addItem(req: Request, res: Response) {
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'יש להתחבר למערכת כדי להוסיף פריטים לעגלה.',
+      });
+    }
+
     try {
-      const userId = getUserId(req);
       const itemData = req.body;
 
       const newItem = await CartService.addItemToCart(userId, itemData);
@@ -109,12 +117,10 @@ export class CartController {
         item: newItem,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
       logger.error('Error adding item to cart:', { error });
 
       return res.status(500).json({
-        error: errorMessage,
+        error: 'לא ניתן להוסיף את הפריט לעגלה כרגע. אנא נסה שוב.',
       });
     }
   }
@@ -134,15 +140,22 @@ export class CartController {
    *
    * Sends:
    * - 200 with a success message after the item is removed.
-   * - 500 with an error message if the item does not exist, does not belong
-   *   to the authenticated user, or cannot be removed.
+   * - 401 with a safe message if the authenticated database user is missing.
+   * - 500 with a safe error message if the item cannot be removed.
    *
    * Route:
    * - DELETE /api/cart/items/:id
    */
   static async removeItem(req: Request, res: Response) {
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'יש להתחבר למערכת כדי להסיר פריטים מהעגלה.',
+      });
+    }
+
     try {
-      const userId = getUserId(req);
       const { id } = req.params;
 
       await CartService.removeItem(userId, id);
@@ -151,12 +164,10 @@ export class CartController {
         message: `Item ${id} removed successfully`,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
       logger.error(`Error removing item ${req.params.id}:`, { error });
 
       return res.status(500).json({
-        error: errorMessage,
+        error: 'לא ניתן להסיר את הפריט מהעגלה כרגע. אנא נסה שוב.',
       });
     }
   }
@@ -180,15 +191,22 @@ export class CartController {
    *
    * Sends:
    * - 200 with a success message and the updated cart item.
-   * - 500 with an error message if the item does not exist, does not belong
-   *   to the authenticated user, or cannot be updated.
+   * - 401 with a safe message if the authenticated database user is missing.
+   * - 500 with a safe error message if the item cannot be updated.
    *
    * Route:
    * - PATCH /api/cart/items/:id
    */
   static async updateItem(req: Request, res: Response) {
+    const userId = getUserId(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'יש להתחבר למערכת כדי לעדכן פריטים בעגלה.',
+      });
+    }
+
     try {
-      const userId = getUserId(req);
       const { id } = req.params;
       const itemData = req.body;
 
@@ -201,10 +219,8 @@ export class CartController {
     } catch (error) {
       logger.error(`Error updating item ${req.params.id}:`, { error });
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
       return res.status(500).json({
-        error: errorMessage,
+        error: 'לא ניתן לעדכן את הפריט בעגלה כרגע. אנא נסה שוב.',
       });
     }
   }
@@ -222,27 +238,32 @@ export class CartController {
    *
    * Sends:
    * - 200 with a success message after the cart is cleared.
-   * - 500 with an error message if the cart cannot be cleared.
+   * - 401 with a safe message if the authenticated database user is missing.
+   * - 500 with a safe error message if the cart cannot be cleared.
    *
    * Route:
    * - DELETE /api/cart/items
    */
   static async clearCart(req: Request, res: Response) {
-    try {
-      const userId = getUserId(req);
+    const userId = getUserId(req);
 
+    if (!userId) {
+      return res.status(401).json({
+        error: 'יש להתחבר למערכת כדי לרוקן את עגלת הקניות.',
+      });
+    }
+
+    try {
       await CartService.clearCart(userId);
 
       return res.status(200).json({
         message: 'Cart cleared successfully',
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
       logger.error('Error clearing cart:', { error });
 
       return res.status(500).json({
-        error: errorMessage,
+        error: 'לא ניתן לרוקן את עגלת הקניות כרגע. אנא נסה שוב.',
       });
     }
   }

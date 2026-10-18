@@ -5,7 +5,6 @@ import type {
   OrderQueryParams,
   SelectedAttributeInput,
 } from 'shared-types';
-
 import {
   ChangeSource,
   NotificationJobType,
@@ -14,15 +13,10 @@ import {
   Role,
   Status,
 } from '@prisma/client';
-
 import { prisma } from '../config/db';
-
 import { OrderNumberGenerator } from '../utils/order-number-generator';
-
 import { AuditLogService } from './audit-log.service';
-
 import { PricingEngineService } from './pricing-engine.service';
-
 export class OrderService {
   /**
    * Converts an active cart into a new order.
@@ -100,11 +94,21 @@ export class OrderService {
         const selectedAttributesArray = Array.isArray(item.selectedAttributes)
           ? (item.selectedAttributes as unknown as SelectedAttributeInput[])
           : [];
+        // Normalize legacy singular SELECT IDs before both pricing and persistence.
+        const normalizedSelectedAttributes = selectedAttributesArray.map((attr) => ({
+          ...attr,
+          selectedOptionIds:
+            attr.selectedOptionIds && attr.selectedOptionIds.length > 0
+              ? [...new Set(attr.selectedOptionIds)]
+              : attr.selectedOptionId
+                ? [attr.selectedOptionId]
+                : [],
+        }));
         const priceResult = await PricingEngineService.calculatePrice(
           {
             productId: item.productId,
             quantity: quantityNum,
-            selectedAttributes: selectedAttributesArray,
+            selectedAttributes: normalizedSelectedAttributes,
           },
           tx
         );
@@ -113,36 +117,28 @@ export class OrderService {
         totalOrderPrice = totalOrderPrice.add(computedTotalPrice);
         const attributeValuesCreate: Prisma.OrderItemAttributeValueCreateWithoutOrderItemInput[] =
           [];
-        for (const attr of selectedAttributesArray) {
-          if (attr.selectedOptionIds && attr.selectedOptionIds.length > 0) {
-            for (const optId of attr.selectedOptionIds) {
+        for (const attr of normalizedSelectedAttributes) {
+          if (attr.selectedOptionIds.length > 0) {
+            // SELECT: retain the chosen option IDs (duplicates were removed above).
+            for (const optionId of attr.selectedOptionIds) {
               attributeValuesCreate.push({
                 attributeDefinition: {
-                  connect: {
-                    id: attr.attributeDefinitionId,
-                  },
+                  connect: { id: attr.attributeDefinitionId },
                 },
                 selectedOption: {
-                  connect: {
-                    id: optId,
-                  },
+                  connect: { id: optionId },
                 },
-                valueText: String(attr.value ?? optId),
+                valueText: String(attr.value ?? optionId),
               });
             }
-          } else if (attr.selectedOptionId) {
+          } else if (attr.value !== undefined && attr.value !== null) {
+            // NUMBER, BOOLEAN, TEXT and string-based values.
+            // Preserve 0, false and empty strings.
             attributeValuesCreate.push({
               attributeDefinition: {
-                connect: {
-                  id: attr.attributeDefinitionId,
-                },
+                connect: { id: attr.attributeDefinitionId },
               },
-              selectedOption: {
-                connect: {
-                  id: attr.selectedOptionId,
-                },
-              },
-              valueText: String(attr.value ?? ''),
+              valueText: String(attr.value),
             });
           }
         }

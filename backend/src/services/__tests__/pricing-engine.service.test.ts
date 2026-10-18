@@ -513,12 +513,18 @@ describe('PricingEngineService', () => {
       expect(result.breakdown).toEqual([
         {
           attributeDefinitionId: 'attribute-copies',
-
           attributeName: 'כמות עותקים',
-
           selectedValue: '100',
-
           contribution: 120,
+          calculationItems: [
+            {
+              label: 'כמות עותקים',
+              unitPrice: 1.2,
+              multiplier: 100,
+              multiplierLabel: 'יחידות ערך',
+              contribution: 120,
+            },
+          ],
         },
       ]);
     });
@@ -667,12 +673,18 @@ describe('PricingEngineService', () => {
       expect(result.breakdown).toEqual([
         {
           attributeDefinitionId: 'attribute-paper',
-
           attributeName: 'סוג נייר',
-
           selectedValue: 'כרומו',
-
           contribution: 20,
+          calculationItems: [
+            {
+              label: 'כרומו',
+              unitPrice: 0.2,
+              multiplier: 100,
+              multiplierLabel: 'יחידות מוצר',
+              contribution: 20,
+            },
+          ],
         },
       ]);
     });
@@ -709,12 +721,18 @@ describe('PricingEngineService', () => {
       expect(result.breakdown).toEqual([
         {
           attributeDefinitionId: 'attribute-binding',
-
           attributeName: 'כריכה',
-
           selectedValue: 'ספירלה',
-
           contribution: 8,
+          calculationItems: [
+            {
+              label: 'ספירלה',
+              unitPrice: 8,
+              multiplier: 1,
+              multiplierLabel: 'חד-פעמי',
+              contribution: 8,
+            },
+          ],
         },
       ]);
     });
