@@ -143,6 +143,21 @@ export class CatalogService {
     });
   }
   /**
+   * Returns products for the manager catalog, including inactive products.
+   * Soft-deleted products remain excluded.
+   */
+  public static async getAllAdminProducts(): Promise<Product[]> {
+    return prisma.product.findMany({
+      where: {
+        isDeleted: false,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+  }
+
+  /**
    * Returns a single active product by ID.
    *
    * Deleted and inactive products are not returned.
@@ -196,6 +211,40 @@ export class CatalogService {
       },
     });
   }
+  /**
+   * Returns an active or inactive, non-deleted product with its current
+   * attribute definitions and options for the manager edit page.
+   * The included relation structure matches getProductDetails().
+   */
+  public static async getAdminProductDetails(id: string) {
+    return prisma.product.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+      },
+      include: {
+        attributeDefinitionEntries: {
+          where: {
+            isDeleted: false,
+          },
+          orderBy: {
+            displayOrder: 'asc',
+          },
+          include: {
+            attributeOptionEntries: {
+              where: {
+                isDeleted: false,
+              },
+              orderBy: {
+                displayOrder: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   /**
    * Creates a new product and optionally its attribute definitions
    * and options.

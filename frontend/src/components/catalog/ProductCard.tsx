@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 
 import type { Product } from 'shared-types';
@@ -7,15 +8,31 @@ import { getProductImageUrl } from '../../services/api/file.service';
 
 interface ProductCardProps {
   product: Product;
+  isManager?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, isManager = false }: ProductCardProps) {
   const navigate = useNavigate();
 
   const basePrice = Number(product.basePrice);
+  const isActive = product.isActive;
 
   const handleProductClick = () => {
+    // Inactive products may not be accessible through
+    // the requester-facing product details endpoint.
+    if (!isActive) {
+      if (isManager) {
+        navigate(`/manager/products/${product.id}/edit`);
+      }
+      return;
+    }
+
     navigate(`/product/${product.id}`);
+  };
+
+  const handleEditClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    navigate(`/manager/products/${product.id}/edit`);
   };
 
   return (
@@ -24,7 +41,12 @@ export default function ProductCard({ product }: ProductCardProps) {
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+
         if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
           handleProductClick();
         }
       }}
@@ -64,6 +86,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             height: '100%',
             objectFit: 'cover',
             display: 'block',
+            opacity: isManager && !isActive ? 0.6 : 1,
           }}
         />
 
@@ -83,6 +106,21 @@ export default function ProductCard({ product }: ProductCardProps) {
             borderRadius: 1,
           }}
         />
+
+        {/* Product activation status, visible only to managers */}
+        {isManager && (
+          <Chip
+            label={isActive ? 'פעיל' : 'לא פעיל'}
+            color={isActive ? 'success' : 'default'}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              fontWeight: 600,
+            }}
+          />
+        )}
       </Box>
 
       <CardContent
@@ -126,7 +164,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-end',
+            alignItems: 'center',
             gap: 2,
           }}
         >
@@ -137,35 +175,43 @@ export default function ProductCard({ product }: ProductCardProps) {
             ₪{basePrice.toFixed(2)}
           </Typography>
 
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              cursor: 'pointer',
-              color: 'primary.main',
-            }}
-          >
-            <Typography
-              variant="body2"
+          {isManager ? (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={handleEditClick}
               sx={{
-                color: 'inherit',
+                whiteSpace: 'nowrap',
               }}
             >
-              התאמה והזמנה
-            </Typography>
+              עריכת מוצר
+            </Button>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                color: 'primary.main',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'inherit' }}>
+                התאמה והזמנה
+              </Typography>
 
-            <Typography
-              component="span"
-              aria-hidden="true"
-              sx={{
-                fontSize: '1.1rem',
-                color: 'inherit',
-              }}
-            >
-              ←
-            </Typography>
-          </Box>
+              <Typography
+                component="span"
+                aria-hidden="true"
+                sx={{
+                  fontSize: '1.1rem',
+                  color: 'inherit',
+                }}
+              >
+                ←
+              </Typography>
+            </Box>
+          )}
         </Box>
       </CardContent>
     </Card>
