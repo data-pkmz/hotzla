@@ -533,24 +533,41 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
     );
   }
 
-  return steps.map((step, index) =>
-    [9, 10, 12, 13, 18].includes(index)
-      ? {
-          ...step,
-          id: `guide-horizontal-step-${index + 1}`,
-          placement: 'right',
-          isFixed: true,
-          floatingOptions: {
-            ...step.floatingOptions,
-            strategy: 'fixed',
-            flipOptions: false,
-            shiftOptions: { padding: 12 },
-          },
-          ...(index === 9 || index === 10 || index === 18 ? { width: 227 } : {}),
-          ...(index === 13 ? { placement: 'left' as const } : {}),
-        }
-      : step
-  );
+  const managerPlacements: Partial<Record<number, Step['placement']>> = {
+    11: 'right',
+    12: 'right',
+    13: 'right',
+    14: 'right',
+    19: 'right',
+  };
+
+  return steps.map((step, index) => {
+    const managerPlacement = role === 'MANAGER' ? managerPlacements[index] : undefined;
+    const isHorizontal = managerPlacement !== undefined || [9, 10, 12, 13, 18].includes(index);
+
+    if (!isHorizontal) {
+      return step;
+    }
+
+    return {
+      ...step,
+      id: `guide-horizontal-step-${index + 1}`,
+      placement: managerPlacement ?? (index === 13 ? 'left' : 'right'),
+      isFixed: true,
+      floatingOptions: {
+        ...step.floatingOptions,
+        strategy: 'fixed',
+        flipOptions: false,
+        shiftOptions: { padding: 12 },
+      },
+      ...(index === 9 ||
+      index === 10 ||
+      index === 18 ||
+      (role === 'MANAGER' && [11, 12, 14, 19].includes(index))
+        ? { width: 227 }
+        : {}),
+    };
+  });
 };
 
 export const UserGuideProvider: React.FC<React.PropsWithChildren> = ({ children }) => {

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UserGuideProvider } from '../UserGuideProvider';
 import { useUserGuide } from '../UserGuideContext';
+import { useAuthStore } from '../../../store/useAuthStore';
 
 vi.mock('react-joyride', () => ({
   Joyride: ({
@@ -71,6 +72,7 @@ const renderGuide = (pathname = '/') =>
 describe('UserGuideProvider', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    useAuthStore.getState().setUser('REQUESTER_ONE');
   });
 
   it('opens the welcome dialog on the first catalog visit and starts the tour', async () => {
@@ -164,5 +166,30 @@ describe('UserGuideProvider', () => {
 
     await user.click(screen.getByRole('button', { name: 'הפעל מדריך' }));
     expect(screen.getByTestId('guide-tour')).toHaveAttribute('data-running', 'true');
+  });
+
+  it('uses manager-specific side placement and narrower width for steps 12-14', async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setUser('MANAGER');
+    window.localStorage.setItem('hotzla-user-guide-seen-v1', 'true');
+
+    renderGuide();
+    await user.click(screen.getByRole('button', { name: 'הפעל מדריך' }));
+
+    const tour = screen.getByTestId('guide-tour');
+    const placements = tour.getAttribute('data-placements')?.split('|');
+    expect(placements?.[11]).toBe('right');
+    expect(placements?.[12]).toBe('right');
+    expect(placements?.[13]).toBe('right');
+    expect(placements?.[14]).toBe('right');
+    expect(placements?.[19]).toBe('right');
+    expect(tour.getAttribute('data-horizontal-steps')).toContain('12');
+    expect(tour.getAttribute('data-horizontal-steps')).toContain('14');
+    expect(tour.getAttribute('data-horizontal-steps')).toContain('15');
+    expect(tour.getAttribute('data-horizontal-steps')).toContain('20');
+    expect(tour.getAttribute('data-narrow-step-widths')).toContain('12:227');
+    expect(tour.getAttribute('data-narrow-step-widths')).toContain('13:227');
+    expect(tour.getAttribute('data-narrow-step-widths')).toContain('15:227');
+    expect(tour.getAttribute('data-narrow-step-widths')).toContain('20:227');
   });
 });
