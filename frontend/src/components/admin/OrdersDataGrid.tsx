@@ -16,6 +16,7 @@ interface OrdersDataGridProps {
   onSortModelChange: (model: GridSortModel) => void;
   onLoadMore: () => void;
   onOrderClick: (id: string) => void;
+  readOnly?: boolean;
 }
 
 const columns: GridColDef<Order>[] = [
@@ -89,6 +90,7 @@ export default function OrdersDataGrid({
   onSortModelChange,
   onLoadMore,
   onOrderClick,
+  readOnly = false,
 }: OrdersDataGridProps) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -136,10 +138,11 @@ export default function OrdersDataGrid({
         columns={columns}
         loading={loading}
         sortingMode="server"
+        disableColumnSorting={readOnly}
         sortModel={sortModel}
         sortingOrder={['asc', 'desc']}
         onSortModelChange={onSortModelChange}
-        onRowClick={(params) => onOrderClick(String(params.id))}
+        onRowClick={readOnly ? undefined : (params) => onOrderClick(String(params.id))}
         hideFooter
         disableRowSelectionOnClick
         disableColumnMenu
@@ -158,7 +161,7 @@ export default function OrdersDataGrid({
           },
 
           '& .MuiDataGrid-row': {
-            cursor: 'pointer',
+            cursor: readOnly ? 'default' : 'pointer',
           },
 
           '& .MuiDataGrid-cell:focus, & .MuiDataGrid-cell:focus-within': {

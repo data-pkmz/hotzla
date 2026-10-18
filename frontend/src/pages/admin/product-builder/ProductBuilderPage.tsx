@@ -652,6 +652,7 @@ export const ProductBuilderPage: React.FC = () => {
   if (loading) {
     return (
       <Box
+        id="guide-product-builder-page"
         sx={{
           display: 'grid',
           placeItems: 'center',
@@ -665,6 +666,7 @@ export const ProductBuilderPage: React.FC = () => {
 
   return (
     <Box
+      id="guide-product-builder-page"
       sx={{
         maxWidth: 1440,
         mx: 'auto',
@@ -684,7 +686,7 @@ export const ProductBuilderPage: React.FC = () => {
           <Stack direction="row" alignItems="center" gap={1}>
             <AutoAwesomeRoundedIcon color="primary" sx={{ fontSize: 32 }} />
 
-            <Typography variant="h4" fontWeight={700}>
+            <Typography id="guide-product-builder-title" variant="h4" fontWeight={700}>
               בונה מוצר דינמי
             </Typography>
           </Stack>
@@ -695,6 +697,7 @@ export const ProductBuilderPage: React.FC = () => {
         </Box>
 
         <Button
+          id="guide-product-builder-save"
           variant="contained"
           size="large"
           startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveRoundedIcon />}
@@ -719,6 +722,7 @@ export const ProductBuilderPage: React.FC = () => {
       >
         <Box sx={{ direction: 'rtl', minWidth: 0 }}>
           <Paper
+            id="guide-product-builder-fields"
             sx={{
               p: { xs: 2, md: 3 },
               mb: 3,
@@ -965,6 +969,7 @@ export const ProductBuilderPage: React.FC = () => {
           </Paper>
 
           <Paper
+            id="guide-product-builder-attributes"
             sx={{
               p: { xs: 2, md: 3 },
               border: '1px solid',

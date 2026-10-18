@@ -1,5 +1,6 @@
 import { Box, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 
 import type { Product } from 'shared-types';
 
@@ -7,9 +8,10 @@ import { getProductImageUrl } from '../../services/api/file.service';
 
 interface ProductCardProps {
   product: Product;
+  demoOnly?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, demoOnly = false }: ProductCardProps) {
   const navigate = useNavigate();
 
   const basePrice = Number(product.basePrice);
@@ -20,11 +22,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Card
-      onClick={handleProductClick}
-      role="button"
-      tabIndex={0}
+      {...(!demoOnly && { 'data-guide-product-id': product.id })}
+      onClick={demoOnly ? undefined : handleProductClick}
+      {...(!demoOnly && { role: 'button', tabIndex: 0 })}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (!demoOnly && (event.key === 'Enter' || event.key === ' ')) {
           handleProductClick();
         }
       }}
@@ -36,13 +38,15 @@ export default function ProductCard({ product }: ProductCardProps) {
         borderColor: 'divider',
         boxShadow: 'none',
         overflow: 'hidden',
-        cursor: 'pointer',
+        cursor: demoOnly ? 'default' : 'pointer',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
 
-        '&:hover': {
-          boxShadow: 3,
-          transform: 'translateY(-2px)',
-        },
+        ...(!demoOnly && {
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+          },
+        }),
       }}
     >
       {/* Product image */}
@@ -55,17 +59,46 @@ export default function ProductCard({ product }: ProductCardProps) {
           overflow: 'hidden',
         }}
       >
-        <Box
-          component="img"
-          src={getProductImageUrl(product.imageUrl)}
-          alt={product.name}
-          sx={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
+        {product.imageUrl ? (
+          <Box
+            component="img"
+            src={getProductImageUrl(product.imageUrl)}
+            alt={product.name}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        ) : (
+          <Box
+            aria-label={`אין תמונה זמינה עבור ${product.name}`}
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'grid',
+              placeItems: 'center',
+              color: 'text.disabled',
+            }}
+          >
+            <ImageOutlinedIcon sx={{ fontSize: 48 }} />
+          </Box>
+        )}
+
+        {demoOnly && (
+          <Chip
+            label="דוגמה פיקטיבית"
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              bgcolor: 'background.paper',
+              color: 'text.secondary',
+            }}
+          />
+        )}
 
         {/* Category tag */}
         <Chip
@@ -142,29 +175,31 @@ export default function ProductCard({ product }: ProductCardProps) {
               display: 'flex',
               alignItems: 'center',
               gap: 0.75,
-              cursor: 'pointer',
+              cursor: demoOnly ? 'default' : 'pointer',
               color: 'primary.main',
             }}
           >
             <Typography
               variant="body2"
               sx={{
-                color: 'inherit',
+                color: demoOnly ? 'text.secondary' : 'inherit',
               }}
             >
-              התאמה והזמנה
+              {demoOnly ? 'דוגמה להמחשה' : 'התאמה והזמנה'}
             </Typography>
 
-            <Typography
-              component="span"
-              aria-hidden="true"
-              sx={{
-                fontSize: '1.1rem',
-                color: 'inherit',
-              }}
-            >
-              ←
-            </Typography>
+            {!demoOnly && (
+              <Typography
+                component="span"
+                aria-hidden="true"
+                sx={{
+                  fontSize: '1.1rem',
+                  color: 'inherit',
+                }}
+              >
+                ←
+              </Typography>
+            )}
           </Box>
         </Box>
       </CardContent>

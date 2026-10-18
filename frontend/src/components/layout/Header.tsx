@@ -23,6 +23,7 @@ export const Header: React.FC = () => {
   return (
     <>
       <AppBar
+        id="guide-site-header"
         position="fixed"
         elevation={1}
         sx={{

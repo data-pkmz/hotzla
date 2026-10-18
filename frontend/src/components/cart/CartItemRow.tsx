@@ -22,9 +22,15 @@ interface CartItemRowProps {
   item: CartItem;
   onUpdateQuantity: (id: string, newQuantity: number) => void;
   onRemove: (id: string) => void;
+  demoOnly?: boolean;
 }
 
-export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
+export default function CartItemRow({
+  item,
+  onUpdateQuantity,
+  onRemove,
+  demoOnly = false,
+}: CartItemRowProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   // Safe defaults in case product data is missing
   const productName = item.product?.name || 'מוצר לא ידוע';
@@ -112,6 +118,11 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
           <Typography variant="h6" sx={{ fontWeight: 'bold', textAlign: 'start' }}>
             {productName}
           </Typography>
+          {demoOnly && (
+            <Typography variant="caption" color="text.secondary">
+              מידע פיקטיבי לדוגמה
+            </Typography>
+          )}
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'start' }}>
             {attributesText || 'ללא תכונות מיוחדות'}
           </Typography>
@@ -123,6 +134,7 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
           minQuantity={item.product?.minQuantity ?? 1}
           maxQuantity={item.product?.maxQuantity ?? null}
           onUpdate={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
+          disabled={demoOnly}
         />
 
         {/* 4. Price & Remove */}
@@ -141,47 +153,51 @@ export default function CartItemRow({ item, onUpdateQuantity, onRemove }: CartIt
 
           <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', sm: 'block' } }} />
 
-          <IconButton
-            color="error"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            sx={{
-              bgcolor: 'error.lighter',
-              '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' },
-            }}
-          >
-            <DeleteOutlineIcon />
-          </IconButton>
+          {!demoOnly && (
+            <IconButton
+              color="error"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              sx={{
+                bgcolor: 'error.lighter',
+                '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' },
+              }}
+            >
+              <DeleteOutlineIcon />
+            </IconButton>
+          )}
         </Box>
       </Card>
 
-      <Dialog
-        open={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        dir="rtl"
-        disableScrollLock={true}
-      >
-        <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'start' }}>מחיקת פריט</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ textAlign: 'start' }}>
-            האם אתה בטוח שברצונך למחוק את הפריט "{productName}" מהעגלה?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setIsDeleteDialogOpen(false)} color="inherit">
-            ביטול
-          </Button>
-          <Button
-            onClick={() => {
-              setIsDeleteDialogOpen(false);
-              onRemove(item.id);
-            }}
-            color="error"
-            variant="contained"
-          >
-            מחק
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {!demoOnly && (
+        <Dialog
+          open={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          dir="rtl"
+          disableScrollLock={true}
+        >
+          <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'start' }}>מחיקת פריט</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ textAlign: 'start' }}>
+              האם אתה בטוח שברצונך למחוק את הפריט "{productName}" מהעגלה?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setIsDeleteDialogOpen(false)} color="inherit">
+              ביטול
+            </Button>
+            <Button
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                onRemove(item.id);
+              }}
+              color="error"
+              variant="contained"
+            >
+              מחק
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </>
   );
 }

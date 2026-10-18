@@ -7,6 +7,7 @@ import { CacheProvider } from '@emotion/react';
 import { theme } from './theme/theme';
 import { rtlCache } from './theme/rtlCache';
 import { MainLayout } from './components/layout/MainLayout';
+import { UserGuideProvider } from './components/guide/UserGuideProvider';
 import { AppRoutes } from './routes/AppRoutes';
 
 const queryClient = new QueryClient();
@@ -17,9 +18,11 @@ export const App: React.FC = () => {
       <CacheProvider value={rtlCache}>
         <ThemeProvider theme={theme}>
           <BrowserRouter>
-            <MainLayout>
-              <AppRoutes />
-            </MainLayout>
+            <UserGuideProvider>
+              <MainLayout>
+                <AppRoutes />
+              </MainLayout>
+            </UserGuideProvider>
           </BrowserRouter>
         </ThemeProvider>
       </CacheProvider>

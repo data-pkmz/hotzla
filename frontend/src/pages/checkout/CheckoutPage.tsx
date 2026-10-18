@@ -147,7 +147,7 @@ export const CheckoutPage: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }} dir="rtl">
       <Card sx={{ p: { xs: 2, md: 4 }, borderRadius: 3, boxShadow: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+        <Typography id="guide-checkout-title" variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
           קופה ופרטי מזמין
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
@@ -165,7 +165,11 @@ export const CheckoutPage: React.FC = () => {
         ) : null}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Card
+            id="guide-checkout-customer"
+            variant="outlined"
+            sx={{ p: 3, mb: 3, borderRadius: 2 }}
+          >
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               1. פרטי המזמין
             </Typography>
@@ -218,7 +222,7 @@ export const CheckoutPage: React.FC = () => {
             </Grid>
           </Card>
 
-          <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Card id="guide-checkout-budget" variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
             <BudgetOfficerForm register={register} errors={errors} disabled={isSubmitting} />
           </Card>
 
@@ -263,7 +267,10 @@ export const CheckoutPage: React.FC = () => {
 
           <Divider sx={{ my: 3 }} />
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
+          <Box
+            id="guide-checkout-actions"
+            sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}
+          >
             <Button variant="outlined" onClick={() => navigate('/cart')} disabled={isSubmitting}>
               חזרה לעגלה
             </Button>
