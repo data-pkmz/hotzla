@@ -12,7 +12,6 @@ import { ProductBuilderPage } from '../pages/admin/product-builder';
 import { OrderDetailsPage } from '../pages/order-details-page';
 import { PublicApprovalPage } from '../pages/public/PublicApprovalPage';
 import { WorkerQueuePage } from '../pages/worker/WorkerQueuePage';
-import EditProductPage from '../pages/edit-product/EditProductPage';
 
 // Main application route configuration for the checkout feature and related pages.
 export const AppRoutes: React.FC = () => {
@@ -31,7 +30,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/builder" element={<ProductBuilderPage />} />
       <Route path="/admin/builder/:id" element={<ProductBuilderPage />} />
       <Route path="/worker/queue" element={<WorkerQueuePage />} />
-      <Route path="/manager/products/:productId/edit" element={<EditProductPage />} />
+      <Route path="/manager/products/:productId/edit" element={<ProductBuilderPage />} />
     </Routes>
   );
 };

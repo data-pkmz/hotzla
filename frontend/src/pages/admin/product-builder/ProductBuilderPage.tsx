@@ -305,7 +305,8 @@ const validateAttributes = (attributes: BuilderAttribute[]): string | null => {
 };
 
 export const ProductBuilderPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: builderId, productId } = useParams<{ id?: string; productId?: string }>();
+  const id = productId ?? builderId;
   const navigate = useNavigate();
 
   const [product, setProduct] = useState<ProductForm>(initialProduct);
@@ -326,6 +327,9 @@ export const ProductBuilderPage: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
+  // Track persisted IDs separately from client-generated temporary IDs.
+  const persistedAttributeIds = useRef<Set<string>>(new Set());
+  const persistedOptionIds = useRef<Set<string>>(new Set());
 
   const [notice, setNotice] = useState<{
     severity: 'success' | 'error';
@@ -437,6 +441,10 @@ export const ProductBuilderPage: React.FC = () => {
           };
         });
 
+        persistedAttributeIds.current = new Set(loadedAttrs.map((attr) => attr.id));
+        persistedOptionIds.current = new Set(
+          loadedAttrs.flatMap((attr) => attr.options.map((opt) => opt.id))
+        );
         setAttributes(normalizeAttributes(loadedAttrs));
       })
       .catch((err: Error) => {
@@ -641,6 +649,7 @@ export const ProductBuilderPage: React.FC = () => {
         imageUrl: savedImagePath,
 
         definitions: normalizedAttributes.map((attribute, index) => ({
+          ...(persistedAttributeIds.current.has(attribute.id) ? { id: attribute.id } : {}),
           attributeName: attribute.attributeName.trim(),
           attributeType: attribute.attributeType,
           displayStyle: attribute.displayStyle,
@@ -655,6 +664,7 @@ export const ProductBuilderPage: React.FC = () => {
           maxValue: attribute.maxValue !== null ? Number(attribute.maxValue) : null,
 
           options: attribute.options.map((option, optionIndex) => ({
+            ...(persistedOptionIds.current.has(option.id) ? { id: option.id } : {}),
             optionLabel: option.optionLabel.trim(),
             optionValue: (option.optionValue || option.optionLabel).trim(),
 
@@ -669,6 +679,48 @@ export const ProductBuilderPage: React.FC = () => {
       };
 
       const result = id ? await updateAdminProduct(id, payload) : await createAdminProduct(payload);
+
+      if (id) {
+        // Fetch the saved product, including database-generated IDs.
+        const saved = await getAdminProductById(id);
+
+        const savedAttrs = saved.attributeDefinitionEntries ?? saved.attributes ?? [];
+
+        // Update the actual React state, not only the ID-tracking refs.
+        const reloadedAttributes: BuilderAttribute[] = savedAttrs.map((attr, index) => {
+          const savedOptions = attr.options ?? attr.attributeOptionEntries ?? [];
+
+          return {
+            id: attr.id,
+            attributeName: attr.attributeName,
+            attributeType: attr.attributeType,
+            displayStyle: attr.displayStyle,
+            isRequired: attr.isRequired ?? false,
+            displayOrder: attr.displayOrder ?? index,
+            pricingRule: attr.pricingRule ?? 'NONE',
+            unitPrice: attr.unitPrice ?? null,
+            minValue: attr.minValue ?? null,
+            maxValue: attr.maxValue ?? null,
+            options: savedOptions.map((opt, optionIndex) => ({
+              id: opt.id,
+              optionLabel: opt.optionLabel,
+              optionValue: opt.optionValue,
+              priceModifier: opt.priceModifier ?? 0,
+              priceModifierType: opt.priceModifierType ?? 'FIXED_ADD',
+              displayOrder: opt.displayOrder ?? optionIndex,
+              isPerUnit: opt.isPerUnit ?? false,
+            })),
+          };
+        });
+
+        persistedAttributeIds.current = new Set(reloadedAttributes.map((attr) => attr.id));
+
+        persistedOptionIds.current = new Set(
+          reloadedAttributes.flatMap((attr) => attr.options.map((option) => option.id))
+        );
+
+        setAttributes(normalizeAttributes(reloadedAttributes));
+      }
 
       setImagePath(savedImagePath);
       setImageFile(null);

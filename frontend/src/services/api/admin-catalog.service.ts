@@ -59,7 +59,7 @@ export interface ProductWithAttributes extends Product {
  * Fetches single product with its attribute definitions.
  */
 export const getAdminProductById = async (id: string): Promise<ProductWithAttributes> => {
-  const response = await apiFetch(`/api/products/${id}`);
+  const response = await apiFetch(`/api/admin/products/${encodeURIComponent(id)}`);
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);

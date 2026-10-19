@@ -47,14 +47,21 @@ jest.mock('../../config/db.js', () => {
       update: jest.fn(),
     },
     productAttributeDefinition: {
+      findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       deleteMany: jest.fn(),
     },
     productAttributeOption: {
       create: jest.fn(),
+      createMany: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       deleteMany: jest.fn(),
+    },
+    cartItem: {
+      updateMany: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -73,6 +80,23 @@ jest.mock('../../config/db.js', () => {
 describe('CatalogService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Product lookup performed before an update.
+    jest.mocked(prisma.product.findUnique).mockResolvedValue(products[0]);
+
+    // Simulate successful cart cleanup.
+    jest.mocked(prisma.cartItem.updateMany).mockResolvedValue({
+      count: 0,
+    });
+
+    // Default values for nested product updates.
+    jest.mocked(prisma.productAttributeDefinition.findMany).mockResolvedValue([]);
+    jest.mocked(prisma.productAttributeDefinition.updateMany).mockResolvedValue({
+      count: 0,
+    });
+    jest.mocked(prisma.productAttributeOption.updateMany).mockResolvedValue({
+      count: 0,
+    });
   });
 
   /**
@@ -298,6 +322,52 @@ describe('getProductById', () => {
           name: 'Updated',
         })
       ).rejects.toThrow('המוצר לא נמצא');
+    });
+
+    it('rejects the update when cart cleanup fails', async () => {
+      jest.mocked(prisma.product.update).mockResolvedValue(products[0]);
+
+      jest.mocked(prisma.cartItem.updateMany).mockRejectedValue(new Error('Cart cleanup failed'));
+
+      await expect(
+        CatalogService.updateProduct('product-1', {
+          basePrice: 100,
+        })
+      ).rejects.toThrow('Cart cleanup failed');
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('removes the updated product from all active carts', async () => {
+      const updatedProduct = products[0];
+
+      jest.mocked(prisma.product.update).mockResolvedValue(updatedProduct);
+
+      jest.mocked(prisma.cartItem.updateMany).mockResolvedValue({
+        count: 3,
+      });
+
+      const result = await CatalogService.updateProduct('product-1', {
+        name: 'Updated Business Cards',
+      });
+
+      expect(result).toEqual(updatedProduct);
+
+      expect(prisma.cartItem.updateMany).toHaveBeenCalledWith({
+        where: {
+          productId: 'product-1',
+          isDeleted: false,
+          cart: {
+            status: 'ACTIVE',
+            isDeleted: false,
+          },
+        },
+        data: {
+          isDeleted: true,
+        },
+      });
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -314,6 +314,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = productIdSchema.parse(req.params);
+
     const validatedData = updateProductSchema.parse(req.body);
 
     const updatedProduct = await CatalogService.updateProduct(id, validatedData);

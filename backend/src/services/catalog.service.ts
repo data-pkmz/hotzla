@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, Status } from '@prisma/client';
 import type { Product, ProductAttributeDefinition, ProductAttributeOption } from '@prisma/client';
 import type {
   ProductType,
@@ -121,6 +121,36 @@ function getDefaultDisplayStyle(
       return 'DROPDOWN';
   }
 }
+
+/**
+ * Removes all occurrences of a product from users' active carts.
+ *
+ * This must execute inside the same transaction as the
+ * product update, so failed updates never clear cart items.
+ *
+ * Historical carts and existing orders are not modified.
+ */
+async function removeProductFromActiveCarts(
+  tx: Prisma.TransactionClient,
+  productId: string
+): Promise<number> {
+  const result = await tx.cartItem.updateMany({
+    where: {
+      productId,
+      isDeleted: false,
+      cart: {
+        status: Status.ACTIVE,
+        isDeleted: false,
+      },
+    },
+    data: {
+      isDeleted: true,
+    },
+  });
+
+  return result.count;
+}
+
 export class CatalogService {
   // ============================================================
   // PRODUCTS CRUD
@@ -357,68 +387,161 @@ export class CatalogService {
     if (data.maxQuantity !== undefined) {
       productUpdateData.maxQuantity = data.maxQuantity;
     }
+
     if (!rawDefinitions) {
-      return prisma.product.update({
-        where: {
-          id,
-        },
-        data: productUpdateData,
+      return prisma.$transaction(async (tx) => {
+        const updatedProduct = await tx.product.update({
+          where: { id },
+          data: productUpdateData,
+        });
+
+        await removeProductFromActiveCarts(tx, id);
+
+        return updatedProduct;
       });
     }
+
     return prisma.$transaction(async (tx) => {
       await tx.product.update({
-        where: {
-          id,
-        },
+        where: { id },
         data: productUpdateData,
       });
-      // Soft-delete existing attribute definitions.
-      await tx.productAttributeDefinition.updateMany({
+
+      const existingDefinitions = await tx.productAttributeDefinition.findMany({
         where: {
           productId: id,
           isDeleted: false,
         },
-        data: {
-          isDeleted: true,
+        include: {
+          attributeOptionEntries: {
+            where: { isDeleted: false },
+          },
         },
       });
-      // Re-create the supplied definitions.
+
+      const definitionsById = new Map(
+        existingDefinitions.map((definition) => [definition.id, definition])
+      );
+
+      const submittedDefinitionIds = new Set<string>();
+      const submittedOptionIds = new Set<string>();
+
       for (const def of rawDefinitions) {
-        const attribute = await tx.productAttributeDefinition.create({
-          data: {
-            productId: id,
-            attributeName: def.attributeName,
-            attributeType: def.attributeType,
-            displayStyle: getDefaultDisplayStyle(def.attributeType, def.displayStyle),
-            isRequired: def.isRequired ?? false,
-            displayOrder: def.displayOrder ?? 0,
-            pricingRule: def.pricingRule ?? 'NONE',
-            unitPrice: def.unitPrice ?? null,
-            minValue: def.minValue ?? null,
-            maxValue: def.maxValue ?? null,
-          },
-        });
-        if (def.options && def.options.length > 0) {
-          await tx.productAttributeOption.createMany({
-            data: def.options.map((opt, idx) => ({
-              attributeDefinitionId: attribute.id,
-              optionLabel: opt.optionLabel,
-              optionValue: opt.optionValue,
-              priceModifier: opt.priceModifier ?? 0,
-              priceModifierType: opt.priceModifierType ?? 'FIXED_ADD',
-              displayOrder: opt.displayOrder ?? idx,
-              isPerUnit: opt.isPerUnit ?? false,
-            })),
-          });
+        if (def.id) {
+          if (!definitionsById.has(def.id) || submittedDefinitionIds.has(def.id)) {
+            throw new Error('Invalid or duplicate attribute definition ID');
+          }
+
+          submittedDefinitionIds.add(def.id);
         }
+
+        const definitionData = {
+          attributeName: def.attributeName,
+          attributeType: def.attributeType,
+          displayStyle: getDefaultDisplayStyle(def.attributeType, def.displayStyle),
+          isRequired: def.isRequired ?? false,
+          displayOrder: def.displayOrder ?? 0,
+          pricingRule: def.pricingRule ?? 'NONE',
+          unitPrice: def.unitPrice ?? null,
+          minValue: def.minValue ?? null,
+          maxValue: def.maxValue ?? null,
+        };
+
+        const attribute = def.id
+          ? await tx.productAttributeDefinition.update({
+              where: { id: def.id },
+              data: definitionData,
+            })
+          : await tx.productAttributeDefinition.create({
+              data: {
+                ...definitionData,
+                productId: id,
+              },
+            });
+
+        // The newly created definition also needs to survive
+        // the soft-delete reconciliation at the end of the transaction.
+        submittedDefinitionIds.add(attribute.id);
+
+        const existingOptions = def.id
+          ? (definitionsById.get(def.id)?.attributeOptionEntries ?? [])
+          : [];
+
+        const optionsById = new Map(existingOptions.map((option) => [option.id, option]));
+
+        const retainedOptionIds = new Set<string>();
+
+        for (const [index, opt] of (def.options ?? []).entries()) {
+          if (opt.id) {
+            if (!optionsById.has(opt.id) || submittedOptionIds.has(opt.id)) {
+              throw new Error('Invalid or duplicate attribute option ID');
+            }
+
+            submittedOptionIds.add(opt.id);
+            retainedOptionIds.add(opt.id);
+          }
+
+          const optionData = {
+            optionLabel: opt.optionLabel,
+            optionValue: opt.optionValue,
+            priceModifier: opt.priceModifier ?? 0,
+            priceModifierType: opt.priceModifierType ?? 'FIXED_ADD',
+            displayOrder: opt.displayOrder ?? index,
+            isPerUnit: opt.isPerUnit ?? false,
+          };
+
+          if (opt.id) {
+            await tx.productAttributeOption.update({
+              where: { id: opt.id },
+              data: optionData,
+            });
+
+            retainedOptionIds.add(opt.id);
+          } else {
+            const createdOption = await tx.productAttributeOption.create({
+              data: {
+                ...optionData,
+                attributeDefinitionId: attribute.id,
+              },
+            });
+
+            // New options must be retained during the subsequent
+            // soft-delete reconciliation.
+            retainedOptionIds.add(createdOption.id);
+          }
+        }
+
+        // Soft-delete options removed from this attribute.
+        await tx.productAttributeOption.updateMany({
+          where: {
+            attributeDefinitionId: attribute.id,
+            isDeleted: false,
+            id: { notIn: [...retainedOptionIds] },
+          },
+          data: { isDeleted: true },
+        });
       }
-      return tx.product.findUniqueOrThrow({
+
+      // Soft-delete definitions removed from the product.
+      await tx.productAttributeDefinition.updateMany({
         where: {
-          id,
+          productId: id,
+          isDeleted: false,
+          id: { notIn: [...submittedDefinitionIds] },
         },
+        data: { isDeleted: true },
+      });
+
+      // Remove this product from all active carts.
+      // This is part of the same transaction as the product update.
+      await removeProductFromActiveCarts(tx, id);
+
+      return tx.product.findUniqueOrThrow({
+        where: { id },
       });
     });
   }
+
   /**
    * Soft-deletes a product by setting its isDeleted flag and
    * deactivating it.
