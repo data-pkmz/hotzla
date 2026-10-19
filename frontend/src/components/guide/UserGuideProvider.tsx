@@ -543,7 +543,11 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
 
   return steps.map((step, index) => {
     const managerPlacement = role === 'MANAGER' ? managerPlacements[index] : undefined;
-    const isHorizontal = managerPlacement !== undefined || [9, 10, 12, 13, 18].includes(index);
+    const workerPlacement = role === 'WORKER' && index === 13 ? 'right' : undefined;
+    const isHorizontal =
+      managerPlacement !== undefined ||
+      workerPlacement !== undefined ||
+      [9, 10, 12, 13, 18].includes(index);
 
     if (!isHorizontal) {
       return step;
@@ -552,7 +556,7 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
     return {
       ...step,
       id: `guide-horizontal-step-${index + 1}`,
-      placement: managerPlacement ?? (index === 13 ? 'left' : 'right'),
+      placement: managerPlacement ?? workerPlacement ?? (index === 13 ? 'left' : 'right'),
       isFixed: true,
       floatingOptions: {
         ...step.floatingOptions,
@@ -563,6 +567,7 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
       ...(index === 9 ||
       index === 10 ||
       index === 18 ||
+      (role === 'WORKER' && index === 13) ||
       (role === 'MANAGER' && [11, 12, 14, 19].includes(index))
         ? { width: 227 }
         : {}),

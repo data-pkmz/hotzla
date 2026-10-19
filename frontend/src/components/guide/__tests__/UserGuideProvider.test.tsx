@@ -192,4 +192,19 @@ describe('UserGuideProvider', () => {
     expect(tour.getAttribute('data-narrow-step-widths')).toContain('15:227');
     expect(tour.getAttribute('data-narrow-step-widths')).toContain('20:227');
   });
+
+  it('moves worker guide step 14 to the opposite side', async () => {
+    const user = userEvent.setup();
+    useAuthStore.getState().setUser('WORKER');
+    window.localStorage.setItem('hotzla-user-guide-seen-v1', 'true');
+
+    renderGuide();
+    await user.click(screen.getByRole('button', { name: 'הפעל מדריך' }));
+
+    const tour = screen.getByTestId('guide-tour');
+    const placements = tour.getAttribute('data-placements')?.split('|');
+    expect(placements?.[13]).toBe('right');
+    expect(tour.getAttribute('data-horizontal-steps')).toContain('14');
+    expect(tour.getAttribute('data-narrow-step-widths')).toContain('14:227');
+  });
 });
