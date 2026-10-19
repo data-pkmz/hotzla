@@ -77,28 +77,31 @@ jest.mock('../../config/db.js', () => {
   };
 });
 
-describe('CatalogService', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+beforeEach(() => {
+  jest.clearAllMocks();
 
-    // Product lookup performed before an update.
-    jest.mocked(prisma.product.findUnique).mockResolvedValue(products[0]);
+  // Reset the transaction call count explicitly.
+  jest.mocked(prisma.$transaction).mockClear();
 
-    // Simulate successful cart cleanup.
-    jest.mocked(prisma.cartItem.updateMany).mockResolvedValue({
-      count: 0,
-    });
+  // Default product returned during update validation.
+  jest.mocked(prisma.product.findUnique).mockResolvedValue(products[0]);
 
-    // Default values for nested product updates.
-    jest.mocked(prisma.productAttributeDefinition.findMany).mockResolvedValue([]);
-    jest.mocked(prisma.productAttributeDefinition.updateMany).mockResolvedValue({
-      count: 0,
-    });
-    jest.mocked(prisma.productAttributeOption.updateMany).mockResolvedValue({
-      count: 0,
-    });
+  // Default cart cleanup result.
+  jest.mocked(prisma.cartItem.updateMany).mockResolvedValue({
+    count: 0,
   });
 
+  // Default attribute update results.
+  jest.mocked(prisma.productAttributeDefinition.findMany).mockResolvedValue([]);
+  jest.mocked(prisma.productAttributeDefinition.updateMany).mockResolvedValue({
+    count: 0,
+  });
+  jest.mocked(prisma.productAttributeOption.updateMany).mockResolvedValue({
+    count: 0,
+  });
+});
+
+describe('CatalogService', () => {
   /**
    *Tests for getProducts.
    */
