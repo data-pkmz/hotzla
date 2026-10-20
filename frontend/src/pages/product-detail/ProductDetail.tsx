@@ -22,6 +22,8 @@ import usePriceCalculator from '../../hooks/usePriceCalculator';
 import { addItemToCart } from '../../services/api/cart.service';
 import { uploadFile } from '../../services/api/file.service';
 
+import { useAuthStore } from '../../store/useAuthStore';
+
 interface ProductConfiguration {
   quantity: number;
   selectedAttributes: SelectedAttributeInput[];
@@ -47,6 +49,9 @@ export const ProductDetailPage: React.FC = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const [addToCartError, setAddToCartError] = useState<string | null>(null);
+
+  const user = useAuthStore((state) => state.currentUser);
+  const canAddToCart = user?.role === 'REQUESTER';
 
   /**
    * Prevents duplicate submissions before React updates the loading state.
@@ -82,6 +87,7 @@ export const ProductDetailPage: React.FC = () => {
    */
   const handleAddToCart = async () => {
     if (
+      !canAddToCart ||
       !product ||
       !formIsValid ||
       !priceResult ||
@@ -272,6 +278,7 @@ export const ProductDetailPage: React.FC = () => {
             error={addToCartError ?? priceError}
             isFormValid={formIsValid}
             onAddToCart={handleAddToCart}
+            canAddToCart={canAddToCart}
             isAddingToCart={isAddingToCart}
             wasAddedToCart={wasAddedToCart}
           />

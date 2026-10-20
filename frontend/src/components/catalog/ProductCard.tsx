@@ -179,7 +179,7 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
             <Button
               variant="outlined"
               size="small"
-              startIcon={<EditIcon />}
+              endIcon={<EditIcon />}
               onClick={handleEditClick}
               sx={{
                 whiteSpace: 'nowrap',

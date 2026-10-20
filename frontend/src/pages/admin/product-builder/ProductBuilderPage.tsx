@@ -770,22 +770,31 @@ export const ProductBuilderPage: React.FC = () => {
       }}
     >
       <Stack
-        direction={{ xs: 'column', md: 'row' }}
+        direction={{ xs: 'column', md: 'row-reverse' }}
         justifyContent="space-between"
         alignItems={{ md: 'center' }}
         gap={2}
         sx={{ mb: 3 }}
       >
         <Box>
-          <Stack direction="row" alignItems="center" gap={1}>
-            <AutoAwesomeRoundedIcon color="primary" sx={{ fontSize: 32 }} />
-
+          <Stack
+            direction="row"
+            alignItems="center"
+            gap={1}
+            justifyContent="flex-start"
+            sx={{
+              direction: 'ltr',
+              width: '100%',
+            }}
+          >
             <Typography variant="h4" fontWeight={700}>
               בונה מוצר דינמי
             </Typography>
+
+            <AutoAwesomeRoundedIcon color="primary" sx={{ fontSize: 32 }} />
           </Stack>
 
-          <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography color="text.secondary" sx={{ mt: 0.5, direction: 'ltr' }}>
             הגדרת מוצרים מותאמים אישית, תכונות דינמיות וכללי תמחור למערכת ההזמנות.
           </Typography>
         </Box>
@@ -796,7 +805,7 @@ export const ProductBuilderPage: React.FC = () => {
           startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveRoundedIcon />}
           onClick={saveProduct}
           disabled={saving}
-          sx={{ px: 3, borderRadius: 2 }}
+          sx={{ px: 3, gap: 1, borderRadius: 2 }}
         >
           {saving ? 'שומר...' : id ? 'שמור שינויים' : 'הקם מוצר'}
         </Button>
@@ -822,14 +831,15 @@ export const ProductBuilderPage: React.FC = () => {
               borderColor: 'divider',
               borderRadius: 2,
               boxShadow: '0 4px 20px rgba(9,35,64,.04)',
+              direction: 'ltr',
             }}
           >
             <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2.5 }}>
-              <TuneRoundedIcon color="primary" />
-
               <Typography variant="h6" fontWeight={700}>
                 פרטי מוצר בסיסיים
               </Typography>
+
+              <TuneRoundedIcon color="primary" />
             </Stack>
 
             <Box
@@ -1067,6 +1077,7 @@ export const ProductBuilderPage: React.FC = () => {
               borderColor: 'divider',
               borderRadius: 2,
               boxShadow: '0 4px 20px rgba(9,35,64,.04)',
+              direction: 'ltr',
             }}
           >
             <Stack
@@ -1076,12 +1087,11 @@ export const ProductBuilderPage: React.FC = () => {
               gap={2}
               sx={{ mb: 2.5 }}
             >
-              <Box sx={{ minWidth: 0 }}>
+              <Box sx={{ minWidth: 0, direction: 'ltr' }}>
                 <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                   <Typography variant="h6" fontWeight={700}>
                     מאפיינים ותכונות דינמיות
                   </Typography>
-
                   <Chip label={`${attributes.length} שדות`} size="small" color="primary" />
                 </Stack>
 
@@ -1094,7 +1104,7 @@ export const ProductBuilderPage: React.FC = () => {
               <Button
                 size="small"
                 variant="contained"
-                startIcon={<AddRoundedIcon />}
+                endIcon={<AddRoundedIcon />}
                 onClick={(event) => setAddFieldAnchor(event.currentTarget)}
                 sx={{
                   borderRadius: 1.5,
@@ -1276,7 +1286,7 @@ export const ProductBuilderPage: React.FC = () => {
                           lineHeight: 1.5,
                         }}
                       >
-                        #{index + 1} {attribute.attributeName}
+                        {attribute.attributeName} #{index + 1}
                       </Typography>
                     </Stack>
 
