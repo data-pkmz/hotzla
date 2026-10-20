@@ -183,6 +183,7 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
               onClick={handleEditClick}
               sx={{
                 whiteSpace: 'nowrap',
+                px: 3.5,
               }}
             >
               עריכת מוצר
