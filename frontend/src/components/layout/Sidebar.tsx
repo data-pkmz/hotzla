@@ -23,6 +23,7 @@ import { useUserGuide } from '../guide/UserGuideContext';
 import growthLogo from '../../assets/logo-growth.png';
 import lionLogo from '../../assets/logo-lion.png';
 import crossedLogo from '../../assets/logo-crossed.png';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 
 const DRAWER_WIDTH = 240;
 
@@ -62,6 +63,12 @@ export const Sidebar: React.FC = () => {
       show: isWorkerOrManager,
     },
     { text: 'בניית מוצר (Admin)', path: '/admin/builder', icon: <BuildIcon />, show: isManager },
+    {
+      text: 'ניהול הרשאות',
+      path: '/manager/roles',
+      icon: <ManageAccountsIcon />,
+      show: isManager,
+    },
   ];
 
   return (
