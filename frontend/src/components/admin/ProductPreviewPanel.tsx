@@ -131,12 +131,17 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
         boxShadow: '0 10px 28px rgba(9,35,64,.08)',
       }}
     >
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 2, direction: 'ltr' }}
+      >
         <Stack direction="row" alignItems="center" gap={1}>
-          <VisibilityOutlinedIcon color="primary" />
           <Typography variant="h6" fontWeight={700}>
             תצוגה מקדימה (לקוח)
           </Typography>
+          <VisibilityOutlinedIcon color="primary" />
         </Stack>
         <Chip label="בזמן אמת" size="small" color="primary" variant="outlined" />
       </Stack>
@@ -151,13 +156,18 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
           boxShadow: '0 4px 14px rgba(9,35,64,.05)',
         }}
       >
-        <Typography variant="overline" color="primary.main" fontWeight={700}>
+        <Typography
+          variant="overline"
+          color="primary.main"
+          fontWeight={700}
+          sx={{ direction: 'ltr', textAlign: 'left', display: 'block', mb: 1 }}
+        >
           {product.category || 'קטגוריית מוצר'}
         </Typography>
-        <Typography variant="h5" fontWeight={700} sx={{ mt: 0.5, mb: 1 }}>
+        <Typography variant="h5" fontWeight={700} sx={{ mt: 0.5, mb: 1, direction: 'ltr' }}>
           {product.name || 'שם המוצר שייקבע'}
         </Typography>
-        <Typography color="text.secondary" variant="body2" sx={{ mb: 2 }}>
+        <Typography color="text.secondary" variant="body2" sx={{ mb: 2, direction: 'ltr' }}>
           {product.description || 'תיאור המוצר, מאפייניו והנחיות למזמין יופיעו כאן...'}
         </Typography>
 
@@ -181,7 +191,9 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
             <Box key={attribute.id}>
               {attribute.attributeType === 'SELECT' && (
                 <FormControl fullWidth size="small">
-                  <FormLabel sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
+                  <FormLabel
+                    sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary', direction: 'ltr' }}
+                  >
                     {attribute.attributeName}
                     {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
                   </FormLabel>
@@ -254,7 +266,9 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
 
               {attribute.attributeType === 'NUMBER' && (
                 <FormControl fullWidth size="small">
-                  <FormLabel sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
+                  <FormLabel
+                    sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary', direction: 'ltr' }}
+                  >
                     {attribute.attributeName}
                     {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
                   </FormLabel>
@@ -281,6 +295,17 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
 
               {attribute.attributeType === 'BOOLEAN' && (
                 <FormControlLabel
+                  labelPlacement="start"
+                  sx={{
+                    direction: 'ltr',
+                    width: '100%',
+                    margin: 0,
+                    justifyContent: 'flex-end',
+                    gap: 1,
+                    '& .MuiFormControlLabel-label': {
+                      textAlign: 'left',
+                    },
+                  }}
                   control={
                     attribute.displayStyle === 'CHECKBOX' ? (
                       <Checkbox
@@ -309,7 +334,9 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
 
               {attribute.attributeType === 'TEXT' && (
                 <FormControl fullWidth size="small">
-                  <FormLabel sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary' }}>
+                  <FormLabel
+                    sx={{ mb: 0.75, fontWeight: 600, color: 'text.primary', direction: 'ltr' }}
+                  >
                     {attribute.attributeName}
                     {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
                   </FormLabel>
@@ -328,7 +355,7 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
 
               {attribute.attributeType === 'FILE_UPLOAD' && (
                 <Box>
-                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75, direction: 'ltr' }}>
                     {attribute.attributeName}
                     {attribute.isRequired && <span style={{ color: '#d32f2f' }}> *</span>}
                   </Typography>
@@ -355,8 +382,8 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
 
           {/* Quantity selector */}
           <Divider sx={{ my: 1 }} />
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="body2" fontWeight={600}>
+          <Stack direction="row-reverse" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" fontWeight={600} sx={{ direction: 'ltr' }}>
               כמות להזמנה:
             </Typography>
             <TextField
@@ -365,7 +392,7 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
               inputProps={{ min: product.minQuantity || 1, max: product.maxQuantity || undefined }}
               value={quantity}
               onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-              sx={{ width: 100 }}
+              sx={{ width: 100, direction: 'ltr' }}
             />
           </Stack>
 
@@ -377,6 +404,7 @@ export const ProductPreviewPanel: React.FC<ProductPreviewPanelProps> = ({
               border: '1px solid',
               borderColor: 'primary.light',
               borderRadius: 1.5,
+              direction: 'ltr',
             }}
           >
             <Stack direction="row" justifyContent="space-between" alignItems="center">

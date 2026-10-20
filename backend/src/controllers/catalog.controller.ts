@@ -9,22 +9,69 @@ import {
 import logger from '../utils/logger';
 
 /**
- * Retrieves the list of products available in the catalog.
+ * Product details returned by the catalog service.
  *
- * Expects:
- * - req.query.category: Optional category name used to filter the returned products.
+ * Includes product attribute definitions and their options.
+ */
+type ProductDetailsRecord = NonNullable<
+  Awaited<ReturnType<typeof CatalogService.getProductDetails>>
+>;
+
+/**
+ * Converts a product's Prisma representation into the
+ * structure expected by the frontend.
  *
- * Does:
- * - Calls CatalogService.getProducts to retrieve the catalog products.
- * - If a category query parameter is provided, filters the products by category.
- * - Category matching is case-insensitive.
+ * Used by both public and administrative product detail endpoints.
  *
- * Sends:
- * - 200 with success=true and the matching products.
- * - 500 with success=false if the products cannot be retrieved.
+ * Converts Decimal prices and numeric limits to JavaScript numbers.
+ */
+const formatProductDetails = (product: ProductDetailsRecord) => {
+  const { attributeDefinitionEntries, ...productData } = product;
+
+  const attributes = attributeDefinitionEntries.map((attribute) => ({
+    id: attribute.id,
+    productId: attribute.productId,
+    attributeName: attribute.attributeName,
+    attributeType: attribute.attributeType,
+    displayStyle: attribute.displayStyle,
+    isRequired: attribute.isRequired,
+    displayOrder: attribute.displayOrder,
+    pricingRule: attribute.pricingRule,
+    unitPrice: attribute.unitPrice?.toNumber() ?? null,
+    minValue: attribute.minValue?.toNumber() ?? null,
+    maxValue: attribute.maxValue?.toNumber() ?? null,
+    options: attribute.attributeOptionEntries.map((option) => ({
+      id: option.id,
+      attributeDefinitionId: option.attributeDefinitionId,
+      optionLabel: option.optionLabel,
+      optionValue: option.optionValue,
+      priceModifier: option.priceModifier.toNumber(),
+      priceModifierType: option.priceModifierType,
+      isPerUnit: option.isPerUnit,
+      displayOrder: option.displayOrder,
+    })),
+  }));
+
+  return {
+    ...productData,
+    basePrice: product.basePrice.toNumber(),
+    attributes,
+  };
+};
+
+/**
+ * Retrieves products available in the public catalog.
+ *
+ * Only active products should be returned by CatalogService.getProducts.
+ *
+ * Supports optional case-insensitive category filtering.
  *
  * Route:
  * - GET /api/products
+ *
+ * Responses:
+ * - 200: Products retrieved successfully.
+ * - 500: Unexpected server error.
  */
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -53,31 +100,33 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 };
 
 /**
- * Retrieves the full details of a single product.
+ * Retrieves the details of an active product.
  *
- * Expects:
- * - req.params.id: ID of the product to retrieve.
- *
- * Does:
- * - Calls CatalogService.getProductDetails to retrieve the product together
- *   with its non-deleted attribute definitions and available options.
- * - Returns 404 if no matching active product exists.
- * - Converts Prisma Decimal values such as prices and numeric limits into
- *   regular JavaScript numbers before sending them to the frontend.
- * - Builds the product attributes structure expected by the frontend.
- *
- * Sends:
- * - 200 with success=true and the complete product details.
- * - 404 with success=false if the product cannot be found.
- * - 500 with success=false if an unexpected error occurs.
+ * Includes attribute definitions and their available options.
  *
  * Route:
  * - GET /api/products/:id
+ *
+ * Responses:
+ * - 200: Product retrieved successfully.
+ * - 400: Invalid product ID.
+ * - 404: Active product not found.
+ * - 500: Unexpected server error.
  */
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
+  const parsedId = productIdSchema.safeParse(req.params);
 
+  if (!parsedId.success) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid product ID',
+    });
+    return;
+  }
+
+  const { id } = parsedId.data;
+
+  try {
     const product = await CatalogService.getProductDetails(id);
 
     if (!product) {
@@ -88,44 +137,117 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const { attributeDefinitionEntries, ...productData } = product;
-
-    const attributes = attributeDefinitionEntries.map((attribute) => ({
-      id: attribute.id,
-      productId: attribute.productId,
-      attributeName: attribute.attributeName,
-      attributeType: attribute.attributeType,
-      displayStyle: attribute.displayStyle,
-      isRequired: attribute.isRequired,
-      displayOrder: attribute.displayOrder,
-      pricingRule: attribute.pricingRule,
-      unitPrice: attribute.unitPrice?.toNumber() ?? null,
-      minValue: attribute.minValue?.toNumber() ?? null,
-      maxValue: attribute.maxValue?.toNumber() ?? null,
-      options: attribute.attributeOptionEntries.map((option) => ({
-        id: option.id,
-        attributeDefinitionId: option.attributeDefinitionId,
-        optionLabel: option.optionLabel,
-        optionValue: option.optionValue,
-        priceModifier: option.priceModifier.toNumber(),
-        priceModifierType: option.priceModifierType,
-        isPerUnit: option.isPerUnit,
-        displayOrder: option.displayOrder,
-      })),
-    }));
-
     res.status(200).json({
       success: true,
-      data: {
-        ...productData,
-        basePrice: product.basePrice.toNumber(),
-        attributes,
-      },
+      data: formatProductDetails(product),
     });
   } catch (error) {
     logger.error('Failed to retrieve product details', {
       error,
-      productId: req.params.id,
+      productId: id,
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Retrieves all products for the manager catalog.
+ *
+ * Includes active and inactive products.
+ *
+ * The service must not apply the public catalog's
+ * active-product filter.
+ *
+ * Route:
+ * - GET /api/admin/products
+ *
+ * Authorization:
+ * - MANAGER only, enforced by the admin catalog router.
+ *
+ * Responses:
+ * - 200: Products retrieved successfully.
+ * - 500: Unexpected server error.
+ */
+export const getAllAdminProducts = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const products = await CatalogService.getAllAdminProducts();
+
+    res.status(200).json({
+      success: true,
+      data: products.map((product) => ({
+        ...product,
+        basePrice: product.basePrice.toNumber(),
+      })),
+    });
+  } catch (error) {
+    logger.error('Failed to retrieve admin catalog products', {
+      error,
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Retrieves full product details for management and editing.
+ *
+ * Unlike the public endpoint, inactive products can also
+ * be retrieved.
+ *
+ * Includes product attribute definitions and options,
+ * preserving their IDs for future updates.
+ *
+ * Route:
+ * - GET /api/admin/products/:id
+ *
+ * Authorization:
+ * - MANAGER only.
+ *
+ * Responses:
+ * - 200: Product retrieved successfully.
+ * - 400: Invalid product ID.
+ * - 404: Product not found.
+ * - 500: Unexpected server error.
+ */
+export const getAdminProductById = async (req: Request, res: Response): Promise<void> => {
+  const parsedId = productIdSchema.safeParse(req.params);
+
+  if (!parsedId.success) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid product ID',
+    });
+    return;
+  }
+
+  const { id } = parsedId.data;
+
+  try {
+    const product = await CatalogService.getAdminProductDetails(id);
+
+    if (!product) {
+      res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: formatProductDetails(product),
+    });
+  } catch (error) {
+    logger.error('Failed to retrieve admin product details', {
+      error,
+      productId: id,
     });
 
     res.status(500).json({
@@ -138,23 +260,17 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
 /**
  * Creates a new catalog product.
  *
- * Expects:
- * - req.body: Product creation data matching createProductSchema.
- * - The route is expected to be protected so that only authorized
- *   administrative users can create products.
- *
- * Does:
- * - Validates the request body using createProductSchema.
- * - Calls CatalogService.createProduct with the validated product data.
- * - Converts the product's Prisma Decimal base price into a regular
- *   JavaScript number before returning it.
- *
- * Sends:
- * - 201 with success=true, a success message, and the created product.
- * - 400 with success=false if validation or product creation fails.
+ * Validates the request body and calls the catalog service.
  *
  * Route:
  * - POST /api/admin/products
+ *
+ * Authorization:
+ * - MANAGER only.
+ *
+ * Responses:
+ * - 201: Product created successfully.
+ * - 400: Validation or creation failed.
  */
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -183,29 +299,22 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 /**
  * Updates an existing catalog product.
  *
- * Expects:
- * - req.params.id: Product ID matching productIdSchema.
- * - req.body: Product update data matching updateProductSchema.
- * - The route is expected to be protected so that only authorized
- *   administrative users can update products.
- *
- * Does:
- * - Validates the product ID from the route parameters.
- * - Validates the submitted product data.
- * - Calls CatalogService.updateProduct with the validated ID and update data.
- * - Converts the updated product's Prisma Decimal base price into a regular
- *   JavaScript number before returning it.
- *
- * Sends:
- * - 200 with success=true, a success message, and the updated product.
- * - 400 with success=false if validation or the update operation fails.
+ * Validates the product ID and update request body.
  *
  * Route:
  * - PUT /api/admin/products/:id
+ *
+ * Authorization:
+ * - MANAGER only.
+ *
+ * Responses:
+ * - 200: Product updated successfully.
+ * - 400: Validation or update failed.
  */
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = productIdSchema.parse(req.params);
+
     const validatedData = updateProductSchema.parse(req.body);
 
     const updatedProduct = await CatalogService.updateProduct(id, validatedData);
@@ -234,23 +343,18 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
 /**
  * Soft-deletes an existing catalog product.
  *
- * Expects:
- * - req.params.id: Product ID matching productIdSchema.
- * - The route is expected to be protected so that only authorized
- *   administrative users can remove products.
- *
- * Does:
- * - Validates the product ID from the route parameters.
- * - Calls CatalogService.softDeleteProduct.
- * - The product is disabled/soft-deleted rather than permanently removed
- *   from the database.
- *
- * Sends:
- * - 200 with success=true after the product is successfully removed.
- * - 400 with success=false if validation or the delete operation fails.
+ * The product is disabled rather than permanently
+ * deleted from the database.
  *
  * Route:
  * - DELETE /api/admin/products/:id
+ *
+ * Authorization:
+ * - MANAGER only.
+ *
+ * Responses:
+ * - 200: Product successfully removed.
+ * - 400: Validation or deletion failed.
  */
 export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {

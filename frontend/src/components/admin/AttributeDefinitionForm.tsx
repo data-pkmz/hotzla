@@ -169,7 +169,7 @@ export const AttributeDefinitionForm: React.FC<AttributeDefinitionFormProps> = (
             <Button
               size="small"
               variant="outlined"
-              startIcon={<AddRoundedIcon />}
+              endIcon={<AddRoundedIcon />}
               onClick={addOption}
             >
               הוסף אפשרות
