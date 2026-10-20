@@ -12,6 +12,7 @@ import cartRoutes from './routes/cart.routes';
 import orderRoutes from './routes/order.routes';
 import publicRoutes from './routes/public.routes';
 import workerRoutes from './routes/worker.routes';
+import userManagementRoutes from './routes/user-management.routes';
 
 const app = express();
 
@@ -30,6 +31,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/orders', managerRoutes);
 app.use('/api/orders', workerRoutes);
+
+app.use('/api/admin/users', userManagementRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
