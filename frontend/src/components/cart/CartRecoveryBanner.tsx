@@ -18,6 +18,7 @@ import { getActiveCart, clearActiveCart } from '../../services/api/cart.service'
 import { useCartStore } from '../../store/useCartStore';
 
 import { useAuthStore } from '../../store/useAuthStore';
+import { getCartItems } from '../../utils/cart';
 
 export default function CartRecoveryBanner() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function CartRecoveryBanner() {
     enabled: isRequester,
   });
 
-  const items = cart?.items || cart?.cartItemEntries || [];
+  const items = getCartItems(cart);
 
   // Mutation to clear the cart
   const clearCartMutation = useMutation({

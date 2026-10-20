@@ -10,6 +10,7 @@ import { DEMO_CART_ITEM } from '../../demo/demoData';
 
 import { getActiveCart, updateCartItem, removeCartItem } from '../../services/api/cart.service';
 import type { CartItem } from 'shared-types';
+import { getCartItems } from '../../utils/cart';
 
 export default function CartPage() {
   const queryClient = useQueryClient();
@@ -25,8 +26,7 @@ export default function CartPage() {
     queryFn: getActiveCart,
   });
 
-  // Handle difference between Prisma schema (cartItemEntries) and shared-types (items)
-  const items: CartItem[] = useMemo(() => cart?.items || cart?.cartItemEntries || [], [cart]);
+  const items: CartItem[] = useMemo(() => getCartItems(cart), [cart]);
   const showingDemoItems = items.length === 0;
   const displayedItems = useMemo(
     () => (showingDemoItems ? [DEMO_CART_ITEM] : items),

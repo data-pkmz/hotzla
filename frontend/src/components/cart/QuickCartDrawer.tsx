@@ -26,6 +26,7 @@ import QuantityControl from './QuantityControl';
 import { getActiveCart, updateCartItem, removeCartItem } from '../../services/api/cart.service';
 
 import { useAuthStore } from '../../store/useAuthStore';
+import { getCartItems } from '../../utils/cart';
 
 interface QuickCartDrawerProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
     enabled: isRequester && isOpen,
   });
 
-  const items: CartItem[] = cart?.items || cart?.cartItemEntries || [];
+  const items: CartItem[] = getCartItems(cart);
   const totalPrice = items.reduce((sum, item) => sum + Number(item.computedPrice), 0);
 
   // 2. Mutations
