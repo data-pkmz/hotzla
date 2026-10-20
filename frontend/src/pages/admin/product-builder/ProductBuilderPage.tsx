@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded';
@@ -88,7 +88,12 @@ const createAttribute = (
     displayStyle,
     isRequired: false,
     displayOrder: order,
-    pricingRule: 'FLAT_ADD_PER_OPTION',
+    pricingRule:
+      attributeType === 'SELECT'
+        ? 'FLAT_ADD_PER_OPTION'
+        : attributeType === 'NUMBER'
+          ? 'PER_UNIT_MULTIPLIER'
+          : 'NONE',
     unitPrice: null,
     minValue: null,
     maxValue: null,
@@ -195,6 +200,54 @@ const validateAttributes = (attributes: BuilderAttribute[]): string | null => {
   for (const attribute of attributes) {
     if (!attribute.attributeName.trim()) {
       return 'שם מאפיין אינו יכול להיות ריק';
+    }
+
+    if (attribute.attributeType === 'NUMBER') {
+      if (attribute.pricingRule !== 'PER_UNIT_MULTIPLIER') {
+        return `המאפיין "${attribute.attributeName}" חייב להשתמש בתמחור לפי ערך מספרי`;
+      }
+
+      if (
+        attribute.unitPrice === null ||
+        attribute.unitPrice === undefined ||
+        !Number.isFinite(Number(attribute.unitPrice)) ||
+        Number(attribute.unitPrice) <= 0
+      ) {
+        return `יש להגדיר מחיר ליחידה הגדול מאפס עבור "${attribute.attributeName}"`;
+      }
+    }
+
+    if (attribute.attributeType === 'BOOLEAN') {
+      const validRules = ['NONE', 'FLAT_ADD_PER_OPTION', 'PER_UNIT_MULTIPLIER'];
+
+      if (!validRules.includes(attribute.pricingRule)) {
+        return `שיטת התמחור של "${attribute.attributeName}" אינה תקינה`;
+      }
+
+      if (attribute.pricingRule !== 'NONE') {
+        if (
+          attribute.unitPrice === null ||
+          attribute.unitPrice === undefined ||
+          !Number.isFinite(Number(attribute.unitPrice)) ||
+          Number(attribute.unitPrice) < 0
+        ) {
+          return `יש להגדיר מחיר תקין שאינו שלילי עבור "${attribute.attributeName}"`;
+        }
+      }
+    }
+
+    if (attribute.attributeType === 'SELECT') {
+      if (attribute.options.some((option) => option.priceModifierType !== 'FIXED_ADD')) {
+        return `המאפיין "${attribute.attributeName}" מכיל סוג תמחור שאינו נתמך`;
+      }
+
+      const optionValues = attribute.options.map((option) =>
+        (option.optionValue || option.optionLabel).trim()
+      );
+
+      if (new Set(optionValues).size !== optionValues.length) {
+        return `המאפיין "${attribute.attributeName}" מכיל מזהי אפשרויות כפולים`;
+      }
     }
 
     if (attribute.unitPrice !== null && attribute.unitPrice !== undefined) {
@@ -465,15 +518,6 @@ export const ProductBuilderPage: React.FC = () => {
       return normalizeAttributes(next);
     });
   };
-
-  const previewPrice = useMemo(() => {
-    return (
-      Number(product.basePrice || 0) +
-      attributes
-        .flatMap((attribute) => attribute.options ?? [])
-        .reduce((sum, option) => sum + Number(option.priceModifier || 0), 0)
-    );
-  }, [attributes, product.basePrice]);
 
   const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -1213,7 +1257,6 @@ export const ProductBuilderPage: React.FC = () => {
               imageUrl: imagePreview,
             }}
             attributes={attributes}
-            price={previewPrice}
           />
         </Box>
       </Box>

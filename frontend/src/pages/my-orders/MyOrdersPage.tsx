@@ -19,6 +19,7 @@ interface MyOrder {
   createdAt: Date | string;
   totalPrice: number | string;
   status: OrderStatus;
+  pickupInstructions?: string | null;
 }
 
 export default function MyOrdersPage() {
@@ -323,6 +324,47 @@ export default function MyOrdersPage() {
                     />
                   )}
                 </Box>
+
+                {order.status === 'READY_FOR_PICKUP' && order.pickupInstructions && (
+                  <Box sx={{ px: 3, pb: 2, bgcolor: 'background.paper' }}>
+                    <Alert
+                      severity="info"
+                      variant="outlined"
+                      dir="rtl"
+                      style={{ direction: 'rtl', textAlign: 'right' }}
+                      sx={{
+                        py: 0.5,
+                        px: 1.5,
+                        bgcolor: '#ffffff',
+                        width: '100%',
+                        borderRadius: 2,
+                        borderWidth: 1.5,
+                        borderColor: 'info.main',
+                        '& .MuiAlert-icon': {
+                          alignSelf: 'center',
+                        },
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        component="span"
+                        fontWeight={700}
+                        dir="rtl"
+                        style={{ direction: 'rtl', textAlign: 'right' }}
+                      >
+                        <bdi dir="rtl">הנחיות איסוף:</bdi>
+                      </Typography>{' '}
+                      <Typography
+                        variant="body2"
+                        component="span"
+                        dir="rtl"
+                        style={{ direction: 'rtl', textAlign: 'right' }}
+                      >
+                        {order.pickupInstructions}
+                      </Typography>
+                    </Alert>
+                  </Box>
+                )}
 
                 {index !== displayedOrders.length - 1 && <Divider />}
               </Box>

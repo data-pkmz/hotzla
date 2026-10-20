@@ -10,6 +10,12 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { OrderStatus } from 'shared-types';
@@ -23,6 +29,8 @@ interface WorkerOrderCardProps {
   demoOnly?: boolean;
 }
 
+type ConfirmationType = 'START_PRINTING' | 'READY_FOR_PICKUP' | 'COMPLETE_ORDER' | null;
+
 export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
   order,
   onStatusUpdated,
@@ -30,12 +38,39 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmType, setConfirmType] = useState<ConfirmationType>(null);
+  const [pickupInstructions, setPickupInstructions] = useState('');
 
-  const handleAction = async (action: () => Promise<void>) => {
+  const openConfirmation = (type: ConfirmationType) => {
+    if (isLoading) return;
+    setError(null);
+    if (type === 'READY_FOR_PICKUP') {
+      setPickupInstructions(order.pickupInstructions || '');
+    }
+    setConfirmType(type);
+  };
+
+  const closeConfirmation = () => {
+    if (isLoading) return;
+    setConfirmType(null);
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmType || isLoading) return;
+
     try {
       setIsLoading(true);
       setError(null);
-      await action();
+
+      if (confirmType === 'START_PRINTING') {
+        await startPrinting(order.id);
+      } else if (confirmType === 'READY_FOR_PICKUP') {
+        await readyForPickup(order.id, pickupInstructions);
+      } else if (confirmType === 'COMPLETE_ORDER') {
+        await completeOrder(order.id);
+      }
+
+      setConfirmType(null);
       onStatusUpdated();
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -58,10 +93,10 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
           color="primary"
           fullWidth
           disabled={isLoading}
-          onClick={() => handleAction(() => startPrinting(order.id))}
+          onClick={() => openConfirmation('START_PRINTING')}
           sx={{ mt: 1 }}
         >
-          {isLoading ? <CircularProgress size={24} color="inherit" /> : 'התחל הדפסה'}
+          התחל הדפסה
         </Button>
       );
     }
@@ -73,10 +108,10 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
           color="success"
           fullWidth
           disabled={isLoading}
-          onClick={() => handleAction(() => readyForPickup(order.id))}
+          onClick={() => openConfirmation('READY_FOR_PICKUP')}
           sx={{ mt: 1 }}
         >
-          {isLoading ? <CircularProgress size={24} color="inherit" /> : 'סיים - מוכן לאיסוף'}
+          סיים - מוכן לאיסוף
         </Button>
       );
     }
@@ -88,10 +123,10 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
           color="secondary"
           fullWidth
           disabled={isLoading}
-          onClick={() => handleAction(() => completeOrder(order.id))}
+          onClick={() => openConfirmation('COMPLETE_ORDER')}
           sx={{ mt: 1 }}
         >
-          {isLoading ? <CircularProgress size={24} color="inherit" /> : 'סמן כנמסר'}
+          סמן כנמסר
         </Button>
       );
     }
@@ -162,6 +197,126 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
         )}
       </CardContent>
       <CardActions sx={{ px: 2, pb: 2 }}>{renderActionButtons()}</CardActions>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={Boolean(confirmType)}
+        onClose={() => !isLoading && closeConfirmation()}
+        maxWidth="sm"
+        fullWidth
+        dir="rtl"
+        PaperProps={{
+          sx: {
+            textAlign: 'left',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', textAlign: 'left' }}>
+          {confirmType === 'START_PRINTING' && 'התחלת הדפסה'}
+          {confirmType === 'READY_FOR_PICKUP' && 'סימון הזמנה כמוכנה לאיסוף'}
+          {confirmType === 'COMPLETE_ORDER' && 'אישור מסירת הזמנה'}
+        </DialogTitle>
+
+        <DialogContent dir="rtl" sx={{ textAlign: 'left' }}>
+          {confirmType === 'START_PRINTING' && (
+            <DialogContentText sx={{ textAlign: 'left' }}>
+              האם אתה בטוח שברצונך להתחיל בהדפסת הזמנה <bdi>#{order.orderNumber}</bdi>?
+            </DialogContentText>
+          )}
+
+          {confirmType === 'READY_FOR_PICKUP' && (
+            <Box sx={{ textAlign: 'left' }}>
+              <DialogContentText sx={{ mb: 2, textAlign: 'left' }}>
+                הזמנה <bdi>#{order.orderNumber}</bdi> תסומן כמוכנה לאיסוף, ותישלח הודעה למזמין:{' '}
+                {requesterName}.
+              </DialogContentText>
+              <TextField
+                label="הנחיות איסוף למזמין (אופציונלי)"
+                placeholder="לדוגמה: ניתן לאסוף מבית הדפוס, חדר 104 בין השעות 08:30-16:00"
+                helperText="הנחיות אלו יוצגו למזמין בעמוד ההזמנות ויישלחו במייל העדכון."
+                multiline
+                rows={3}
+                fullWidth
+                value={pickupInstructions}
+                onChange={(e) => setPickupInstructions(e.target.value)}
+                disabled={isLoading}
+                sx={{
+                  mt: 1,
+                  textAlign: 'left',
+                  '& .MuiInputBase-input': {
+                    textAlign: 'left',
+                  },
+                  '& .MuiFormHelperText-root': {
+                    textAlign: 'left',
+                  },
+                }}
+              />
+            </Box>
+          )}
+
+          {confirmType === 'COMPLETE_ORDER' && (
+            <DialogContentText sx={{ textAlign: 'left' }}>
+              האם אתה בטוח שברצונך לסמן את הזמנה <bdi>#{order.orderNumber}</bdi> כהושלמה ונמסרה
+              למזמין?
+            </DialogContentText>
+          )}
+
+          {error && (
+            <Alert
+              severity="error"
+              sx={{
+                mt: 2,
+                textAlign: 'left',
+                '& .MuiAlert-message': { textAlign: 'left', width: '100%' },
+              }}
+            >
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 2, justifyContent: 'flex-start' }}>
+          <Button onClick={closeConfirmation} disabled={isLoading} color="inherit" sx={{ px: 2 }}>
+            ביטול
+          </Button>
+
+          {confirmType === 'START_PRINTING' && (
+            <Button
+              onClick={handleConfirm}
+              disabled={isLoading}
+              variant="contained"
+              color="primary"
+              sx={{ px: 2.5 }}
+            >
+              {isLoading ? <CircularProgress size={20} color="inherit" /> : 'התחל הדפסה'}
+            </Button>
+          )}
+
+          {confirmType === 'READY_FOR_PICKUP' && (
+            <Button
+              onClick={handleConfirm}
+              disabled={isLoading}
+              variant="contained"
+              color="success"
+              sx={{ px: 2.5 }}
+            >
+              {isLoading ? <CircularProgress size={20} color="inherit" /> : 'אשר וסמן כמוכן'}
+            </Button>
+          )}
+
+          {confirmType === 'COMPLETE_ORDER' && (
+            <Button
+              onClick={handleConfirm}
+              disabled={isLoading}
+              variant="contained"
+              color="secondary"
+              sx={{ px: 2.5 }}
+            >
+              {isLoading ? <CircularProgress size={20} color="inherit" /> : 'סמן כנמסר'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

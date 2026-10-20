@@ -15,26 +15,37 @@ export type DbClient = Prisma.TransactionClient | PrismaClient;
 export class PricingEngineService {
   public static async calculatePrice(
     params: CalculatePriceParams,
+
     dbClient: DbClient = prisma
   ): Promise<PriceResult> {
     const { productId, quantity, selectedAttributes = [] } = params;
 
     /**
+
      * Product quantity must be a positive whole number.
+
      */
+
     if (!Number.isInteger(quantity) || quantity <= 0) {
       throw new Error('הכמות חייבת להיות מספר שלם וחיובי');
     }
 
     /**
+
      * Load the active, non-deleted product.
+
      *
+
      * Query 1.
+
      */
+
     const product = await dbClient.product.findFirst({
       where: {
         id: productId,
+
         isDeleted: false,
+
         isActive: true,
       },
     });
@@ -44,9 +55,13 @@ export class PricingEngineService {
     }
 
     /**
+
      * Product quantity must respect the configured
+
      * minimum and maximum quantity limits.
+
      */
+
     if (quantity < product.minQuantity) {
       throw new Error(`הכמות המינימלית למוצר זה היא ${product.minQuantity}`);
     }
@@ -56,8 +71,11 @@ export class PricingEngineService {
     }
 
     /**
+
      * Base price may be 0, but not negative.
+
      */
+
     if (product.basePrice.isNegative()) {
       throw new Error(`למוצר ${product.id} יש מחיר בסיס שלילי`);
     }
@@ -65,21 +83,31 @@ export class PricingEngineService {
     const quantityDecimal = new Prisma.Decimal(quantity);
 
     /**
+
      * Base price is always independent from attribute pricing.
+
      */
+
     const baseTotal = product.basePrice.mul(quantityDecimal);
 
     const breakdown: PriceBreakdownLine[] = [];
 
     /**
+
      * Keeps all money calculations as Decimal until returning.
+
      */
+
     let totalAdditionalPrice = new Prisma.Decimal(0);
 
     /**
+
      * Load all requested attribute definitions in one query instead of
+
      * performing one database lookup per selected attribute.
+
      */
+
     const attributeDefinitionIds = [
       ...new Set(
         selectedAttributes.map((selectedAttribute) => selectedAttribute.attributeDefinitionId)
@@ -87,11 +115,17 @@ export class PricingEngineService {
     ];
 
     /**
+
      * Query 2.
+
      *
+
      * If no attributes were supplied, there is no reason to query the
+
      * attribute-definition table.
+
      */
+
     const attributeDefinitions =
       attributeDefinitionIds.length > 0
         ? await dbClient.productAttributeDefinition.findMany({
@@ -99,28 +133,42 @@ export class PricingEngineService {
               id: {
                 in: attributeDefinitionIds,
               },
+
               productId,
+
               isDeleted: false,
             },
           })
         : [];
 
     /**
+
      * Create an in-memory lookup so the pricing loop does not need any
+
      * additional database queries for attribute definitions.
+
      */
+
     const attributeDefinitionById = new Map(
       attributeDefinitions.map((definition) => [definition.id, definition])
     );
 
     /**
+
      * Collect every selected option ID used by SELECT attributes.
+
      *
+
      * Attribute definitions have already been loaded, so invalid attribute
+
      * IDs are ignored here and will produce the normal validation error
+
      * later in the pricing loop.
+
      */
+
     const allSelectedOptionIds = new Set<string>();
+
     const selectAttributeDefinitionIds = new Set<string>();
 
     for (const selectedAttribute of selectedAttributes) {
@@ -140,11 +188,17 @@ export class PricingEngineService {
     }
 
     /**
+
      * Load all selected options in one query instead of one query for every
+
      * SELECT attribute.
+
      *
+
      * Query 3.
+
      */
+
     const selectedOptions =
       allSelectedOptionIds.size > 0
         ? await dbClient.productAttributeOption.findMany({
@@ -152,25 +206,36 @@ export class PricingEngineService {
               id: {
                 in: [...allSelectedOptionIds],
               },
+
               attributeDefinitionId: {
                 in: [...selectAttributeDefinitionIds],
               },
+
               isDeleted: false,
             },
           })
         : [];
 
     /**
+
      * Create an in-memory lookup for selected options.
+
      */
+
     const selectedOptionById = new Map(selectedOptions.map((option) => [option.id, option]));
 
     /**
+
      * Calculate every selected attribute independently.
+
      *
+
      * All required database records have already been loaded, so this loop
+
      * performs pricing and validation entirely in memory.
+
      */
+
     for (const selectedAttribute of selectedAttributes) {
       const attributeDefinition = attributeDefinitionById.get(
         selectedAttribute.attributeDefinitionId
@@ -183,19 +248,31 @@ export class PricingEngineService {
       }
 
       let additionalPrice: Prisma.Decimal;
+
       let selectedValue: string;
+      const calculationItems: NonNullable<PriceBreakdownLine['calculationItems']> = [];
 
       switch (attributeDefinition.attributeType) {
         /**
+
          * Calculates NUMBER attribute pricing.
+
          *
+
          * Example:
+
          * value = 100
+
          * unitPrice = 1.2
+
          *
+
          * Additional price:
+
          * 100 × 1.2 = 120
+
          */
+
         case AttributeType.NUMBER: {
           if (attributeDefinition.pricingRule !== PricingRule.PER_UNIT_MULTIPLIER) {
             throw new Error(
@@ -234,21 +311,39 @@ export class PricingEngineService {
           }
 
           additionalPrice = numericValue.mul(attributeDefinition.unitPrice);
+
           selectedValue = selectedAttribute.value.toString();
+          calculationItems.push({
+            label: attributeDefinition.attributeName,
+            unitPrice: attributeDefinition.unitPrice.toNumber(),
+            multiplier: numericValue.toNumber(),
+            multiplierLabel: 'יחידות ערך',
+            contribution: additionalPrice.toNumber(),
+          });
 
           break;
         }
 
         /**
+
          * Calculates SELECT attribute pricing.
+
          *
+
          * All options have already been loaded in a single database query.
+
          *
+
          * Pricing comes from ProductAttributeOption.priceModifier.
+
          *
+
          * When isPerUnit is true, priceModifier is multiplied by the
+
          * product quantity. Otherwise, priceModifier is added once.
+
          */
+
         case AttributeType.SELECT: {
           const selectedOptionIds = selectedAttribute.selectedOptionIds ?? [];
 
@@ -262,13 +357,21 @@ export class PricingEngineService {
             const option = selectedOptionById.get(optionId);
 
             /**
+
              * An option must exist and must belong to the current attribute.
+
              *
+
              * Checking attributeDefinitionId preserves the validation that
+
              * previously came from querying with:
+
              *
+
              * attributeDefinitionId: attributeDefinition.id
+
              */
+
             if (!option || option.attributeDefinitionId !== attributeDefinition.id) {
               throw new Error(
                 `אפשרות אחת או יותר שנבחרו אינן תקינות עבור המאפיין ${attributeDefinition.id}`
@@ -296,6 +399,13 @@ export class PricingEngineService {
             }
 
             additionalPrice = additionalPrice.add(optionPrice);
+            calculationItems.push({
+              label: option.optionLabel,
+              unitPrice: option.priceModifier.toNumber(),
+              multiplier: option.isPerUnit ? quantity : 1,
+              multiplierLabel: option.isPerUnit ? 'יחידות מוצר' : 'חד-פעמי',
+              contribution: optionPrice.toNumber(),
+            });
           }
 
           selectedValue = optionsForAttribute.map((option) => option.optionLabel).join(', ');
@@ -304,11 +414,17 @@ export class PricingEngineService {
         }
 
         /**
+
          * Calculates BOOLEAN attribute pricing.
+
          *
+
          * A false value has no price contribution.
+
          * A true value adds the definition unit price once.
+
          */
+
         case AttributeType.BOOLEAN: {
           if (typeof selectedAttribute.value !== 'boolean') {
             throw new Error(`המאפיין ${attributeDefinition.id} דורש ערך בוליאני`);
@@ -316,28 +432,72 @@ export class PricingEngineService {
 
           selectedValue = selectedAttribute.value ? 'true' : 'false';
 
+          // A disabled boolean never adds a charge.
+
           if (!selectedAttribute.value) {
             additionalPrice = new Prisma.Decimal(0);
+
             break;
           }
 
-          if (
-            attributeDefinition.unitPrice === null ||
-            attributeDefinition.unitPrice.lessThanOrEqualTo(0)
-          ) {
-            throw new Error(`המאפיין ${attributeDefinition.id} דורש מחיר ליחידה גדול מאפס`);
+          // Explicitly free boolean attribute.
+
+          if (attributeDefinition.pricingRule === PricingRule.NONE) {
+            additionalPrice = new Prisma.Decimal(0);
+
+            break;
           }
 
-          additionalPrice = attributeDefinition.unitPrice;
+          const unitPrice = attributeDefinition.unitPrice;
+
+          if (unitPrice === null || unitPrice.isNegative()) {
+            throw new Error(`המאפיין ${attributeDefinition.id} דורש מחיר תקין שאינו שלילי`);
+          }
+
+          switch (attributeDefinition.pricingRule) {
+            case PricingRule.FLAT_ADD_PER_OPTION:
+              // Charge once per order.
+
+              additionalPrice = unitPrice;
+              calculationItems.push({
+                label: attributeDefinition.attributeName,
+                unitPrice: unitPrice.toNumber(),
+                multiplier: 1,
+                multiplierLabel: 'חד-פעמי',
+                contribution: additionalPrice.toNumber(),
+              });
+              break;
+
+            case PricingRule.PER_UNIT_MULTIPLIER:
+              // Charge once for every ordered product.
+
+              additionalPrice = unitPrice.mul(quantityDecimal);
+              calculationItems.push({
+                label: attributeDefinition.attributeName,
+                unitPrice: unitPrice.toNumber(),
+                multiplier: quantity,
+                multiplierLabel: 'יחידות מוצר',
+                contribution: additionalPrice.toNumber(),
+              });
+              break;
+
+            default:
+              throw new Error(`כלל התמחור של המאפיין ${attributeDefinition.id} אינו נתמך`);
+          }
 
           break;
         }
 
         /**
+
          * Handles TEXT attributes.
+
          *
+
          * Text attributes do not affect pricing.
+
          */
+
         case AttributeType.TEXT: {
           if (
             selectedAttribute.value !== undefined &&
@@ -355,10 +515,15 @@ export class PricingEngineService {
         }
 
         /**
+
          * Handles FILE_UPLOAD attributes.
+
          *
+
          * Uploaded files do not affect pricing.
+
          */
+
         case AttributeType.FILE_UPLOAD: {
           if (
             selectedAttribute.value !== undefined &&
@@ -383,15 +548,23 @@ export class PricingEngineService {
       totalAdditionalPrice = totalAdditionalPrice.add(additionalPrice);
 
       /**
+
        * Only attributes that actually change the price belong in the
+
        * visible price breakdown.
+
        */
+
       if (!additionalPrice.isZero()) {
         breakdown.push({
           attributeDefinitionId: attributeDefinition.id,
+
           attributeName: attributeDefinition.attributeName,
+
           selectedValue,
+
           contribution: additionalPrice.toNumber(),
+          calculationItems,
         });
       }
     }
@@ -400,9 +573,13 @@ export class PricingEngineService {
 
     return {
       quantity,
+
       baseTotal: baseTotal.toNumber(),
+
       totalAdditionalPrice: totalAdditionalPrice.toNumber(),
+
       totalPrice: totalPrice.toNumber(),
+
       breakdown,
     };
   }

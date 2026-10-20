@@ -25,6 +25,8 @@ import type { CartItem } from 'shared-types';
 import QuantityControl from './QuantityControl';
 import { getActiveCart, updateCartItem, removeCartItem } from '../../services/api/cart.service';
 
+import { useAuthStore } from '../../store/useAuthStore';
+
 interface QuickCartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,12 +38,13 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
   const [itemToDeleteId, setItemToDeleteId] = useState<string | null>(null);
 
   // 1. Fetch Cart Data
+  const currentUser = useAuthStore((state) => state.currentUser);
+  const isRequester = currentUser.role === 'REQUESTER';
+
   const { data: cart, isLoading } = useQuery({
     queryKey: ['activeCart'],
     queryFn: getActiveCart,
-    // Only fetch if the drawer is open to save background requests,
-    // OR keep it enabled always so the badge in the header can use the cached data!
-    enabled: isOpen,
+    enabled: isRequester && isOpen,
   });
 
   const items: CartItem[] = cart?.items || cart?.cartItemEntries || [];

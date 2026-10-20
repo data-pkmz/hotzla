@@ -260,6 +260,7 @@ model Order {
   approvedByBudgetAt  DateTime?      @map("approved_by_budget_at")
   workerId            String?        @map("worker_id") @db.Uuid
   worker              User?          @relation("orderWorker", fields: [workerId], references: [id])
+  pickupInstructions  String?        @map("pickup_instructions") @db.Text
   completedAt         DateTime?      @map("completed_at")
   createdAt           DateTime       @default(now()) @map("created_at")
   isDeleted           Boolean        @default(false) @map("is_deleted")
@@ -299,8 +300,8 @@ model OrderItemAttributeValue {
   orderItem             OrderItem                  @relation(fields: [orderItemId], references: [id])
   attributeDefinitionId String                     @map("attribute_definition_id") @db.Uuid
   attributeDefinition   ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id])
-  selectedOptionId      String                     @map("selected_option_id") @db.Uuid
-  selectedOption        ProductAttributeOption     @relation(fields: [selectedOptionId], references: [id])
+  selectedOptionId      String?                    @map("selected_option_id") @db.Uuid
+  selectedOption        ProductAttributeOption?    @relation(fields: [selectedOptionId], references: [id])
   valueText             String                     @map("value_text")
   isDeleted             Boolean                    @default(false) @map("is_deleted")
   @@map("order_item_attribute_values")

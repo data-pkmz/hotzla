@@ -1,6 +1,7 @@
 import { prisma } from '../config/db';
 import { Status, Prisma } from '@prisma/client';
 import { PricingEngineService } from './pricing-engine.service';
+import { FileStorageService } from './file-storage.service';
 
 import type { AddToCartInput, UpdateCartItemInput } from 'shared-types';
 
@@ -96,6 +97,7 @@ export class CartService {
    *   with the cart item.
    *
    * Does:
+   * - Validates that the uploaded file belongs to the user and is not in use by another user.
    * - Retrieves or creates the user's active cart.
    * - Recalculates the item's price on the server using PricingEngineService.
    * - Stores the quantity separately from the dynamic product attributes.
@@ -107,10 +109,36 @@ export class CartService {
    * - The newly created cart item.
    *
    * Throws:
+   * - "Forbidden: Cannot attach a file uploaded by another user" if uploader ID doesn't match.
+   * - "Forbidden: File is already in use by another user" if another active cart holds this file.
    * - Any error produced while retrieving the cart, calculating the price,
    *   or creating the cart item.
    */
   static async addItemToCart(userId: string, input: AddToCartInput) {
+    if (input.uploadedFilePath && input.uploadedFilePath.trim() !== '') {
+      // 1. If path contains an uploader ID, verify it matches this user
+      const uploaderId = FileStorageService.extractUploaderId(input.uploadedFilePath);
+      if (uploaderId && uploaderId !== userId) {
+        throw new Error('Forbidden: Cannot attach a file uploaded by another user');
+      }
+
+      // 2. Ensure file is not already in active use by another user's cart item
+      const existingOtherUserItem = await prisma.cartItem.findFirst({
+        where: {
+          uploadedFilePath: input.uploadedFilePath,
+          isDeleted: false,
+          cart: {
+            isDeleted: false,
+            userId: { not: userId },
+          },
+        },
+      });
+
+      if (existingOtherUserItem) {
+        throw new Error('Forbidden: File is already in use by another user');
+      }
+    }
+
     const cart = await this.getOrCreateActiveCart(userId);
 
     // Recalculate the authoritative price on the server instead of trusting
