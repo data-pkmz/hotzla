@@ -18,6 +18,7 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import BuildIcon from '@mui/icons-material/Build';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useUserGuide } from '../guide/UserGuideContext';
 import growthLogo from '../../assets/logo-growth.png';
@@ -62,6 +63,12 @@ export const Sidebar: React.FC = () => {
       show: isWorkerOrManager,
     },
     { text: 'בניית מוצר (Admin)', path: '/admin/builder', icon: <BuildIcon />, show: isManager },
+    {
+      text: 'ניהול הרשאות',
+      path: '/manager/roles',
+      icon: <ManageAccountsIcon />,
+      show: isManager,
+    },
   ];
 
   return (

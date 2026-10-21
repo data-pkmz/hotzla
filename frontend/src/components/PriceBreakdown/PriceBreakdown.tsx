@@ -10,6 +10,7 @@ interface PriceBreakdownProps {
   isLoading?: boolean;
   error?: string | null;
   isFormValid?: boolean;
+  canAddToCart?: boolean;
   onAddToCart?: () => void;
   isAddingToCart?: boolean;
   wasAddedToCart?: boolean;
@@ -110,6 +111,7 @@ export default function PriceBreakdown({
   isLoading = false,
   error,
   isFormValid = false,
+  canAddToCart = true,
   onAddToCart,
   isAddingToCart = false,
   wasAddedToCart = false,
@@ -230,7 +232,7 @@ export default function PriceBreakdown({
             </Typography>
           </Box>
 
-          {!isFormValid && (
+          {canAddToCart && !isFormValid && (
             <Box
               sx={{
                 mb: 2,
@@ -263,6 +265,7 @@ export default function PriceBreakdown({
               ) : undefined
             }
             disabled={
+              !canAddToCart ||
               !isFormValid ||
               !result ||
               isLoading ||
@@ -300,6 +303,28 @@ export default function PriceBreakdown({
               'הוסף לסל'
             )}
           </Button>
+
+          {!canAddToCart && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: 'rgba(255,255,255,0.08)',
+                direction: 'ltr',
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'rgba(255,255,255,0.85)',
+                  textAlign: 'left',
+                }}
+              >
+                הוספה לסל זמינה למזמינים בלבד. מנהלים ועובדי דפוס אינם יכולים לבצע הזמנות.
+              </Typography>
+            </Box>
+          )}
         </>
       ) : (
         !isLoading && (

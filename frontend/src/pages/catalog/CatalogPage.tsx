@@ -19,33 +19,57 @@ import CategoryFilter from '../../components/DynamicAttributeInput/CategoryFilte
 import ProductCard from '../../components/catalog/ProductCard';
 import DemoDataPanel from '../../components/common/DemoDataPanel';
 import CartRecoveryBanner from '../../components/cart/CartRecoveryBanner';
-import { getProducts } from '../../services/api/catalog.service';
+import { getProducts, getAdminProducts } from '../../services/api/catalog.service';
 import { DEMO_PRODUCTS } from '../../demo/demoData';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const currentUser = useAuthStore((state) => state.currentUser);
+
+  const isManager = currentUser?.role === 'MANAGER';
+  const isRequester = currentUser?.role === 'REQUESTER';
+
   const selectedCategory = searchParams.get('category');
 
+  /**
+   * Managers see all products, including inactive products.
+   * Other users see the public catalog of active products.
+   *
+   * Separate query keys prevent the two datasets from sharing
+   * the same React Query cache entry.
+   */
   const {
     data: products = [],
     isLoading,
     isError,
+    isSuccess,
     error,
   } = useQuery({
-    queryKey: ['catalog-products'],
-    queryFn: getProducts,
+    queryKey: isManager ? ['admin-products'] : ['catalog-products'],
+    queryFn: isManager ? getAdminProducts : getProducts,
+    enabled: Boolean(currentUser),
   });
-  const showingDemoProducts = !isLoading && !isError && products.length === 0;
+  const showingDemoProducts = isSuccess && products.length === 0;
   const displayedProducts = showingDemoProducts ? DEMO_PRODUCTS : products;
 
+  /**
+   * Build the list of available categories using the products
+   * returned for the current user's role.
+   */
   const categories = useMemo(() => {
     return Array.from(new Set(displayedProducts.map((product) => product.category))).sort((a, b) =>
       a.localeCompare(b, 'he')
     );
   }, [displayedProducts]);
 
+  /**
+   * Filter the products by the selected category and search term.
+   * The filtering behavior remains the same for both managers
+   * and requesters.
+   */
   const filteredProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
@@ -89,7 +113,8 @@ export default function CatalogPage() {
       }}
     >
       <Container maxWidth="xl">
-        <CartRecoveryBanner />
+        {/* Cart recovery is only relevant to requesters. */}
+        {isRequester && <CartRecoveryBanner />}
 
         <Box
           sx={{
@@ -116,7 +141,9 @@ export default function CatalogPage() {
             </Typography>
 
             <Typography color="text.secondary">
-              בחרו את המוצר המתאים לכם והמשיכו להתאמה ולהזמנה.
+              {isManager
+                ? 'צפייה וניהול של כל המוצרים במערכת, כולל מוצרים לא פעילים.'
+                : 'בחרו את המוצר המתאים לכם והמשיכו להתאמה ולהזמנה.'}
             </Typography>
           </Box>
 
@@ -237,7 +264,11 @@ export default function CatalogPage() {
             <Grid container spacing={3}>
               {filteredProducts.map((product) => (
                 <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                  <ProductCard product={product} demoOnly={showingDemoProducts} />
+                  <ProductCard
+                    product={product}
+                    demoOnly={showingDemoProducts}
+                    isManager={isManager}
+                  />
                 </Grid>
               ))}
             </Grid>

@@ -1,4 +1,5 @@
-import { Box, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 
@@ -9,15 +10,35 @@ import { getProductImageUrl } from '../../services/api/file.service';
 interface ProductCardProps {
   product: Product;
   demoOnly?: boolean;
+  isManager?: boolean;
 }
 
-export default function ProductCard({ product, demoOnly = false }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  demoOnly = false,
+  isManager = false,
+}: ProductCardProps) {
   const navigate = useNavigate();
 
   const basePrice = Number(product.basePrice);
+  const isActive = product.isActive;
 
   const handleProductClick = () => {
+    // Inactive products may not be accessible through
+    // the requester-facing product details endpoint.
+    if (!isActive) {
+      if (isManager) {
+        navigate(`/manager/products/${product.id}/edit`);
+      }
+      return;
+    }
+
     navigate(`/product/${product.id}`);
+  };
+
+  const handleEditClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    navigate(`/manager/products/${product.id}/edit`);
   };
 
   return (
@@ -26,7 +47,12 @@ export default function ProductCard({ product, demoOnly = false }: ProductCardPr
       onClick={demoOnly ? undefined : handleProductClick}
       {...(!demoOnly && { role: 'button', tabIndex: 0 })}
       onKeyDown={(event) => {
-        if (!demoOnly && (event.key === 'Enter' || event.key === ' ')) {
+        if (demoOnly || event.target !== event.currentTarget) {
+          return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
           handleProductClick();
         }
       }}
@@ -69,6 +95,7 @@ export default function ProductCard({ product, demoOnly = false }: ProductCardPr
               height: '100%',
               objectFit: 'cover',
               display: 'block',
+              opacity: isManager && !isActive ? 0.6 : 1,
             }}
           />
         ) : (
@@ -116,6 +143,21 @@ export default function ProductCard({ product, demoOnly = false }: ProductCardPr
             borderRadius: 1,
           }}
         />
+
+        {/* Product activation status, visible only to managers */}
+        {isManager && !demoOnly && (
+          <Chip
+            label={isActive ? 'פעיל' : 'לא פעיל'}
+            color={isActive ? 'success' : 'default'}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              fontWeight: 600,
+            }}
+          />
+        )}
       </Box>
 
       <CardContent
@@ -159,7 +201,7 @@ export default function ProductCard({ product, demoOnly = false }: ProductCardPr
           sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-end',
+            alignItems: 'center',
             gap: 2,
           }}
         >
@@ -170,25 +212,36 @@ export default function ProductCard({ product, demoOnly = false }: ProductCardPr
             ₪{basePrice.toFixed(2)}
           </Typography>
 
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              cursor: demoOnly ? 'default' : 'pointer',
-              color: 'primary.main',
-            }}
-          >
-            <Typography
-              variant="body2"
+          {demoOnly ? (
+            <Typography variant="body2" color="text.secondary">
+              דוגמה להמחשה
+            </Typography>
+          ) : isManager ? (
+            <Button
+              variant="outlined"
+              size="small"
+              endIcon={<EditIcon />}
+              onClick={handleEditClick}
               sx={{
-                color: demoOnly ? 'text.secondary' : 'inherit',
+                whiteSpace: 'nowrap',
+                px: 3.5,
               }}
             >
-              {demoOnly ? 'דוגמה להמחשה' : 'התאמה והזמנה'}
-            </Typography>
+              עריכת מוצר
+            </Button>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                color: 'primary.main',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'inherit' }}>
+                התאמה והזמנה
+              </Typography>
 
-            {!demoOnly && (
               <Typography
                 component="span"
                 aria-hidden="true"
@@ -199,8 +252,8 @@ export default function ProductCard({ product, demoOnly = false }: ProductCardPr
               >
                 ←
               </Typography>
-            )}
-          </Box>
+            </Box>
+          )}
         </Box>
       </CardContent>
     </Card>

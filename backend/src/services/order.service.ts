@@ -217,6 +217,7 @@ export class OrderService {
     });
     return newOrder;
   }
+
   /**
    * Fetches an order by its ID with role-based access validation.
    * Requesters can only view their own orders.
