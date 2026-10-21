@@ -26,11 +26,16 @@ import StatusBadge from '../StatusBadge';
 interface WorkerOrderCardProps {
   order: Order;
   onStatusUpdated: () => void;
+  demoOnly?: boolean;
 }
 
 type ConfirmationType = 'START_PRINTING' | 'READY_FOR_PICKUP' | 'COMPLETE_ORDER' | null;
 
-export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatusUpdated }) => {
+export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({
+  order,
+  onStatusUpdated,
+  demoOnly = false,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmType, setConfirmType] = useState<ConfirmationType>(null);
@@ -79,6 +84,8 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatu
   };
 
   const renderActionButtons = () => {
+    if (demoOnly) return null;
+
     if (order.status === OrderStatus.APPROVED_FOR_PRODUCTION) {
       return (
         <Button
@@ -140,24 +147,32 @@ export const WorkerOrderCard: React.FC<WorkerOrderCardProps> = ({ order, onStatu
             fontWeight="bold"
             color="primary"
             sx={{
-              cursor: 'pointer',
+              cursor: demoOnly ? 'default' : 'pointer',
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              '&:hover': { textDecoration: 'underline' },
+              ...(!demoOnly && { '&:hover': { textDecoration: 'underline' } }),
             }}
-            onClick={() =>
-              navigate(`/orders/${order.id}`, {
-                state: { from: '/worker/queue', fromLabel: 'תור עבודה' },
-              })
+            onClick={
+              demoOnly
+                ? undefined
+                : () =>
+                    navigate(`/orders/${order.id}`, {
+                      state: { from: '/worker/queue', fromLabel: 'תור עבודה' },
+                    })
             }
           >
             הזמנה #{order.orderNumber}
-            <ArrowBackIcon fontSize="small" />
+            {!demoOnly && <ArrowBackIcon fontSize="small" />}
           </Typography>
           <StatusBadge status={order.status} />
         </Box>
+        {demoOnly && (
+          <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+            מידע פיקטיבי לדוגמה
+          </Typography>
+        )}
         <Divider sx={{ mb: 2 }} />
         <Box mb={1} display="flex" alignItems="center" gap={1}>
           <Typography variant="body1" fontWeight="bold">

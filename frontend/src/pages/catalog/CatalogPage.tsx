@@ -17,10 +17,10 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import CategoryFilter from '../../components/DynamicAttributeInput/CategoryFilter';
 import ProductCard from '../../components/catalog/ProductCard';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
 import CartRecoveryBanner from '../../components/cart/CartRecoveryBanner';
-
 import { getProducts, getAdminProducts } from '../../services/api/catalog.service';
-
+import { DEMO_PRODUCTS } from '../../demo/demoData';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export default function CatalogPage() {
@@ -45,22 +45,25 @@ export default function CatalogPage() {
     data: products = [],
     isLoading,
     isError,
+    isSuccess,
     error,
   } = useQuery({
     queryKey: isManager ? ['admin-products'] : ['catalog-products'],
     queryFn: isManager ? getAdminProducts : getProducts,
     enabled: Boolean(currentUser),
   });
+  const showingDemoProducts = isSuccess && products.length === 0;
+  const displayedProducts = showingDemoProducts ? DEMO_PRODUCTS : products;
 
   /**
    * Build the list of available categories using the products
    * returned for the current user's role.
    */
   const categories = useMemo(() => {
-    return Array.from(new Set(products.map((product) => product.category))).sort((a, b) =>
+    return Array.from(new Set(displayedProducts.map((product) => product.category))).sort((a, b) =>
       a.localeCompare(b, 'he')
     );
-  }, [products]);
+  }, [displayedProducts]);
 
   /**
    * Filter the products by the selected category and search term.
@@ -70,7 +73,7 @@ export default function CatalogPage() {
   const filteredProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    return products.filter((product) => {
+    return displayedProducts.filter((product) => {
       const matchesCategory = selectedCategory === null || product.category === selectedCategory;
 
       const matchesSearch =
@@ -81,7 +84,7 @@ export default function CatalogPage() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [products, searchTerm, selectedCategory]);
+  }, [displayedProducts, searchTerm, selectedCategory]);
 
   const handleCategoryChange = (category: string | null) => {
     setSearchParams((current) => {
@@ -127,7 +130,13 @@ export default function CatalogPage() {
           }}
         >
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+            <Typography
+              id="guide-catalog-heading"
+              variant="h4"
+              component="h1"
+              fontWeight={700}
+              gutterBottom
+            >
               קטלוג המוצרים
             </Typography>
 
@@ -138,34 +147,41 @@ export default function CatalogPage() {
             </Typography>
           </Box>
 
-          <TextField
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="חפש מוצר..."
-            inputProps={{
-              'aria-label': 'חיפוש מוצרים',
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
+          <Box
+            id="guide-catalog-search"
             sx={{
               width: {
                 xs: '100%',
                 md: 360,
               },
-              '& .MuiOutlinedInput-root': {
-                height: 44,
-              },
             }}
-          />
+          >
+            <TextField
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="חפש מוצר..."
+              inputProps={{
+                'aria-label': 'חיפוש מוצרים',
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: '100%',
+                '& .MuiOutlinedInput-root': {
+                  height: 44,
+                },
+              }}
+            />
+          </Box>
         </Box>
 
         {/* Categories */}
-        {!isLoading && !isError && products.length > 0 && (
+        {!isLoading && !isError && displayedProducts.length > 0 && (
           <Box sx={{ mb: 4 }}>
             <CategoryFilter
               categories={categories}
@@ -175,98 +191,89 @@ export default function CatalogPage() {
           </Box>
         )}
 
-        {/* Loading */}
-        {isLoading && (
-          <Grid container spacing={3}>
-            {Array.from({ length: 8 }).map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-                <Box
-                  sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Skeleton
-                    variant="rectangular"
-                    width="100%"
+        <Box id="guide-catalog-products">
+          {/* Loading */}
+          {isLoading && (
+            <Grid container spacing={3}>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                  <Box
                     sx={{
-                      aspectRatio: '4 / 3',
-                      height: 'auto',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 3,
+                      overflow: 'hidden',
                     }}
-                  />
+                  >
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      sx={{
+                        aspectRatio: '4 / 3',
+                        height: 'auto',
+                      }}
+                    />
 
-                  <Box sx={{ p: 2.5 }}>
-                    <Skeleton variant="text" width="60%" height={32} />
+                    <Box sx={{ p: 2.5 }}>
+                      <Skeleton variant="text" width="60%" height={32} />
 
-                    <Skeleton variant="text" width="100%" />
+                      <Skeleton variant="text" width="100%" />
 
-                    <Skeleton variant="text" width="80%" />
+                      <Skeleton variant="text" width="80%" />
 
-                    <Skeleton variant="text" width="40%" sx={{ mt: 2 }} />
+                      <Skeleton variant="text" width="40%" sx={{ mt: 2 }} />
+                    </Box>
                   </Box>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+                </Grid>
+              ))}
+            </Grid>
+          )}
 
-        {/* API error */}
-        {isError && (
-          <Alert severity="error">
-            {error instanceof Error ? error.message : 'אירעה שגיאה בטעינת הקטלוג'}
-          </Alert>
-        )}
+          {/* API error */}
+          {isError && (
+            <Alert severity="error">
+              {error instanceof Error ? error.message : 'אירעה שגיאה בטעינת הקטלוג'}
+            </Alert>
+          )}
 
-        {/* Entire catalog empty */}
-        {!isLoading && !isError && products.length === 0 && (
-          <Box
-            sx={{
-              py: 8,
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              {isManager ? 'לא נמצאו מוצרים במערכת' : 'אין מוצרים זמינים כרגע'}
-            </Typography>
+          {showingDemoProducts && <DemoDataPanel areaLabel="קטלוג המוצרים" />}
 
-            <Typography color="text.secondary">
-              {isManager
-                ? 'ניתן להוסיף מוצרים חדשים דרך ממשק ניהול המוצרים.'
-                : 'מוצרים חדשים יופיעו כאן כאשר יהיו זמינים להזמנה.'}
-            </Typography>
-          </Box>
-        )}
+          {/* Search/filter produced zero results */}
+          {!isLoading &&
+            !isError &&
+            displayedProducts.length > 0 &&
+            filteredProducts.length === 0 && (
+              <Box
+                sx={{
+                  py: 8,
+                  textAlign: 'center',
+                }}
+              >
+                <Typography variant="h6" gutterBottom>
+                  לא נמצאו מוצרים
+                </Typography>
 
-        {/* Search/filter produced zero results */}
-        {!isLoading && !isError && products.length > 0 && filteredProducts.length === 0 && (
-          <Box
-            sx={{
-              py: 8,
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              לא נמצאו מוצרים
-            </Typography>
+                <Typography color="text.secondary">
+                  נסו לשנות את החיפוש או לבחור קטגוריה אחרת.
+                </Typography>
+              </Box>
+            )}
 
-            <Typography color="text.secondary">
-              נסו לשנות את החיפוש או לבחור קטגוריה אחרת.
-            </Typography>
-          </Box>
-        )}
-
-        {/* Product grid */}
-        {!isLoading && !isError && filteredProducts.length > 0 && (
-          <Grid container spacing={3}>
-            {filteredProducts.map((product) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                <ProductCard product={product} isManager={isManager} />
-              </Grid>
-            ))}
-          </Grid>
-        )}
+          {/* Product grid */}
+          {!isLoading && !isError && filteredProducts.length > 0 && (
+            <Grid container spacing={3}>
+              {filteredProducts.map((product) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                  <ProductCard
+                    product={product}
+                    demoOnly={showingDemoProducts}
+                    isManager={isManager}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
       </Container>
     </Box>
   );

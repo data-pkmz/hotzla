@@ -236,6 +236,7 @@ export const CheckoutPage: React.FC = () => {
         }}
       >
         <Typography
+          id="guide-checkout-title"
           variant="h4"
           sx={{
             fontWeight: 800,
@@ -267,17 +268,10 @@ export const CheckoutPage: React.FC = () => {
         ) : null}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-          {/* -------------------------------------- */}
-          {/* 1. Requester details                    */}
-          {/* -------------------------------------- */}
-
           <Card
+            id="guide-checkout-customer"
             variant="outlined"
-            sx={{
-              p: 3,
-              mb: 3,
-              borderRadius: 2,
-            }}
+            sx={{ p: 3, mb: 3, borderRadius: 2 }}
           >
             <Typography
               variant="h6"
@@ -353,6 +347,7 @@ export const CheckoutPage: React.FC = () => {
           {/* -------------------------------------- */}
 
           <Card
+            id="guide-checkout-budget"
             variant="outlined"
             sx={{
               p: 3,
@@ -409,17 +404,9 @@ export const CheckoutPage: React.FC = () => {
 
           <Divider sx={{ my: 3 }} />
 
-          {/* -------------------------------------- */}
-          {/* Checkout actions                       */}
-          {/* -------------------------------------- */}
-
           <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 2,
-              flexWrap: 'wrap',
-            }}
+            id="guide-checkout-actions"
+            sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}
           >
             <Button
               variant="outlined"

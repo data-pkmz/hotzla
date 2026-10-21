@@ -5,9 +5,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import CartItemRow from '../../components/cart/CartItemRow';
 import CartSummaryCard from '../../components/cart/CartSummaryCard';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
+import { DEMO_CART_ITEM } from '../../demo/demoData';
 
 import { getActiveCart, updateCartItem, removeCartItem } from '../../services/api/cart.service';
 import type { CartItem } from 'shared-types';
+import { getCartItems } from '../../utils/cart';
 
 export default function CartPage() {
   const queryClient = useQueryClient();
@@ -23,13 +26,20 @@ export default function CartPage() {
     queryFn: getActiveCart,
   });
 
-  // Handle difference between Prisma schema (cartItemEntries) and shared-types (items)
-  const items: CartItem[] = useMemo(() => cart?.items || cart?.cartItemEntries || [], [cart]);
+  const items: CartItem[] = useMemo(() => getCartItems(cart), [cart]);
+  const showingDemoItems = items.length === 0;
+  const displayedItems = useMemo(
+    () => (showingDemoItems ? [DEMO_CART_ITEM] : items),
+    [items, showingDemoItems]
+  );
 
   // Auto-calculate the total price using real backend prices
   const totalPrice = useMemo(() => {
-    return items.reduce((sum: number, item: CartItem) => sum + Number(item.computedPrice), 0);
-  }, [items]);
+    return displayedItems.reduce(
+      (sum: number, item: CartItem) => sum + Number(item.computedPrice),
+      0
+    );
+  }, [displayedItems]);
 
   // 2. Mutation to update quantity
   const updateQuantityMutation = useMutation({
@@ -71,7 +81,7 @@ export default function CartPage() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+      <Box id="guide-cart-page" sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
         <CircularProgress />
       </Box>
     );
@@ -79,7 +89,7 @@ export default function CartPage() {
 
   if (isError) {
     return (
-      <Box sx={{ mt: 10 }}>
+      <Box id="guide-cart-page" sx={{ mt: 10 }}>
         <Container>
           <Alert severity="error" dir="rtl" sx={{ textAlign: 'left' }}>
             שגיאת התחברות לשרת. נא לוודא שה-Docker פועל!
@@ -91,6 +101,7 @@ export default function CartPage() {
 
   return (
     <Box
+      id="guide-cart-page"
       dir="rtl"
       sx={{
         minHeight: '100%',
@@ -100,38 +111,38 @@ export default function CartPage() {
       }}
     >
       <Container maxWidth="xl">
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 4, textAlign: 'left' }}>
+        <Typography
+          id="guide-cart-title"
+          variant="h4"
+          sx={{ fontWeight: 'bold', mb: 4, textAlign: 'left' }}
+        >
           עגלת הקניות שלי
         </Typography>
 
-        {items.length === 0 ? (
-          <Alert
-            severity="info"
-            dir="rtl"
-            sx={{ fontSize: '1.1rem', textAlign: 'left', '& .MuiAlert-message': { width: '100%' } }}
-          >
-            העגלה שלך ריקה. חזור לקטלוג כדי להוסיף מוצרים!
-          </Alert>
-        ) : (
+        <Box id="guide-cart-summary">
+          {showingDemoItems && <DemoDataPanel areaLabel="העגלה" />}
           <Grid container spacing={4}>
-            {/* Left side (RTL) / Main side: The list of items */}
-            <Grid item xs={12} md={8}>
-              {items.map((item) => (
+            <Grid id="guide-cart-items" item xs={12} md={8}>
+              {displayedItems.map((item) => (
                 <CartItemRow
                   key={item.id}
                   item={item}
                   onUpdateQuantity={handleUpdateQuantity}
                   onRemove={handleRemove}
+                  demoOnly={showingDemoItems}
                 />
               ))}
             </Grid>
 
-            {/* Right side (RTL) / Sidebar: The Summary Card */}
             <Grid item xs={12} md={4}>
-              <CartSummaryCard totalPrice={totalPrice} onCheckout={handleCheckout} />
+              <CartSummaryCard
+                totalPrice={totalPrice}
+                onCheckout={handleCheckout}
+                disabled={showingDemoItems}
+              />
             </Grid>
           </Grid>
-        )}
+        </Box>
       </Container>
     </Box>
   );

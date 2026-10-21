@@ -185,6 +185,7 @@ export const ProductDetailPage: React.FC = () => {
   if (productIsLoading) {
     return (
       <Box
+        id="guide-product-loading"
         sx={{
           display: 'flex',
           justifyContent: 'center',
@@ -199,7 +200,9 @@ export const ProductDetailPage: React.FC = () => {
   if (productError) {
     return (
       <Box sx={{ p: 4 }}>
-        <Typography color="error">{productError}</Typography>
+        <Typography id="guide-product-error" color="error">
+          {productError}
+        </Typography>
       </Box>
     );
   }
@@ -222,6 +225,7 @@ export const ProductDetailPage: React.FC = () => {
       }}
     >
       <Breadcrumbs
+        id="guide-product-breadcrumbs"
         separator="›"
         sx={{
           mb: 3,
@@ -252,6 +256,7 @@ export const ProductDetailPage: React.FC = () => {
       </Breadcrumbs>
 
       <Box
+        id="guide-product-price"
         sx={{
           display: 'grid',
           gridTemplateColumns: {
@@ -263,6 +268,7 @@ export const ProductDetailPage: React.FC = () => {
         }}
       >
         <Box
+          id="guide-product-form"
           sx={{
             position: {
               lg: 'sticky',

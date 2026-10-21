@@ -160,7 +160,7 @@ export default function OrderDetails() {
         },
       }}
     >
-      <Container maxWidth="xl">
+      <Container id="guide-admin-order-details" maxWidth="xl">
         {/* Navigation */}
         <Breadcrumbs
           separator="›"
@@ -238,6 +238,7 @@ export default function OrderDetails() {
             {/* Manager approval section */}
             {canManagerDecide && (
               <Paper
+                id="guide-admin-order-actions"
                 variant="outlined"
                 sx={{
                   p: {

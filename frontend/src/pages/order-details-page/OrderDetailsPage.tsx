@@ -116,7 +116,7 @@ export default function OrderDetailsPage() {
         },
       }}
     >
-      <Container maxWidth="xl">
+      <Container id="guide-order-details" maxWidth="xl">
         {/* Navigation */}
         <Breadcrumbs
           separator="›"

@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, CircularProgress, Alert, Button, Paper } from '@mui/material';
+import { Box, Container, Typography, CircularProgress, Alert, Button } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { OrderStatus } from 'shared-types';
 import type { Order } from 'shared-types';
 import { getOrders } from '../../services/api/orders.service';
 import { WorkerOrderCard } from '../../components/worker/WorkerOrderCard';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
+import { DEMO_WORK_ORDERS } from '../../demo/demoData';
 
 export const WorkerQueuePage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const showingDemoOrders = !isLoading && !error && orders.length === 0;
+  const displayedOrders = showingDemoOrders ? DEMO_WORK_ORDERS : orders;
 
   const fetchQueue = async (showLoadingState = true) => {
     try {
@@ -46,11 +50,18 @@ export const WorkerQueuePage: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 4, textAlign: 'right' }} dir="rtl">
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+      <Box
+        id="guide-worker-queue-title"
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={4}
+      >
         <Typography variant="h4" component="h1" fontWeight="bold">
           תור עבודות פעילות
         </Typography>
         <Button
+          id="guide-worker-refresh"
           onClick={() => fetchQueue(true)}
           variant="outlined"
           color="primary"
@@ -73,26 +84,23 @@ export const WorkerQueuePage: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : orders.length === 0 ? (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 8,
-            textAlign: 'center',
-            bgcolor: 'grey.50',
-            border: '1px dashed',
-            borderColor: 'grey.300',
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" color="text.primary" gutterBottom>
-            אין עבודות בתור
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            כל ההזמנות טופלו בהצלחה. אין כרגע עבודות הממתינות להדפסה.
-          </Typography>
-        </Paper>
+        error ? null : (
+          <>
+            <DemoDataPanel areaLabel="תור העבודה" />
+            <Box id="guide-worker-queue-list" display="flex" flexDirection="column" gap={1}>
+              {displayedOrders.map((order) => (
+                <WorkerOrderCard
+                  key={order.id}
+                  order={order}
+                  onStatusUpdated={() => fetchQueue(true)}
+                  demoOnly
+                />
+              ))}
+            </Box>
+          </>
+        )
       ) : (
-        <Box display="flex" flexDirection="column" gap={1}>
+        <Box id="guide-worker-queue-list" display="flex" flexDirection="column" gap={1}>
           {orders.map((order) => (
             <WorkerOrderCard
               key={order.id}

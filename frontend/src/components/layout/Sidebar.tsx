@@ -8,6 +8,7 @@ import {
   ListItemText,
   Toolbar,
   Divider,
+  Box,
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -16,8 +17,13 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import BuildIcon from '@mui/icons-material/Build';
 import LocalPrintshopIcon from '@mui/icons-material/LocalPrintshop';
-import { useAuthStore } from '../../store/useAuthStore';
+import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useUserGuide } from '../guide/UserGuideContext';
+import growthLogo from '../../assets/logo-growth.png';
+import lionLogo from '../../assets/logo-lion.png';
+import crossedLogo from '../../assets/logo-crossed.png';
 
 const DRAWER_WIDTH = 240;
 
@@ -25,6 +31,7 @@ export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAuthStore((state) => state.currentUser);
+  const { startGuide } = useUserGuide();
 
   const isManager = currentUser.role === 'MANAGER';
   const isWorkerOrManager = currentUser.role === 'WORKER' || currentUser.role === 'MANAGER';
@@ -74,19 +81,27 @@ export const Sidebar: React.FC = () => {
         '& .MuiDrawer-paper': {
           width: DRAWER_WIDTH,
           boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
         },
       }}
     >
       <Toolbar />
       <Divider />
-      <List>
+      <List id="guide-sidebar-navigation-options" sx={{ flexGrow: 1 }}>
         {menuItems
           .filter((item) => item.show)
           .map((item) => {
             const isSelected = location.pathname === item.path;
+            const targetId =
+              item.path === '/'
+                ? 'guide-sidebar-catalog'
+                : `guide-sidebar-nav-${item.path.replace(/^\/+/, '').replaceAll('/', '-')}`;
             return (
               <ListItem key={item.path} disablePadding>
                 <ListItemButton
+                  id={targetId}
                   selected={isSelected}
                   onClick={() => navigate(item.path)}
                   sx={{
@@ -94,6 +109,7 @@ export const Sidebar: React.FC = () => {
                       bgcolor: 'primary.light',
                       color: 'primary.contrastText',
                       '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
+                      '& .MuiListItemText-primary': { color: 'inherit' },
                     },
                   }}
                 >
@@ -107,6 +123,52 @@ export const Sidebar: React.FC = () => {
               </ListItem>
             );
           })}
+      </List>
+      <Box
+        id="guide-sidebar-logos"
+        aria-label="לוגואים"
+        sx={{
+          display: 'flex',
+          direction: 'ltr',
+          justifyContent: 'space-evenly',
+          alignItems: 'center',
+          gap: 0.5,
+          px: 1,
+          py: 1.5,
+        }}
+      >
+        <Box
+          component="img"
+          src={lionLogo}
+          alt="סמל האריה"
+          sx={{ width: 58, height: 58, objectFit: 'contain' }}
+        />
+        <Box
+          component="img"
+          src={growthLogo}
+          alt="סמל הצמיחה"
+          sx={{ width: 66, height: 66, objectFit: 'contain', transform: 'translateY(-8px)' }}
+        />
+        <Box
+          component="img"
+          src={crossedLogo}
+          alt="סמל האריה עם הפס האדום"
+          sx={{ width: 58, height: 58, objectFit: 'contain' }}
+        />
+      </Box>
+      <List disablePadding sx={{ pb: 1 }}>
+        <ListItem disablePadding>
+          <ListItemButton
+            id="guide-sidebar-guide-button"
+            onClick={startGuide}
+            aria-label="מדריך למשתמש"
+          >
+            <ListItemIcon sx={{ minWidth: 40, color: 'action.active' }}>
+              <SchoolOutlinedIcon />
+            </ListItemIcon>
+            <ListItemText primary="מדריך למשתמש" />
+          </ListItemButton>
+        </ListItem>
       </List>
     </Drawer>
   );
