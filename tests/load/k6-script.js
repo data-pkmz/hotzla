@@ -11,7 +11,7 @@ const DURATION = __ENV.DURATION || '5m';
 const USER_PREFIX = __ENV.USER_PREFIX || 'k6-requester';
 const CUSTOMER_UNIT = __ENV.CUSTOMER_UNIT || 'LOAD_TEST';
 
-const BUDGET_OFFICER_EMAIL = __ENV.BUDGET_OFFICER_EMAIL || 'eitantestemail@idf.il';
+const BUDGET_OFFICER_EMAIL = __ENV.BUDGET_OFFICER_EMAIL || '';
 
 const PRODUCT_ID = __ENV.PRODUCT_ID || '';
 
