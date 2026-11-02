@@ -12,6 +12,8 @@ export * from './email.types.js';
 
 export * from './status.types.js';
 
+export * from './directory.types.js';
+
 export {
   AttributeType,
   PricingImpactType,

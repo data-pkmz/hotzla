@@ -8,20 +8,25 @@ import {
   Container,
   Divider,
   Grid,
+  List,
+  ListItem,
+  ListItemButton,
+  Paper,
   TextField,
   Typography,
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
-import type { CreateOrderInput, Order } from 'shared-types';
+import type { ContactItem, CreateOrderInput, Order } from 'shared-types';
 
-import BudgetOfficerForm from '../../components/checkout/BudgetOfficerForm';
 import { apiFetch } from '../../services/api';
 import { checkoutCart } from '../../services/api/cart.service';
+import { searchContacts } from '../../services/api/directory.service';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export interface CheckoutFormValues {
@@ -113,8 +118,47 @@ export const CheckoutPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = form;
+
+  // Directory contact search state for Budget Officer
+  const [directoryQuery, setDirectoryQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<ContactItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const handleSearchDirectory = async () => {
+    const clean = directoryQuery.trim();
+    if (clean.length < 2) {
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      const contacts = await searchContacts(clean);
+      setSearchResults(contacts.slice(0, 15));
+      setHasSearched(true);
+    } catch {
+      setSearchError('שגיאה בחיפוש בספר הכתובות. נסה שוב.');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectContact = (contact: ContactItem) => {
+    setValue('budgetOfficer.fullName', contact.displayName, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+    setValue('budgetOfficer.militaryEmail', contact.email, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
 
   // Submit the order payload to the backend and redirect to the confirmation page on success.
   const submitMutation = useMutation<Order, Error, CheckoutFormValues>({
@@ -215,7 +259,159 @@ export const CheckoutPage: React.FC = () => {
           </Card>
 
           <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <BudgetOfficerForm register={register} errors={errors} disabled={isSubmitting} />
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+              2. פרטי קצין תקציב מאשר
+            </Typography>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="שם מלא"
+                  fullWidth
+                  dir="rtl"
+                  disabled={isSubmitting}
+                  error={Boolean(errors.budgetOfficer?.fullName)}
+                  helperText={errors.budgetOfficer?.fullName?.message || ' '}
+                  {...register('budgetOfficer.fullName')}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="מייל צבאי"
+                  fullWidth
+                  dir="rtl"
+                  type="email"
+                  disabled={isSubmitting}
+                  error={Boolean(errors.budgetOfficer?.militaryEmail)}
+                  helperText={errors.budgetOfficer?.militaryEmail?.message || ' '}
+                  {...register('budgetOfficer.militaryEmail')}
+                />
+              </Grid>
+            </Grid>
+
+            {/* Dedicated Directory Search Section */}
+            <Box sx={{ mt: 3, pt: 2, borderTop: '1px dashed', borderColor: 'divider' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                חיפוש בספר הכתובות של הארגון (Outlook)
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mb: 1.5 }}
+              >
+                הזן לפחות 2 אותיות משם הקצין ולחץ על &quot;חיפוש&quot; לבחירה מרשימת אנשי הקשר
+              </Typography>
+
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <TextField
+                  size="small"
+                  label="חיפוש קצין תקציב"
+                  placeholder="הקלד שם לחיפוש..."
+                  value={directoryQuery}
+                  onChange={(e) => setDirectoryQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearchDirectory();
+                    }
+                  }}
+                  disabled={isSubmitting || isSearching}
+                  sx={{ flexGrow: 1 }}
+                  dir="rtl"
+                  helperText={
+                    directoryQuery.trim().length > 0 && directoryQuery.trim().length < 2
+                      ? 'יש להזין לפחות 2 תווים כדי לחפש'
+                      : ' '
+                  }
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleSearchDirectory}
+                  disabled={directoryQuery.trim().length < 2 || isSearching || isSubmitting}
+                  startIcon={
+                    isSearching ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />
+                  }
+                  sx={{ height: 40, px: 3, whiteSpace: 'nowrap' }}
+                >
+                  {isSearching ? 'מחפש...' : 'חיפוש'}
+                </Button>
+              </Box>
+
+              {searchError && (
+                <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
+                  {searchError}
+                </Alert>
+              )}
+
+              {hasSearched && (
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    mt: 1.5,
+                    maxHeight: 220,
+                    overflowY: 'auto',
+                    borderRadius: 2,
+                    bgcolor: 'background.default',
+                  }}
+                >
+                  {searchResults.length === 0 ? (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ p: 2, textAlign: 'center' }}
+                    >
+                      לא נמצאו אנשי קשר התואמים לחיפוש עבור &quot;{directoryQuery.trim()}&quot;
+                    </Typography>
+                  ) : (
+                    <List dense disablePadding>
+                      {searchResults.map((contact, index) => (
+                        <React.Fragment key={`${contact.email}-${index}`}>
+                          {index > 0 && <Divider component="li" />}
+                          <ListItem disablePadding>
+                            <ListItemButton
+                              onClick={() => handleSelectContact(contact)}
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                py: 1,
+                                px: 2,
+                                '&:hover': { bgcolor: 'action.hover' },
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  width: '100%',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                }}
+                              >
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                  {contact.displayName}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ color: 'primary.main', fontWeight: 600 }}
+                                >
+                                  בחר איש קשר ↵
+                                </Typography>
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                {contact.email}
+                                {contact.department ? ` • ${contact.department}` : ''}
+                                {contact.title ? ` (${contact.title})` : ''}
+                              </Typography>
+                            </ListItemButton>
+                          </ListItem>
+                        </React.Fragment>
+                      ))}
+                    </List>
+                  )}
+                </Paper>
+              )}
+            </Box>
           </Card>
 
           <Card variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
