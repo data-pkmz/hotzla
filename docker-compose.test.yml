@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  test:
+    image: node:22-alpine
+    container_name: hotzla-test-runner
+    working_dir: /app
+    volumes:
+      - ./:/app
+    # Install dependencies if missing, then run backend test suite
+    command: sh -c "npm install && npm test --prefix backend"
+    environment:
+      - NODE_ENV=test

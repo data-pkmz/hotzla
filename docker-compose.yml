@@ -1,22 +1,42 @@
+version: '3.8'
+
 services:
+  # Nginx reverse proxy / frontend gateway
   nginx:
     image: nginx:alpine
+    container_name: hotzla-nginx
     ports:
       - '8080:8080'
     volumes:
       - ./infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+    depends_on:
+      - app
 
+  # Main Node.js application (Backend + static frontend served internally or via Nginx)
+  app:
+    image: hotzla-backend:latest
+    container_name: hotzla-app
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://hotzla_user:hotzla_password@postgres:5432/hotzla_db
+    depends_on:
+      - postgres
+
+  # PostgreSQL database service
   postgres:
     image: postgres:15-alpine
     container_name: hotzla-postgres
     ports:
       - '5433:5432'
     environment:
-      POSTGRES_USER: hotzla_user
-      POSTGRES_PASSWORD: hotzla_password
-      POSTGRES_DB: hotzla_db
+      - POSTGRES_USER=hotzla_user
+      - POSTGRES_PASSWORD=hotzla_password
+      - POSTGRES_DB=hotzla_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
