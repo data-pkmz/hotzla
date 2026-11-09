@@ -222,18 +222,14 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
       },
     },
     currentPageStep(
-      () =>
-        document.querySelector<HTMLElement>('#guide-product-form') ??
-        document.querySelector<HTMLElement>('#guide-catalog-products'),
+      () => document.querySelector<HTMLElement>('#guide-product-form') ?? getProductPageTarget(),
       'שדות והתאמת מוצר',
       'במסך המוצר ממלאים את השדות שמופיעים, משנים כמות, בוחרים אפשרויות ומצרפים קובץ אם נדרש. השדות משתנים בהתאם למוצר.',
       currentPath,
       'top'
     ),
     currentPageStep(
-      () =>
-        document.querySelector<HTMLElement>('#guide-product-price') ??
-        document.querySelector<HTMLElement>('#guide-catalog-products'),
+      () => document.querySelector<HTMLElement>('#guide-product-price') ?? getProductPageTarget(),
       'מחיר והוספה לעגלה',
       'כאן רואים את המחיר המחושב. אחרי מילוי השדות, „הוסף לעגלה“ שומר את הבחירה; המדריך לא מוסיף פריטים.',
       currentPath,
@@ -663,7 +659,7 @@ export const UserGuideProvider: React.FC<React.PropsWithChildren> = ({ children 
   );
 
   return (
-    <UserGuideContext.Provider value={{ startGuide }}>
+    <UserGuideContext.Provider value={{ isGuideActive: isRunning, startGuide }}>
       <div ref={appContentRef} data-guide-app-content style={{ display: 'contents' }}>
         {children}
       </div>

@@ -7,6 +7,7 @@ import CartItemRow from '../../components/cart/CartItemRow';
 import CartSummaryCard from '../../components/cart/CartSummaryCard';
 import DemoDataPanel from '../../components/common/DemoDataPanel';
 import { DEMO_CART_ITEM } from '../../demo/demoData';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
 
 import { getActiveCart, updateCartItem, removeCartItem } from '../../services/api/cart.service';
 import type { CartItem } from 'shared-types';
@@ -15,6 +16,7 @@ import { getCartItems } from '../../utils/cart';
 export default function CartPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { isGuideActive } = useUserGuide();
 
   // 1. Fetch the real cart from the Backend (port 8080)
   const {
@@ -27,7 +29,7 @@ export default function CartPage() {
   });
 
   const items: CartItem[] = useMemo(() => getCartItems(cart), [cart]);
-  const showingDemoItems = items.length === 0;
+  const showingDemoItems = isGuideActive && items.length === 0;
   const displayedItems = useMemo(
     () => (showingDemoItems ? [DEMO_CART_ITEM] : items),
     [items, showingDemoItems]
@@ -121,27 +123,31 @@ export default function CartPage() {
 
         <Box id="guide-cart-summary">
           {showingDemoItems && <DemoDataPanel areaLabel="העגלה" />}
-          <Grid container spacing={4}>
-            <Grid id="guide-cart-items" item xs={12} md={8}>
-              {displayedItems.map((item) => (
-                <CartItemRow
-                  key={item.id}
-                  item={item}
-                  onUpdateQuantity={handleUpdateQuantity}
-                  onRemove={handleRemove}
-                  demoOnly={showingDemoItems}
-                />
-              ))}
-            </Grid>
+          {items.length === 0 && !isGuideActive ? (
+            <Alert severity="info">אין מידע להצגה</Alert>
+          ) : (
+            <Grid container spacing={4}>
+              <Grid id="guide-cart-items" item xs={12} md={8}>
+                {displayedItems.map((item) => (
+                  <CartItemRow
+                    key={item.id}
+                    item={item}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemove={handleRemove}
+                    demoOnly={showingDemoItems}
+                  />
+                ))}
+              </Grid>
 
-            <Grid item xs={12} md={4}>
-              <CartSummaryCard
-                totalPrice={totalPrice}
-                onCheckout={handleCheckout}
-                disabled={showingDemoItems}
-              />
+              <Grid item xs={12} md={4}>
+                <CartSummaryCard
+                  totalPrice={totalPrice}
+                  onCheckout={handleCheckout}
+                  disabled={showingDemoItems}
+                />
+              </Grid>
             </Grid>
-          </Grid>
+          )}
         </Box>
       </Container>
     </Box>

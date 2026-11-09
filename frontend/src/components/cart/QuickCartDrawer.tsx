@@ -118,7 +118,7 @@ export default function QuickCartDrawer({ isOpen, onClose }: QuickCartDrawerProp
               </Box>
             ) : items.length === 0 ? (
               <Typography color="text.secondary" sx={{ textAlign: 'center', mt: 5 }}>
-                העגלה שלך ריקה
+                אין מידע להצגה
               </Typography>
             ) : (
               items.map((item) => (

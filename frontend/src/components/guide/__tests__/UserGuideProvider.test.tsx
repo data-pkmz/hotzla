@@ -55,9 +55,14 @@ vi.mock('react-joyride', () => ({
 }));
 
 const GuideControls = () => {
-  const { startGuide } = useUserGuide();
+  const { isGuideActive, startGuide } = useUserGuide();
 
-  return <button onClick={startGuide}>הפעל מדריך</button>;
+  return (
+    <>
+      <button onClick={startGuide}>הפעל מדריך</button>
+      <span data-testid="guide-active">{String(isGuideActive)}</span>
+    </>
+  );
 };
 
 const renderGuide = (pathname = '/') =>
@@ -80,10 +85,12 @@ describe('UserGuideProvider', () => {
 
     renderGuide();
 
+    expect(screen.getByTestId('guide-active')).toHaveTextContent('false');
     expect(await screen.findByText('ברוכים הבאים לאתר הוצלא')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'המשך' }));
 
+    expect(screen.getByTestId('guide-active')).toHaveTextContent('true');
     expect(screen.getByTestId('guide-tour')).toHaveAttribute('data-running', 'true');
     expect(screen.getByTestId('guide-tour')).toHaveAttribute(
       'data-block-target-interaction',
@@ -157,6 +164,7 @@ describe('UserGuideProvider', () => {
     expect(screen.getByTestId('guide-tour').getAttribute('data-targets')).toContain('פרטי הזמנה');
 
     await user.click(screen.getByRole('button', { name: 'סיים סיור מדומה' }));
+    expect(screen.getByTestId('guide-active')).toHaveTextContent('false');
     expect(screen.getByTestId('guide-tour')).toHaveAttribute('data-running', 'false');
     await waitFor(() =>
       expect((document.querySelector('[data-guide-app-content]') as HTMLDivElement).inert).toBe(

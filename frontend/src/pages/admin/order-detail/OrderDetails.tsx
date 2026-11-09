@@ -206,7 +206,7 @@ export default function OrderDetails() {
           </Alert>
         )}
 
-        {!isLoading && !isError && !order && <Alert severity="warning">לא נמצאו פרטי הזמנה.</Alert>}
+        {!isLoading && !isError && !order && <Alert severity="info">אין מידע להצגה</Alert>}
 
         {!isLoading && !isError && order && (
           <>
@@ -463,7 +463,7 @@ export default function OrderDetails() {
 
                   {uploadedItems.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      לא צורפו קבצי מקור להזמנה זו.
+                      אין מידע להצגה — לא צורפו קבצי מקור להזמנה זו.
                     </Typography>
                   ) : (
                     <Stack spacing={1.5}>
@@ -632,7 +632,7 @@ export default function OrderDetails() {
 
                   {order.orderStatus.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      אין היסטוריית סטטוסים להצגה.
+                      אין מידע להצגה
                     </Typography>
                   ) : (
                     <Stack spacing={0}>

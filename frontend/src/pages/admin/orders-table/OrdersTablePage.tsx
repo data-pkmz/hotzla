@@ -12,6 +12,7 @@ import OrdersDataGrid from '../../../components/admin/OrdersDataGrid';
 import OrderTableFilters from '../../../components/admin/OrderTableFilters';
 import DemoDataPanel from '../../../components/common/DemoDataPanel';
 import { DEMO_ORDERS } from '../../../demo/demoData';
+import { useUserGuide } from '../../../components/guide/UserGuideContext';
 
 const PAGE_SIZE = 20;
 
@@ -30,6 +31,7 @@ const isSupportedSortField = (field: string): field is NonNullable<OrderQueryPar
 
 export default function OrdersTablePage() {
   const navigate = useNavigate();
+  const { isGuideActive } = useUserGuide();
 
   const currentUser = useAuthStore((state) => state.currentUser);
 
@@ -92,7 +94,12 @@ export default function OrdersTablePage() {
 
   const orders = useMemo(() => data?.pages.flatMap((page) => page.orders) ?? [], [data]);
   const showingDemoOrders =
-    !isLoading && !isError && orders.length === 0 && !selectedStatus && !debouncedSearch;
+    isGuideActive &&
+    !isLoading &&
+    !isError &&
+    orders.length === 0 &&
+    !selectedStatus &&
+    !debouncedSearch;
   const displayedOrders = showingDemoOrders ? DEMO_ORDERS : orders;
 
   const handleOrderClick = (id: string) => {
@@ -165,6 +172,12 @@ export default function OrdersTablePage() {
         )}
 
         {showingDemoOrders && <DemoDataPanel areaLabel="ניהול ההזמנות" />}
+        {!isLoading &&
+          !isError &&
+          orders.length === 0 &&
+          !selectedStatus &&
+          !debouncedSearch &&
+          !isGuideActive && <Alert severity="info">אין מידע להצגה</Alert>}
 
         {!isError &&
           (isLoading || displayedOrders.length > 0 || selectedStatus || debouncedSearch) && (

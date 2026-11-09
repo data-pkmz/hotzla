@@ -208,7 +208,11 @@ export const ProductDetailPage: React.FC = () => {
   }
 
   if (!product) {
-    return null;
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="info">אין מידע להצגה</Alert>
+      </Box>
+    );
   }
 
   return (

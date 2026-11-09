@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export interface UserGuideContextValue {
+  isGuideActive: boolean;
   startGuide: () => void;
 }
 

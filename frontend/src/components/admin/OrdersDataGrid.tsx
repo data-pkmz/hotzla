@@ -137,6 +137,7 @@ export default function OrdersDataGrid({
         rows={orders}
         columns={columns}
         loading={loading}
+        localeText={{ noRowsLabel: 'אין מידע להצגה' }}
         sortingMode="server"
         disableColumnSorting={readOnly}
         sortModel={sortModel}

@@ -12,6 +12,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { formatDate, formatPrice } from '../../utils/formatting';
 import DemoDataPanel from '../../components/common/DemoDataPanel';
 import { DEMO_ORDERS } from '../../demo/demoData';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
 
 interface MyOrder {
   id: string;
@@ -24,6 +25,7 @@ interface MyOrder {
 
 export default function MyOrdersPage() {
   const navigate = useNavigate();
+  const { isGuideActive } = useUserGuide();
 
   const currentUser = useAuthStore((state) => state.currentUser);
 
@@ -36,7 +38,7 @@ export default function MyOrdersPage() {
     queryKey: ['my-orders', currentUser.adUsername],
     queryFn: getMyOrders,
   });
-  const showingDemoOrders = !isLoading && !isError && orders.length === 0;
+  const showingDemoOrders = isGuideActive && !isLoading && !isError && orders.length === 0;
   const displayedOrders = showingDemoOrders ? DEMO_ORDERS : orders;
 
   const handleOrderClick = (orderId: string) => {
@@ -97,6 +99,9 @@ export default function MyOrdersPage() {
 
         {/* No orders */}
         {showingDemoOrders && <DemoDataPanel areaLabel="ההזמנות שלך" />}
+        {!isLoading && !isError && orders.length === 0 && !isGuideActive && (
+          <Alert severity="info">אין מידע להצגה</Alert>
+        )}
 
         {/* Orders list */}
         {!isLoading && !isError && displayedOrders.length > 0 && (

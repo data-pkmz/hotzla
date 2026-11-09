@@ -446,7 +446,8 @@ export default function RoleManagementPage() {
                   <TableRow>
                     <TableCell colSpan={6} align="center">
                       <Typography color="text.secondary" sx={{ py: 4 }}>
-                        לא נמצאו משתמשים התואמים לחיפוש
+                        אין מידע להצגה
+                        {users.length > 0 && ' — לא נמצאו משתמשים התואמים לחיפוש'}
                       </Typography>
                     </TableCell>
                   </TableRow>

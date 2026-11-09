@@ -7,12 +7,14 @@ import { getOrders } from '../../services/api/orders.service';
 import { WorkerOrderCard } from '../../components/worker/WorkerOrderCard';
 import DemoDataPanel from '../../components/common/DemoDataPanel';
 import { DEMO_WORK_ORDERS } from '../../demo/demoData';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
 
 export const WorkerQueuePage: React.FC = () => {
+  const { isGuideActive } = useUserGuide();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const showingDemoOrders = !isLoading && !error && orders.length === 0;
+  const showingDemoOrders = isGuideActive && !isLoading && !error && orders.length === 0;
   const displayedOrders = showingDemoOrders ? DEMO_WORK_ORDERS : orders;
 
   const fetchQueue = async (showLoadingState = true) => {
@@ -84,7 +86,7 @@ export const WorkerQueuePage: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : orders.length === 0 ? (
-        error ? null : (
+        error ? null : showingDemoOrders ? (
           <>
             <DemoDataPanel areaLabel="תור העבודה" />
             <Box id="guide-worker-queue-list" display="flex" flexDirection="column" gap={1}>
@@ -98,6 +100,8 @@ export const WorkerQueuePage: React.FC = () => {
               ))}
             </Box>
           </>
+        ) : (
+          <Alert severity="info">אין מידע להצגה</Alert>
         )
       ) : (
         <Box id="guide-worker-queue-list" display="flex" flexDirection="column" gap={1}>

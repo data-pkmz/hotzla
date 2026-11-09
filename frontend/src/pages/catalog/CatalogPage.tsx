@@ -22,10 +22,12 @@ import CartRecoveryBanner from '../../components/cart/CartRecoveryBanner';
 import { getProducts, getAdminProducts } from '../../services/api/catalog.service';
 import { DEMO_PRODUCTS } from '../../demo/demoData';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
 
 export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isGuideActive } = useUserGuide();
 
   const currentUser = useAuthStore((state) => state.currentUser);
 
@@ -52,7 +54,7 @@ export default function CatalogPage() {
     queryFn: isManager ? getAdminProducts : getProducts,
     enabled: Boolean(currentUser),
   });
-  const showingDemoProducts = isSuccess && products.length === 0;
+  const showingDemoProducts = isGuideActive && isSuccess && products.length === 0;
   const displayedProducts = showingDemoProducts ? DEMO_PRODUCTS : products;
 
   /**
@@ -238,6 +240,10 @@ export default function CatalogPage() {
 
           {showingDemoProducts && <DemoDataPanel areaLabel="קטלוג המוצרים" />}
 
+          {isSuccess && products.length === 0 && !isGuideActive && (
+            <Alert severity="info">אין מידע להצגה</Alert>
+          )}
+
           {/* Search/filter produced zero results */}
           {!isLoading &&
             !isError &&
@@ -250,11 +256,11 @@ export default function CatalogPage() {
                 }}
               >
                 <Typography variant="h6" gutterBottom>
-                  לא נמצאו מוצרים
+                  אין מידע להצגה
                 </Typography>
 
                 <Typography color="text.secondary">
-                  נסו לשנות את החיפוש או לבחור קטגוריה אחרת.
+                  לא נמצאו מוצרים התואמים לחיפוש או לקטגוריה שנבחרו.
                 </Typography>
               </Box>
             )}
