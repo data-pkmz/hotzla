@@ -14,6 +14,7 @@ export default function CartSummaryCard({
 }: CartSummaryCardProps) {
   return (
     <Card
+      id="guide-cart-summary-card"
       dir="rtl"
       variant="outlined"
       sx={{

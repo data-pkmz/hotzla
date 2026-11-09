@@ -10,6 +10,9 @@ import { getOrders } from '../../../services/api/orders.service';
 import { useAuthStore } from '../../../store/useAuthStore';
 import OrdersDataGrid from '../../../components/admin/OrdersDataGrid';
 import OrderTableFilters from '../../../components/admin/OrderTableFilters';
+import DemoDataPanel from '../../../components/common/DemoDataPanel';
+import { DEMO_ORDERS } from '../../../demo/demoData';
+import { useUserGuide } from '../../../components/guide/UserGuideContext';
 
 const PAGE_SIZE = 20;
 
@@ -28,6 +31,7 @@ const isSupportedSortField = (field: string): field is NonNullable<OrderQueryPar
 
 export default function OrdersTablePage() {
   const navigate = useNavigate();
+  const { isGuideActive } = useUserGuide();
 
   const currentUser = useAuthStore((state) => state.currentUser);
 
@@ -89,6 +93,14 @@ export default function OrdersTablePage() {
     });
 
   const orders = useMemo(() => data?.pages.flatMap((page) => page.orders) ?? [], [data]);
+  const showingDemoOrders =
+    isGuideActive &&
+    !isLoading &&
+    !isError &&
+    orders.length === 0 &&
+    !selectedStatus &&
+    !debouncedSearch;
+  const displayedOrders = showingDemoOrders ? DEMO_ORDERS : orders;
 
   const handleOrderClick = (id: string) => {
     navigate(`/admin/order/${id}`);
@@ -136,7 +148,7 @@ export default function OrdersTablePage() {
       }}
     >
       <Container maxWidth="xl">
-        <Box sx={{ mb: 4 }}>
+        <Box id="guide-admin-orders-title" sx={{ mb: 4 }}>
           <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
             ניהול ההזמנות
           </Typography>
@@ -144,12 +156,14 @@ export default function OrdersTablePage() {
           <Typography color="text.secondary">צפייה וניהול של כלל ההזמנות במערכת.</Typography>
         </Box>
 
-        <OrderTableFilters
-          selectedStatus={selectedStatus}
-          onStatusChange={handleStatusChange}
-          search={search}
-          onSearchChange={setSearch}
-        />
+        <Box id="guide-admin-order-filters">
+          <OrderTableFilters
+            selectedStatus={selectedStatus}
+            onStatusChange={handleStatusChange}
+            search={search}
+            onSearchChange={setSearch}
+          />
+        </Box>
 
         {isError && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -157,19 +171,31 @@ export default function OrdersTablePage() {
           </Alert>
         )}
 
-        {!isError && (
-          <OrdersDataGrid
-            key={resetKey}
-            orders={orders}
-            loading={isLoading}
-            loadingMore={isFetchingNextPage}
-            hasNextPage={Boolean(hasNextPage)}
-            sortModel={sortModel}
-            onSortModelChange={handleSortModelChange}
-            onLoadMore={handleLoadMore}
-            onOrderClick={handleOrderClick}
-          />
-        )}
+        {showingDemoOrders && <DemoDataPanel areaLabel="ניהול ההזמנות" />}
+        {!isLoading &&
+          !isError &&
+          orders.length === 0 &&
+          !selectedStatus &&
+          !debouncedSearch &&
+          !isGuideActive && <Alert severity="info">אין מידע להצגה</Alert>}
+
+        {!isError &&
+          (isLoading || displayedOrders.length > 0 || selectedStatus || debouncedSearch) && (
+            <Box id="guide-admin-orders-table">
+              <OrdersDataGrid
+                key={resetKey}
+                orders={displayedOrders}
+                loading={isLoading}
+                loadingMore={isFetchingNextPage}
+                hasNextPage={Boolean(hasNextPage)}
+                sortModel={sortModel}
+                onSortModelChange={handleSortModelChange}
+                onLoadMore={handleLoadMore}
+                onOrderClick={handleOrderClick}
+                readOnly={showingDemoOrders}
+              />
+            </Box>
+          )}
       </Container>
     </Box>
   );

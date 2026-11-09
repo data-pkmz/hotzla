@@ -10,6 +10,9 @@ import StatusBadge from '../../components/StatusBadge';
 import { getMyOrders } from '../../services/api/orders.service';
 import { useAuthStore } from '../../store/useAuthStore';
 import { formatDate, formatPrice } from '../../utils/formatting';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
+import { DEMO_ORDERS } from '../../demo/demoData';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
 
 interface MyOrder {
   id: string;
@@ -22,6 +25,7 @@ interface MyOrder {
 
 export default function MyOrdersPage() {
   const navigate = useNavigate();
+  const { isGuideActive } = useUserGuide();
 
   const currentUser = useAuthStore((state) => state.currentUser);
 
@@ -34,6 +38,8 @@ export default function MyOrdersPage() {
     queryKey: ['my-orders', currentUser.adUsername],
     queryFn: getMyOrders,
   });
+  const showingDemoOrders = isGuideActive && !isLoading && !isError && orders.length === 0;
+  const displayedOrders = showingDemoOrders ? DEMO_ORDERS : orders;
 
   const handleOrderClick = (orderId: string) => {
     navigate(`/orders/${orderId}`, {
@@ -56,9 +62,15 @@ export default function MyOrdersPage() {
         },
       }}
     >
-      <Container maxWidth="xl">
+      <Container id="guide-my-orders-list" maxWidth="xl">
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+          <Typography
+            id="guide-my-orders-title"
+            variant="h4"
+            component="h1"
+            fontWeight={700}
+            gutterBottom
+          >
             ההזמנות שלי
           </Typography>
 
@@ -86,25 +98,13 @@ export default function MyOrdersPage() {
         )}
 
         {/* No orders */}
-        {!isLoading && !isError && orders.length === 0 && (
-          <Box
-            sx={{
-              py: 8,
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="h6" gutterBottom>
-              עדיין אין הזמנות
-            </Typography>
-
-            <Typography color="text.secondary">
-              ההזמנות שלך יופיעו כאן לאחר השלמת ההזמנה הראשונה.
-            </Typography>
-          </Box>
+        {showingDemoOrders && <DemoDataPanel areaLabel="ההזמנות שלך" />}
+        {!isLoading && !isError && orders.length === 0 && !isGuideActive && (
+          <Alert severity="info">אין מידע להצגה</Alert>
         )}
 
         {/* Orders list */}
-        {!isLoading && !isError && orders.length > 0 && (
+        {!isLoading && !isError && displayedOrders.length > 0 && (
           <Paper
             variant="outlined"
             sx={{
@@ -147,12 +147,14 @@ export default function MyOrdersPage() {
               <Box />
             </Box>
 
-            {orders.map((order, index) => (
+            {displayedOrders.map((order, index) => (
               <Box key={order.id}>
                 <Box
                   component="button"
+                  {...(!showingDemoOrders && { 'data-guide-order-id': order.id })}
                   type="button"
-                  onClick={() => handleOrderClick(order.id)}
+                  onClick={showingDemoOrders ? undefined : () => handleOrderClick(order.id)}
+                  disabled={showingDemoOrders}
                   sx={{
                     width: '100%',
                     border: 0,
@@ -194,6 +196,11 @@ export default function MyOrdersPage() {
                       outline: '2px solid',
                       outlineColor: 'primary.main',
                       outlineOffset: '-2px',
+                    },
+                    '&:disabled': {
+                      color: 'inherit',
+                      cursor: 'default',
+                      bgcolor: 'background.paper',
                     },
                   }}
                 >
@@ -312,13 +319,15 @@ export default function MyOrdersPage() {
                   </Box>
 
                   {/* Arrow */}
-                  <ArrowBackIcon
-                    sx={{
-                      gridArea: 'arrow',
-                      color: 'primary.main',
-                      justifySelf: 'end',
-                    }}
-                  />
+                  {!showingDemoOrders && (
+                    <ArrowBackIcon
+                      sx={{
+                        gridArea: 'arrow',
+                        color: 'primary.main',
+                        justifySelf: 'end',
+                      }}
+                    />
+                  )}
                 </Box>
 
                 {order.status === 'READY_FOR_PICKUP' && order.pickupInstructions && (
@@ -362,7 +371,7 @@ export default function MyOrdersPage() {
                   </Box>
                 )}
 
-                {index !== orders.length - 1 && <Divider />}
+                {index !== displayedOrders.length - 1 && <Divider />}
               </Box>
             ))}
           </Paper>

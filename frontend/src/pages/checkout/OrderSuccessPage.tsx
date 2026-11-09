@@ -15,6 +15,7 @@ export function OrderSuccessPage() {
   return (
     <Container maxWidth="md" sx={{ py: 6 }} dir="rtl">
       <Card
+        id="guide-order-success"
         sx={{
           p: { xs: 3, md: 5 },
           textAlign: 'center',
