@@ -3,6 +3,7 @@
 import { NotificationJobStatus, NotificationJobType } from '@prisma/client';
 
 import { prisma } from '../../config/db';
+import { EmailService } from '../email.service';
 import { NotificationService } from '../notification.service';
 
 jest.mock('../../config/db', () => ({
@@ -126,5 +127,31 @@ describe('NotificationService', () => {
         items: [],
       })
     ).rejects.toThrow('Failed to create notification job');
+  });
+
+  describe('EmailService.resolveBudgetOfficerEmails', () => {
+    it('expands an unprefixed employee number email into all 5 lowercase prefix variants', () => {
+      expect(EmailService.resolveBudgetOfficerEmails('456@army.idf.il')).toEqual([
+        's456@army.idf.il',
+        'm456@army.idf.il',
+        'c456@army.idf.il',
+        'h456@army.idf.il',
+        'x456@army.idf.il',
+      ]);
+    });
+
+    it('expands a prefixed employee number email into all 5 lowercase prefix variants', () => {
+      expect(EmailService.resolveBudgetOfficerEmails('m456@army.idf.il')).toEqual([
+        's456@army.idf.il',
+        'm456@army.idf.il',
+        'c456@army.idf.il',
+        'h456@army.idf.il',
+        'x456@army.idf.il',
+      ]);
+    });
+
+    it('returns non-employee emails unchanged as a single recipient', () => {
+      expect(EmailService.resolveBudgetOfficerEmails('officer@idf.il')).toEqual(['officer@idf.il']);
+    });
   });
 });
