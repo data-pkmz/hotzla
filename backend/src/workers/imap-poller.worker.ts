@@ -6,6 +6,7 @@ import { prisma } from '../config/db';
 import logger from '../utils/logger';
 
 import { EmailParserService } from '../services/email-parser.service';
+import { EmailService } from '../services/email.service';
 import { NotificationService } from '../services/notification.service';
 import { ApprovalService } from '../services/approval.service';
 
@@ -307,8 +308,11 @@ export class ImapPollingWorker {
       return 'REVIEW';
     }
 
-    const senderMatchesBudgetOfficer =
-      EmailParserService.normalizeEmail(order.budgetOfficerEmail) === parsed.senderEmail;
+    const validBudgetOfficerEmails = EmailService.resolveBudgetOfficerEmails(
+      order.budgetOfficerEmail
+    ).map((email) => EmailParserService.normalizeEmail(email));
+
+    const senderMatchesBudgetOfficer = validBudgetOfficerEmails.includes(parsed.senderEmail);
 
     if (!senderMatchesBudgetOfficer) {
       await this.logInbound({
@@ -407,11 +411,18 @@ export class ImapPollingWorker {
           : 'ההזמנה נדחתה על ידי קצין התקציב במייל.',
     });
 
+    if (EmailParserService.normalizeEmail(order.budgetOfficerEmail) !== parsed.senderEmail) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { budgetOfficerEmail: parsed.senderEmail },
+      });
+    }
+
     try {
       await NotificationService.notifyBudgetOfficer({
         orderId: order.id,
         orderNumber: order.orderNumber,
-        budgetOfficerEmail: order.budgetOfficerEmail,
+        budgetOfficerEmail: parsed.senderEmail,
         decision: parsed.decision,
         inReplyTo: incomingMessageId,
         references: incomingMessageId ? [incomingMessageId] : undefined,

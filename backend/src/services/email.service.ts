@@ -42,6 +42,31 @@ interface SendEmailParams {
 
 export class EmailService {
   /**
+   * Possible military email prefixes for budget officers by army status.
+   */
+  private static readonly BUDGET_OFFICER_PREFIXES = ['s', 'm', 'c', 'h', 'x'] as const;
+
+  /**
+   * Resolves all recipient email addresses for a budget officer.
+   *
+   * When the budget officer email matches an army employee number pattern
+   * (e.g. `s456@army.idf.il` or `456@army.idf.il`), generates all 5 prefix
+   * variants (`s`, `m`, `c`, `h`, `x` + `<employeeNumber>@army.idf.il`).
+   * Otherwise returns the original email address in a single-element array.
+   */
+  static resolveBudgetOfficerEmails(budgetOfficerEmail: string): string[] {
+    const trimmed = budgetOfficerEmail.trim().toLowerCase();
+    const match = trimmed.match(/^[smchx]?(\d+)@army\.idf\.il$/i);
+
+    if (!match) {
+      return [budgetOfficerEmail];
+    }
+
+    const employeeNumber = match[1];
+    return this.BUDGET_OFFICER_PREFIXES.map((prefix) => `${prefix}${employeeNumber}@army.idf.il`);
+  }
+
+  /**
    * Nodemailer SMTP transport used for all outbound application emails.
    *
    * SMTP connection details are read from environment variables.
@@ -127,10 +152,11 @@ export class EmailService {
    * - Renders the order's products and specifications.
    * - Inserts the order information and public approval URL into the template.
    * - Escapes dynamic values before inserting them into HTML.
-   * - Sends the rendered email through the shared sendEmail helper.
+   * - Sends the rendered email through the shared sendEmail helper to all
+   *   resolved prefix variants (`s`, `m`, `c`, `h`, `x`) when applicable.
    *
    * Sends:
-   * - An outbound BUDGET_APPROVAL email to the budget officer.
+   * - Outbound BUDGET_APPROVAL email(s) to the budget officer.
    *
    * Throws:
    * - Any template-loading or email-sending error.
@@ -151,13 +177,31 @@ export class EmailService {
     const subject =
       `אישור תקציבי נדרש להזמנת הוצאה לאור מספר ` + `${data.orderNumber} – ${data.requesterName}`;
 
-    await this.sendEmail({
-      orderId: data.orderId,
-      type: 'BUDGET_APPROVAL',
-      to: data.budgetOfficerEmail,
-      subject,
-      html,
-    });
+    const recipients = this.resolveBudgetOfficerEmails(data.budgetOfficerEmail);
+
+    let hasFulfilled = false;
+    let firstError: unknown = null;
+
+    for (const recipient of recipients) {
+      try {
+        await this.sendEmail({
+          orderId: data.orderId,
+          type: 'BUDGET_APPROVAL',
+          to: recipient,
+          subject,
+          html,
+        });
+        hasFulfilled = true;
+      } catch (error) {
+        if (!firstError) {
+          firstError = error;
+        }
+      }
+    }
+
+    if (!hasFulfilled && firstError) {
+      throw firstError;
+    }
   }
 
   /**
