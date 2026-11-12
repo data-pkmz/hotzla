@@ -67,9 +67,10 @@ const checkoutSchema = z.object({
 
     militaryEmail: z
       .string()
-      .email('מייל צבאי לא תקין')
-      .refine((value) => /(?:\.mil$|\.idf\.il$|idf)/i.test(value), {
-        message: 'יש להזין מייל צבאי תקין',
+      .trim()
+      .min(1, 'מספר אישי מנהל תקציב הוא שדה חובה')
+      .refine((value) => /^[a-zA-Z]\d{7,8}$/.test(value), {
+        message: 'יש להזין אות באנגלית ואחריה 7 עד 8 ספרות (לדוגמה: s1234567)',
       }),
   }),
 
@@ -178,9 +179,15 @@ export const CheckoutPage: React.FC = () => {
    */
   const submitMutation = useMutation<Order, Error, CheckoutFormValues>({
     mutationFn: async (values: CheckoutFormValues) => {
+      const normalizedOfficerId = values.budgetOfficer.militaryEmail.trim().toLowerCase();
+      const formattedMilitaryEmail = `${normalizedOfficerId}@army.idf.il`;
+
       const payload: CreateOrderInput = {
         customer: values.customer,
-        budgetOfficer: values.budgetOfficer,
+        budgetOfficer: {
+          fullName: values.budgetOfficer.fullName,
+          militaryEmail: formattedMilitaryEmail,
+        },
         notes: values.notes ?? '',
       };
 

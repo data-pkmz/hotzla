@@ -36,13 +36,23 @@ export default function BudgetOfficerForm({
 
         <Grid item xs={12} md={6}>
           <TextField
-            label="מייל צבאי"
+            label="מספר אישי מנהל תקציב"
             fullWidth
             dir="rtl"
-            type="email"
+            placeholder="לדוגמה: s1234567"
             disabled={disabled}
             error={Boolean(errors.budgetOfficer?.militaryEmail)}
             helperText={errors.budgetOfficer?.militaryEmail?.message || ' '}
+            inputProps={{
+              minLength: 8,
+              maxLength: 9,
+            }}
+            sx={{
+              '& .MuiInputBase-input': {
+                textAlign: 'left',
+                direction: 'ltr',
+              },
+            }}
             {...register('budgetOfficer.militaryEmail')}
           />
         </Grid>
