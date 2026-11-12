@@ -5,7 +5,7 @@ declare global {
   namespace Express {
     interface User {
       adUsername: string;
-      authMethod: 'mock' | 'iwa';
+      authMethod: 'mock' | 'jwt';
     }
 
     interface Request {
