@@ -33,7 +33,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
       adUsername = (req.headers['x-mock-user'] as string) || (req.query.mockUser as string);
       break;
 
-    case 'iwa':
+    case 'jwt':
       adUsername = req.headers['x-remote-user'] as string;
       break;
 
