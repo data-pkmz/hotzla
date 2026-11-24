@@ -38,7 +38,7 @@ export default function MyOrdersPage() {
     queryKey: ['my-orders', currentUser.adUsername],
     queryFn: getMyOrders,
   });
-  const showingDemoOrders = isGuideActive && !isLoading && !isError && orders.length === 0;
+  const showingDemoOrders = isGuideActive;
   const displayedOrders = showingDemoOrders ? DEMO_ORDERS : orders;
 
   const handleOrderClick = (orderId: string) => {

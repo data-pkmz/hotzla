@@ -93,13 +93,7 @@ export default function OrdersTablePage() {
     });
 
   const orders = useMemo(() => data?.pages.flatMap((page) => page.orders) ?? [], [data]);
-  const showingDemoOrders =
-    isGuideActive &&
-    !isLoading &&
-    !isError &&
-    orders.length === 0 &&
-    !selectedStatus &&
-    !debouncedSearch;
+  const showingDemoOrders = isGuideActive;
   const displayedOrders = showingDemoOrders ? DEMO_ORDERS : orders;
 
   const handleOrderClick = (id: string) => {

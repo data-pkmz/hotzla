@@ -29,7 +29,7 @@ export default function CartPage() {
   });
 
   const items: CartItem[] = useMemo(() => getCartItems(cart), [cart]);
-  const showingDemoItems = isGuideActive && items.length === 0;
+  const showingDemoItems = isGuideActive;
   const displayedItems = useMemo(
     () => (showingDemoItems ? [DEMO_CART_ITEM] : items),
     [items, showingDemoItems]

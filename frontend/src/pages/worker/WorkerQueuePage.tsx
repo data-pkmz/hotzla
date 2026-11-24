@@ -14,7 +14,7 @@ export const WorkerQueuePage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const showingDemoOrders = isGuideActive && !isLoading && !error && orders.length === 0;
+  const showingDemoOrders = isGuideActive;
   const displayedOrders = showingDemoOrders ? DEMO_WORK_ORDERS : orders;
 
   const fetchQueue = async (showLoadingState = true) => {

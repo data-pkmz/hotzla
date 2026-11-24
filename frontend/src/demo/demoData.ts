@@ -1,5 +1,12 @@
 import { OrderStatus } from 'shared-types';
-import type { CartItem, Order, Product } from 'shared-types';
+import type {
+  CartItem,
+  Order,
+  OrderDetails,
+  PriceResult,
+  Product,
+  ProductDetails,
+} from 'shared-types';
 
 export const DEMO_PRODUCTS: Product[] = [
   {
@@ -45,6 +52,52 @@ export const DEMO_PRODUCTS: Product[] = [
     createdAt: '2026-10-01T00:00:00.000Z',
   },
 ];
+
+export const DEMO_PRODUCT_DETAILS: ProductDetails = {
+  ...DEMO_PRODUCTS[0],
+  attributes: [
+    {
+      id: 'demo-attribute-size',
+      productId: DEMO_PRODUCTS[0].id,
+      attributeName: 'גודל',
+      attributeType: 'SELECT',
+      displayStyle: 'CARDS',
+      isRequired: true,
+      displayOrder: 1,
+      pricingRule: 'NONE',
+      unitPrice: null,
+      minValue: null,
+      maxValue: null,
+      options: [
+        {
+          id: 'demo-option-standard',
+          attributeDefinitionId: 'demo-attribute-size',
+          optionLabel: 'רגיל',
+          optionValue: 'standard',
+          priceModifier: 0,
+          priceModifierType: 'FIXED_ADD',
+          isPerUnit: false,
+          displayOrder: 1,
+        },
+      ],
+    },
+  ],
+};
+
+export const DEMO_PRICE_RESULT: PriceResult = {
+  quantity: 500,
+  baseTotal: 180,
+  totalAdditionalPrice: 0,
+  totalPrice: 180,
+  breakdown: [
+    {
+      attributeDefinitionId: 'demo-attribute-size',
+      attributeName: 'גודל',
+      selectedValue: 'רגיל',
+      contribution: 180,
+    },
+  ],
+};
 
 export const DEMO_CART_ITEM: CartItem = {
   id: 'demo-cart-item',
@@ -101,3 +154,48 @@ export const DEMO_WORK_ORDERS: Order[] = [
     status: OrderStatus.IN_PRODUCTION,
   },
 ];
+
+export const DEMO_ORDER_DETAILS: OrderDetails = {
+  id: 'demo-order-1042',
+  orderNumber: 'DEMO-1042',
+  createdAt: '2026-10-01T00:00:00.000Z',
+  totalPrice: 320,
+  status: OrderStatus.PENDING_BUDGET,
+  budgetOfficerName: 'קצין תקציב לדוגמה',
+  budgetOfficerEmail: 'budget-demo@example.invalid',
+  requester: {
+    id: 'demo-user',
+    fullName: 'משתמש לדוגמה',
+    militaryEmail: 'requester-demo@example.invalid',
+    unit: 'יחידת הדגמה',
+    phone: '050-0000000',
+  },
+  itemEntries: [
+    {
+      id: 'demo-order-item',
+      quantity: 500,
+      uploadedFilePath: '',
+      computedUnitPrice: 180,
+      computedTotalPrice: 320,
+      product: {
+        id: 'demo-business-cards',
+        name: 'כרטיסי ביקור',
+      },
+      itemAttributeEntries: [],
+    },
+  ],
+  orderStatus: [
+    {
+      id: 'demo-status-1',
+      fromStatus: null,
+      toStatus: OrderStatus.PENDING_BUDGET,
+      changedAt: '2026-10-01T00:00:00.000Z',
+      note: 'הזמנה פיקטיבית נוצרה לצורך מדריך המשתמש',
+      changedByUser: {
+        id: 'demo-user',
+        fullName: 'משתמש לדוגמה',
+        role: 'REQUESTER',
+      },
+    },
+  ],
+};

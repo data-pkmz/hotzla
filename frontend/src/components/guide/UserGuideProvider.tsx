@@ -202,17 +202,15 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
         await waitForGuideTarget('#guide-catalog-products');
 
         const startedAt = Date.now();
-        let productId =
-          document.querySelector<HTMLElement>('[data-guide-product-id]')?.dataset.guideProductId;
+        let productTarget = document.querySelector<HTMLElement>('[data-guide-product-id]');
 
-        while (!productId && Date.now() - startedAt < 2500) {
+        while (!productTarget && Date.now() - startedAt < 2500) {
           await new Promise((resolve) => window.setTimeout(resolve, 50));
-          productId =
-            document.querySelector<HTMLElement>('[data-guide-product-id]')?.dataset.guideProductId;
+          productTarget = document.querySelector<HTMLElement>('[data-guide-product-id]');
         }
 
-        if (productId) {
-          const path = `/product/${encodeURIComponent(productId)}`;
+        if (productTarget) {
+          const path = '/product/demo-business-cards';
           navigate(path);
           const targetExists = await waitForGuideTarget(getProductPageTarget);
           if (!targetExists) {
@@ -389,7 +387,7 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
           }
 
           if (orderId) {
-            const path = `/orders/${encodeURIComponent(orderId)}`;
+            const path = '/orders/demo-order-1042';
             navigate(path);
             const targetExists = await waitForGuideTarget('#guide-order-details');
             if (!targetExists) {
@@ -475,7 +473,7 @@ const getGuideSteps = (role: string, navigate: ReturnType<typeof useNavigate>): 
           }
 
           if (orderId) {
-            const path = `/admin/order/${encodeURIComponent(orderId)}`;
+            const path = '/admin/order/demo-order-1042';
             navigate(path);
             const targetExists = await waitForGuideTarget(
               () =>

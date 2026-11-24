@@ -54,7 +54,7 @@ export default function CatalogPage() {
     queryFn: isManager ? getAdminProducts : getProducts,
     enabled: Boolean(currentUser),
   });
-  const showingDemoProducts = isGuideActive && isSuccess && products.length === 0;
+  const showingDemoProducts = isGuideActive;
   const displayedProducts = showingDemoProducts ? DEMO_PRODUCTS : products;
 
   /**

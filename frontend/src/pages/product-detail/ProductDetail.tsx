@@ -23,6 +23,9 @@ import { addItemToCart } from '../../services/api/cart.service';
 import { uploadFile } from '../../services/api/file.service';
 
 import { useAuthStore } from '../../store/useAuthStore';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
+import { DEMO_PRICE_RESULT, DEMO_PRODUCT_DETAILS } from '../../demo/demoData';
 
 interface ProductConfiguration {
   quantity: number;
@@ -33,8 +36,15 @@ export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isGuideActive } = useUserGuide();
 
-  const { product, isLoading: productIsLoading, error: productError } = useProductDetails(id);
+  const {
+    product: realProduct,
+    isLoading: realProductIsLoading,
+    error: productError,
+  } = useProductDetails(isGuideActive ? undefined : id);
+  const product = isGuideActive ? DEMO_PRODUCT_DETAILS : realProduct;
+  const productIsLoading = isGuideActive ? false : realProductIsLoading;
 
   const [configuration, setConfiguration] = useState<ProductConfiguration>({
     quantity: 1,
@@ -70,13 +80,16 @@ export const ProductDetailPage: React.FC = () => {
     isLoading: priceIsLoading,
     error: priceError,
   } = usePriceCalculator({
-    productId: id,
+    productId: isGuideActive ? undefined : id,
     quantity: configuration.quantity,
     minQuantity: product?.minQuantity,
     maxQuantity: product?.maxQuantity,
     selectedAttributes: configuration.selectedAttributes,
-    enabled: Boolean(product),
+    enabled: !isGuideActive && Boolean(product),
   });
+  const displayedPriceResult = isGuideActive ? DEMO_PRICE_RESULT : priceResult;
+  const displayedPriceIsLoading = isGuideActive ? false : priceIsLoading;
+  const displayedPriceError = isGuideActive ? null : priceError;
 
   /**
    * Uploads an optional file and adds the configured product to the cart.
@@ -87,12 +100,13 @@ export const ProductDetailPage: React.FC = () => {
    */
   const handleAddToCart = async () => {
     if (
+      isGuideActive ||
       !canAddToCart ||
       !product ||
       !formIsValid ||
-      !priceResult ||
-      priceIsLoading ||
-      priceError ||
+      !displayedPriceResult ||
+      displayedPriceIsLoading ||
+      displayedPriceError ||
       addToCartInProgress.current ||
       wasAddedToCart
     ) {
@@ -228,6 +242,7 @@ export const ProductDetailPage: React.FC = () => {
         py: 3,
       }}
     >
+      {isGuideActive && <DemoDataPanel areaLabel="פרטי המוצר" />}
       <Breadcrumbs
         id="guide-product-breadcrumbs"
         separator="›"
@@ -283,9 +298,9 @@ export const ProductDetailPage: React.FC = () => {
           }}
         >
           <PriceBreakdown
-            result={priceResult}
-            isLoading={priceIsLoading}
-            error={addToCartError ?? priceError}
+            result={displayedPriceResult}
+            isLoading={displayedPriceIsLoading}
+            error={addToCartError ?? displayedPriceError}
             isFormValid={formIsValid}
             onAddToCart={handleAddToCart}
             canAddToCart={canAddToCart}
