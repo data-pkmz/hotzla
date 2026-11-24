@@ -9,6 +9,7 @@ interface QuantityControlProps {
   maxQuantity?: number | null;
   onUpdate: (newQuantity: number) => void;
   size?: 'small' | 'medium';
+  disabled?: boolean;
 }
 
 export default function QuantityControl({
@@ -17,6 +18,7 @@ export default function QuantityControl({
   maxQuantity = null,
   onUpdate,
   size = 'medium',
+  disabled = false,
 }: QuantityControlProps) {
   const [prevQuantity, setPrevQuantity] = useState<number>(quantity);
   const [localQty, setLocalQty] = useState<string>(String(quantity));
@@ -82,7 +84,7 @@ export default function QuantityControl({
       <IconButton
         size="small"
         onClick={handleIncrease}
-        disabled={maxQuantity !== null && quantity >= maxQuantity}
+        disabled={disabled || (maxQuantity !== null && quantity >= maxQuantity)}
         sx={{ p: isSmall ? 0.5 : 1 }}
       >
         <AddIcon fontSize={isSmall ? 'inherit' : 'small'} />
@@ -93,6 +95,7 @@ export default function QuantityControl({
         onChange={handleInputChange}
         onBlur={submitQuantity}
         onKeyDown={handleKeyDown}
+        disabled={disabled}
         inputProps={{
           type: 'number',
           min: minQuantity,
@@ -111,7 +114,7 @@ export default function QuantityControl({
       <IconButton
         size="small"
         onClick={handleDecrease}
-        disabled={quantity <= minQuantity}
+        disabled={disabled || quantity <= minQuantity}
         sx={{ p: isSmall ? 0.5 : 1 }}
       >
         <RemoveIcon fontSize={isSmall ? 'inherit' : 'small'} />

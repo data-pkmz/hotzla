@@ -23,6 +23,8 @@ import BudgetOfficerForm from '../../components/checkout/BudgetOfficerForm';
 import { apiFetch } from '../../services/api';
 import { checkoutCart } from '../../services/api/cart.service';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
 
 export interface CheckoutFormValues {
   customer: {
@@ -94,6 +96,7 @@ const checkoutSchema = z.object({
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.currentUser);
+  const { isGuideActive } = useUserGuide();
 
   /**
    * Fetch the authenticated requester's profile.
@@ -125,6 +128,22 @@ export const CheckoutPage: React.FC = () => {
    * Budget officer details and optional notes start empty.
    */
   const defaultValues = useMemo<CheckoutFormValues>(() => {
+    if (isGuideActive) {
+      return {
+        customer: {
+          name: 'משתמש לדוגמה',
+          phone: '050-0000000',
+          orgEmail: 'requester-demo@example.invalid',
+          unit: 'יחידת הדגמה',
+        },
+        budgetOfficer: {
+          fullName: 'קצין תקציב לדוגמה',
+          militaryEmail: 'budget-demo@example.invalid',
+        },
+        notes: 'הערה פיקטיבית לדוגמה',
+      };
+    }
+
     const resolvedUser = userProfile ?? {
       fullName: currentUser.name,
       militaryEmail: currentUser.email,
@@ -145,7 +164,7 @@ export const CheckoutPage: React.FC = () => {
       },
       notes: '',
     };
-  }, [currentUser, userProfile]);
+  }, [currentUser, isGuideActive, userProfile]);
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -209,7 +228,7 @@ export const CheckoutPage: React.FC = () => {
   /**
    * Prevent edits and additional submissions during checkout.
    */
-  const isCheckoutPending = isSubmitting || submitMutation.isPending;
+  const isCheckoutPending = isGuideActive || isSubmitting || submitMutation.isPending;
 
   /**
    * Handles checkout submission.
@@ -218,6 +237,10 @@ export const CheckoutPage: React.FC = () => {
    * Failed requests remain on this page and display a safe error.
    */
   const onSubmit = async (values: CheckoutFormValues) => {
+    if (isGuideActive) {
+      return;
+    }
+
     if (submitMutation.isPending) {
       return;
     }
@@ -242,7 +265,9 @@ export const CheckoutPage: React.FC = () => {
           boxShadow: 3,
         }}
       >
+        {isGuideActive && <DemoDataPanel areaLabel="טופס ההזמנה" />}
         <Typography
+          id="guide-checkout-title"
           variant="h4"
           sx={{
             fontWeight: 800,
@@ -274,17 +299,10 @@ export const CheckoutPage: React.FC = () => {
         ) : null}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-          {/* -------------------------------------- */}
-          {/* 1. Requester details                    */}
-          {/* -------------------------------------- */}
-
           <Card
+            id="guide-checkout-customer"
             variant="outlined"
-            sx={{
-              p: 3,
-              mb: 3,
-              borderRadius: 2,
-            }}
+            sx={{ p: 3, mb: 3, borderRadius: 2 }}
           >
             <Typography
               variant="h6"
@@ -360,6 +378,7 @@ export const CheckoutPage: React.FC = () => {
           {/* -------------------------------------- */}
 
           <Card
+            id="guide-checkout-budget"
             variant="outlined"
             sx={{
               p: 3,
@@ -416,17 +435,9 @@ export const CheckoutPage: React.FC = () => {
 
           <Divider sx={{ my: 3 }} />
 
-          {/* -------------------------------------- */}
-          {/* Checkout actions                       */}
-          {/* -------------------------------------- */}
-
           <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 2,
-              flexWrap: 'wrap',
-            }}
+            id="guide-checkout-actions"
+            sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, flexWrap: 'wrap' }}
           >
             <Button
               variant="outlined"

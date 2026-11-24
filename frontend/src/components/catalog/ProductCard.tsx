@@ -1,6 +1,7 @@
 import { Box, Button, Card, CardContent, Chip, Divider, Typography } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 
 import type { Product } from 'shared-types';
 
@@ -8,10 +9,15 @@ import { getProductImageUrl } from '../../services/api/file.service';
 
 interface ProductCardProps {
   product: Product;
+  demoOnly?: boolean;
   isManager?: boolean;
 }
 
-export default function ProductCard({ product, isManager = false }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  demoOnly = false,
+  isManager = false,
+}: ProductCardProps) {
   const navigate = useNavigate();
 
   const basePrice = Number(product.basePrice);
@@ -37,11 +43,11 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
 
   return (
     <Card
-      onClick={handleProductClick}
-      role="button"
-      tabIndex={0}
+      {...(!demoOnly && { 'data-guide-product-id': product.id })}
+      onClick={demoOnly ? undefined : handleProductClick}
+      {...(!demoOnly && { role: 'button', tabIndex: 0 })}
       onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) {
+        if (demoOnly || event.target !== event.currentTarget) {
           return;
         }
 
@@ -58,13 +64,15 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
         borderColor: 'divider',
         boxShadow: 'none',
         overflow: 'hidden',
-        cursor: 'pointer',
+        cursor: demoOnly ? 'default' : 'pointer',
         transition: 'box-shadow 0.2s ease, transform 0.2s ease',
 
-        '&:hover': {
-          boxShadow: 3,
-          transform: 'translateY(-2px)',
-        },
+        ...(!demoOnly && {
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+          },
+        }),
       }}
     >
       {/* Product image */}
@@ -77,18 +85,47 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
           overflow: 'hidden',
         }}
       >
-        <Box
-          component="img"
-          src={getProductImageUrl(product.imageUrl)}
-          alt={product.name}
-          sx={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-            opacity: isManager && !isActive ? 0.6 : 1,
-          }}
-        />
+        {product.imageUrl ? (
+          <Box
+            component="img"
+            src={getProductImageUrl(product.imageUrl)}
+            alt={product.name}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              opacity: isManager && !isActive ? 0.6 : 1,
+            }}
+          />
+        ) : (
+          <Box
+            aria-label={`אין תמונה זמינה עבור ${product.name}`}
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'grid',
+              placeItems: 'center',
+              color: 'text.disabled',
+            }}
+          >
+            <ImageOutlinedIcon sx={{ fontSize: 48 }} />
+          </Box>
+        )}
+
+        {demoOnly && (
+          <Chip
+            label="דוגמה פיקטיבית"
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              bgcolor: 'background.paper',
+              color: 'text.secondary',
+            }}
+          />
+        )}
 
         {/* Category tag */}
         <Chip
@@ -108,7 +145,7 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
         />
 
         {/* Product activation status, visible only to managers */}
-        {isManager && (
+        {isManager && !demoOnly && (
           <Chip
             label={isActive ? 'פעיל' : 'לא פעיל'}
             color={isActive ? 'success' : 'default'}
@@ -175,7 +212,11 @@ export default function ProductCard({ product, isManager = false }: ProductCardP
             ₪{basePrice.toFixed(2)}
           </Typography>
 
-          {isManager ? (
+          {demoOnly ? (
+            <Typography variant="body2" color="text.secondary">
+              דוגמה להמחשה
+            </Typography>
+          ) : isManager ? (
             <Button
               variant="outlined"
               size="small"

@@ -12,7 +12,7 @@ export default function CategoryFilter({
   onCategoryChange,
 }: CategoryFilterProps) {
   return (
-    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+    <Stack id="guide-catalog-categories" direction="row" spacing={1} useFlexGap flexWrap="wrap">
       <Chip
         label="הכל"
         clickable

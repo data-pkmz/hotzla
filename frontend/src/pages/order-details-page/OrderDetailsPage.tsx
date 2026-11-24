@@ -29,6 +29,9 @@ import type { OrderDetails } from 'shared-types';
 import StatusBadge from '../../components/StatusBadge';
 import { getOrderById } from '../../services/api/orders.service';
 import { formatDate, formatPrice } from '../../utils/formatting';
+import { useUserGuide } from '../../components/guide/UserGuideContext';
+import DemoDataPanel from '../../components/common/DemoDataPanel';
+import { DEMO_ORDER_DETAILS } from '../../demo/demoData';
 
 interface OrderDetailsLocationState {
   from?: string;
@@ -41,6 +44,7 @@ function getFileName(filePath: string) {
 
 export default function OrderDetailsPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const { isGuideActive } = useUserGuide();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,44 +62,45 @@ export default function OrderDetailsPage() {
   } = useQuery<OrderDetails>({
     queryKey: ['order-details', orderId],
     queryFn: () => getOrderById(orderId!),
-    enabled: Boolean(orderId),
+    enabled: !isGuideActive && Boolean(orderId),
   });
+  const displayedOrder = isGuideActive ? DEMO_ORDER_DETAILS : order;
 
-  const contacts = order
+  const contacts = displayedOrder
     ? [
         {
-          id: `requester-${order.requester.id}`,
-          name: order.requester.fullName ?? 'מזמין',
+          id: `requester-${displayedOrder.requester.id}`,
+          name: displayedOrder.requester.fullName ?? 'מזמין',
           role: 'מזמין',
-          email: order.requester.militaryEmail,
-          phone: order.requester.phone,
+          email: displayedOrder.requester.militaryEmail,
+          phone: displayedOrder.requester.phone,
         },
         {
           id: 'budget-officer',
-          name: order.budgetOfficerName,
+          name: displayedOrder.budgetOfficerName,
           role: 'קצין תקציב',
           email: null,
           phone: null,
         },
-        ...(order.approvedByManager
+        ...(displayedOrder.approvedByManager
           ? [
               {
-                id: `manager-${order.approvedByManager.id}`,
-                name: order.approvedByManager.fullName ?? 'מנהל',
+                id: `manager-${displayedOrder.approvedByManager.id}`,
+                name: displayedOrder.approvedByManager.fullName ?? 'מנהל',
                 role: 'מנהל',
-                email: order.approvedByManager.militaryEmail,
-                phone: order.approvedByManager.phone,
+                email: displayedOrder.approvedByManager.militaryEmail,
+                phone: displayedOrder.approvedByManager.phone,
               },
             ]
           : []),
-        ...(order.worker
+        ...(displayedOrder.worker
           ? [
               {
-                id: `worker-${order.worker.id}`,
-                name: order.worker.fullName ?? 'עובד דפוס',
+                id: `worker-${displayedOrder.worker.id}`,
+                name: displayedOrder.worker.fullName ?? 'עובד דפוס',
                 role: 'עובד דפוס',
-                email: order.worker.militaryEmail,
-                phone: order.worker.phone,
+                email: displayedOrder.worker.militaryEmail,
+                phone: displayedOrder.worker.phone,
               },
             ]
           : []),
@@ -103,7 +108,7 @@ export default function OrderDetailsPage() {
     : [];
 
   const uploadedItems =
-    order?.itemEntries.filter((item) => item.uploadedFilePath.trim() !== '') ?? [];
+    displayedOrder?.itemEntries.filter((item) => item.uploadedFilePath.trim() !== '') ?? [];
 
   return (
     <Box
@@ -116,7 +121,8 @@ export default function OrderDetailsPage() {
         },
       }}
     >
-      <Container maxWidth="xl">
+      <Container id="guide-order-details" maxWidth="xl">
+        {isGuideActive && <DemoDataPanel areaLabel="פרטי ההזמנה" />}
         {/* Navigation */}
         <Breadcrumbs
           separator="›"
@@ -140,11 +146,11 @@ export default function OrderDetailsPage() {
           </Link>
 
           <Typography color="#3a36ab">
-            {order ? `הזמנה #${order.orderNumber}` : 'פרטי הזמנה'}
+            {displayedOrder ? `הזמנה #${displayedOrder.orderNumber}` : 'פרטי הזמנה'}
           </Typography>
         </Breadcrumbs>
 
-        {isLoading && (
+        {isLoading && !isGuideActive && (
           <Box
             sx={{
               display: 'flex',
@@ -156,15 +162,15 @@ export default function OrderDetailsPage() {
           </Box>
         )}
 
-        {isError && (
+        {isError && !isGuideActive && (
           <Alert severity="error">
             {error instanceof Error ? error.message : 'אירעה שגיאה בטעינת פרטי ההזמנה'}
           </Alert>
         )}
 
-        {!isLoading && !isError && !order && <Alert severity="warning">לא נמצאו פרטי הזמנה.</Alert>}
+        {!isLoading && !isError && !displayedOrder && <Alert severity="info">אין מידע להצגה</Alert>}
 
-        {!isLoading && !isError && order && (
+        {!isLoading && !isError && displayedOrder && (
           <>
             {/* Page header */}
             <Box
@@ -180,19 +186,19 @@ export default function OrderDetailsPage() {
             >
               <Box>
                 <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
-                  פרטי הזמנה #{order.orderNumber}
+                  פרטי הזמנה #{displayedOrder.orderNumber}
                 </Typography>
 
                 <Typography variant="body2" color="text.secondary">
-                  נפתחה בתאריך {formatDate(order.createdAt)}
+                  נפתחה בתאריך {formatDate(displayedOrder.createdAt)}
                 </Typography>
               </Box>
 
-              <StatusBadge status={order.status} />
+              <StatusBadge status={displayedOrder.status} />
             </Box>
 
             {/* Pickup Instructions Banner */}
-            {order.pickupInstructions && (
+            {displayedOrder.pickupInstructions && (
               <Alert
                 severity="info"
                 variant="outlined"
@@ -225,7 +231,7 @@ export default function OrderDetailsPage() {
                   dir="rtl"
                   style={{ direction: 'rtl', textAlign: 'right' }}
                 >
-                  {order.pickupInstructions}
+                  {displayedOrder.pickupInstructions}
                 </Typography>
               </Alert>
             )}
@@ -271,7 +277,7 @@ export default function OrderDetailsPage() {
                   <Divider sx={{ my: 2.5 }} />
 
                   <Stack spacing={2.5} divider={<Divider flexItem />}>
-                    {order.itemEntries.map((item) => (
+                    {displayedOrder.itemEntries.map((item) => (
                       <Box key={item.id}>
                         <Box
                           sx={{
@@ -362,7 +368,7 @@ export default function OrderDetailsPage() {
                     <Typography fontWeight={700}>סה״כ הזמנה</Typography>
 
                     <Typography variant="h6" fontWeight={700}>
-                      {formatPrice(order.totalPrice)}
+                      {formatPrice(displayedOrder.totalPrice)}
                     </Typography>
                   </Box>
                 </Paper>
@@ -396,7 +402,7 @@ export default function OrderDetailsPage() {
 
                   {uploadedItems.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      לא צורפו קבצי מקור להזמנה זו.
+                      אין מידע להצגה — לא צורפו קבצי מקור להזמנה זו.
                     </Typography>
                   ) : (
                     <Stack spacing={1.5}>
@@ -559,14 +565,14 @@ export default function OrderDetailsPage() {
 
                   <Divider sx={{ my: 2.5 }} />
 
-                  {order.orderStatus.length === 0 ? (
+                  {displayedOrder.orderStatus.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      אין היסטוריית סטטוסים להצגה.
+                      אין מידע להצגה
                     </Typography>
                   ) : (
                     <Stack spacing={0}>
-                      {order.orderStatus.map((entry, index) => {
-                        const isLast = index === order.orderStatus.length - 1;
+                      {displayedOrder.orderStatus.map((entry, index) => {
+                        const isLast = index === displayedOrder.orderStatus.length - 1;
 
                         return (
                           <Box

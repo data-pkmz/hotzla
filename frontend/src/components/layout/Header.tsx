@@ -7,6 +7,7 @@ import QuickCartDrawer from '../cart/QuickCartDrawer';
 import { getActiveCart } from '../../services/api/cart.service';
 import { DevUserSwitcher } from './DevUserSwitcher';
 import { useAuthStore } from '../../store/useAuthStore';
+import { getCartItems } from '../../utils/cart';
 
 export const Header: React.FC = () => {
   const currentUser = useAuthStore((state) => state.currentUser);
@@ -20,12 +21,13 @@ export const Header: React.FC = () => {
     enabled: isRequester,
   });
 
-  const items = cart?.items || cart?.cartItemEntries || [];
+  const items = getCartItems(cart);
   const cartItemsCount = items.length;
 
   return (
     <>
       <AppBar
+        id="guide-site-header"
         position="fixed"
         elevation={1}
         sx={{
